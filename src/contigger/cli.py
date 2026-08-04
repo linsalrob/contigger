@@ -7,12 +7,16 @@ import json
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import TextIO
 
 from contigger import __version__
+from contigger.aligners.minimap2 import parse_paf
 from contigger.config import build_run_config
-from contigger.exceptions import ContiggerError
+from contigger.exceptions import ContiggerError, InputValidationError
 from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
+from contigger.models import PairRelationship
+from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.utilities.subprocesses import find_executable
 
 
@@ -60,6 +64,23 @@ def build_parser() -> argparse.ArgumentParser:
     merge.add_argument("--emit-gfa", action="store_true")
     merge.add_argument("--dry-run", action="store_true")
     merge.set_defaults(handler=_run_merge)
+
+    classify_paf = commands.add_parser(
+        "classify-paf", help="experimentally classify complete ordered pairs in a PAF file"
+    )
+    classify_paf.add_argument(
+        "--paf",
+        required=True,
+        type=Path,
+        help="input PAF (coordinates are zero-based, half-open)",
+    )
+    classify_paf.add_argument("--output", required=True, type=Path)
+    classify_paf.add_argument("--identity", type=float, default=98.0)
+    classify_paf.add_argument("--min-overlap", type=int, default=1000)
+    classify_paf.add_argument("--min-containment", type=int, default=500)
+    classify_paf.add_argument("--containment-coverage", type=float, default=98.0)
+    classify_paf.add_argument("--end-tolerance", type=int, default=50)
+    classify_paf.set_defaults(handler=_run_classify_paf)
     return parser
 
 
@@ -133,3 +154,87 @@ def _run_merge(arguments: argparse.Namespace) -> int:
 def _print_warnings(validation: ManifestValidation) -> None:
     for warning in validation.warnings:
         print(f"warning: {warning}", file=sys.stderr)
+
+
+def _run_classify_paf(arguments: argparse.Namespace) -> int:
+    config = build_run_config(
+        identity=arguments.identity,
+        min_overlap=arguments.min_overlap,
+        min_containment=arguments.min_containment,
+        containment_coverage=arguments.containment_coverage,
+        end_tolerance=arguments.end_tolerance,
+    )
+    try:
+        with arguments.paf.open(encoding="utf-8") as paf_file:
+            decisions = [
+                classify_pair(group, config) for group in group_ordered_pairs(parse_paf(paf_file))
+            ]
+    except OSError as error:
+        raise InputValidationError(f"cannot read PAF {arguments.paf}: {error}") from error
+    try:
+        arguments.output.parent.mkdir(parents=True, exist_ok=True)
+        with arguments.output.open("w", encoding="utf-8", newline="") as output:
+            _write_relationships_tsv(decisions, output)
+    except OSError as error:
+        raise InputValidationError(
+            f"cannot write relationships {arguments.output}: {error}"
+        ) from error
+    return 0
+
+
+def _write_relationships_tsv(decisions: list[PairRelationship], output: TextIO) -> None:
+    """Write deterministic diagnostic relationships with zero-based half-open coordinates."""
+    columns = (
+        "query",
+        "target",
+        "relationship_type",
+        "orientation",
+        "identity",
+        "aligned_length",
+        "query_start",
+        "query_end",
+        "target_start",
+        "target_end",
+        "query_coverage",
+        "target_coverage",
+        "status",
+        "accepted_hits",
+        "rejected_hits",
+        "reasons",
+    )
+    output.write("\t".join(columns) + "\n")
+    for decision in decisions:
+        hit = decision.representative_hit
+        if hit is None and decision.accepted_hits:
+            hit = decision.accepted_hits[0]
+        if hit is None:
+            hit = decision.rejected_alignments[0].hit
+        relationship = decision.relationship
+        reasons = relationship.reasons or tuple(
+            sorted(
+                {
+                    reason
+                    for rejected in decision.rejected_alignments
+                    for reason in rejected.relationship.reasons
+                }
+            )
+        )
+        row = (
+            hit.query_id,
+            hit.target_id,
+            relationship.relationship_type.value,
+            relationship.orientation.value,
+            f"{relationship.identity:.6f}",
+            str(relationship.aligned_length),
+            str(hit.query_start),
+            str(hit.query_end),
+            str(hit.target_start),
+            str(hit.target_end),
+            f"{relationship.query_coverage:.6f}",
+            f"{relationship.target_coverage:.6f}",
+            relationship.status,
+            str(len(decision.accepted_hits)),
+            str(len(decision.rejected_alignments)),
+            "; ".join(reasons),
+        )
+        output.write("\t".join(row) + "\n")

@@ -29,6 +29,16 @@ class RelationshipType(StrEnum):
     NO_RELATIONSHIP = "NO_RELATIONSHIP"
 
 
+class AlignmentType(StrEnum):
+    """PAF alignment role reported by an aligner, when available."""
+
+    PRIMARY = "P"
+    SECONDARY = "S"
+    SUPPLEMENTARY = "SUPPLEMENTARY"
+    INVERSION_PRIMARY = "I"
+    INVERSION_SECONDARY = "i"
+
+
 class EvidenceMode(StrEnum):
     """Evidence source made available to a future decision policy."""
 
@@ -107,6 +117,9 @@ class AlignmentHit:
     mapping_quality: int | None = None
     alignment_score: int | None = None
     supporting_seeds: int | None = None
+    chaining_score: int | None = None
+    secondary_chaining_score: int | None = None
+    alignment_type: AlignmentType | None = None
 
     def __post_init__(self) -> None:
         dimensions = (self.query_length, self.target_length, self.alignment_block_length)
@@ -118,6 +131,8 @@ class AlignmentHit:
             raise InputValidationError("target coordinates are outside the target sequence")
         if not 0 <= self.matching_bases <= self.alignment_block_length:
             raise InputValidationError("matching bases must be within the alignment block")
+        if self.mapping_quality is not None and not 0 <= self.mapping_quality <= 255:
+            raise InputValidationError("mapping quality must be between 0 and 255")
 
     @property
     def identity(self) -> float:
@@ -173,6 +188,25 @@ class Relationship:
     target_coverage: float
     status: str
     reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class RejectedAlignment:
+    """A rejected alignment retained with its single-hit diagnostic."""
+
+    hit: AlignmentHit
+    relationship: Relationship
+
+
+@dataclass(frozen=True, slots=True)
+class PairRelationship:
+    """Conservative decision over every distinct hit for one ordered pair."""
+
+    relationship: Relationship
+    representative_hit: AlignmentHit | None
+    accepted_hits: tuple[AlignmentHit, ...]
+    rejected_alignments: tuple[RejectedAlignment, ...]
+    ambiguity_reasons: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)
