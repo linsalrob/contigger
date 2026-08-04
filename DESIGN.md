@@ -1,0 +1,144 @@
+# Contigger initial design
+
+## 1. Problem statement
+
+Assemblies from related samples often contain exact duplicates, contained sequences, compatible terminal overlaps, strain-specific alternatives, repeats, and errors. Contigger will reconcile them without converting similarity into unjustified joins. Its priority is recoverability and avoidance of false merges, not maximal compression.
+
+## 2. Terminology
+
+A **contig** is an input assembled sequence. A **candidate** is a pair selected by positional seed evidence. An **alignment hit** is a coordinate-bearing observation, not a decision. **Containment** means one sequence is covered end-to-end within another. A **terminal overlap** connects compatible ends. A **relationship** is the classified interpretation of an alignment. A **junction** is newly constructed sequence adjacency. **Provenance** maps every source interval and disposition to an output or ambiguity record.
+
+## 3. Scope of the first implementation
+
+The first milestone supplies typed models, FASTA and manifest validation, configuration normalisation, aligner/evidence abstractions, PAF parsing, deterministic naming and provenance writing, conservative classification of simple alignment hits, and a validation/dry-run CLI.
+
+## 4. Explicit non-goals
+
+This scaffold does not implement a production minimiser index, exhaustive all-v-all alignment, graph path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+
+## 5. Input model
+
+Each `SampleInput` has a unique sample identifier and contig FASTA, with optional coordinate-sorted indexed BAM/CRAM, technology, assembly graph, and extra metadata. FASTA IDs need only be unique within a sample; internal identities include sample context. Optional inputs are never silently ignored when supplied.
+
+## 6. Manifest format
+
+The tab-separated manifest requires `sample` and `contigs`. Optional columns are `bam`, `technology`, and `assembly_graph`; unknown columns are preserved as strings in metadata. Fields are trimmed, blank required fields and duplicate samples are errors, paths resolve relative to the manifest, and diagnostics contain line numbers.
+
+## 7. Internal coordinate and orientation conventions
+
+All internal intervals are zero-based and half-open: `[start, end)`. PAF already follows this convention; formats that do not must convert at their boundary. Coordinates remain in the named sequence's forward coordinate system. Orientation is always an explicit `+` or `-` and is never inferred from coordinate order. For reverse hits, target terminal semantics are swapped explicitly during topology checks.
+
+## 8. Processing pipeline
+
+The planned stages are validation; stable sequence identification; exact deduplication; positional-minimiser candidate generation; selective alignment; relationship classification; ambiguity-preserving graph construction; confident containment removal; conservative linear-path merging; optional sample-aware evidence analysis; targeted remapping for new junctions; and deterministic outputs with run provenance. Every stage consumes and produces typed records.
+
+## 9. Candidate generation
+
+Initial conceptual defaults, all requiring benchmarking, are:
+
+```text
+identity threshold:              98%
+minimum terminal overlap:        1,000 bp
+minimum containment span:        500 bp
+containment coverage:            98%
+end tolerance:                   50 bp
+canonical k-mer size:            21
+minimiser window:                10
+minimum shared minimisers:       5
+maximum minimiser frequency:     100
+```
+
+General k-mer composition vectors are not preferred because they discard position and can conflate shared composition with overlap. Canonical positional minimisers are the intended first heuristic. Candidate records should retain shared-seed counts, relative positions, and orientation signals. Frequent minimisers must be bounded to limit repeats and quadratic pair expansion.
+
+## 10. Alignment abstraction
+
+An `Aligner` can build/reuse an index, align typed sequences, return `AlignmentHit` objects, and report its name, version, and exact last command. The first working adapter will likely invoke minimap2 and parse PAF, but callers must not depend on minimap2-specific objects so a native Python or Rust implementation can replace it.
+
+## 11. Relationship classification
+
+`RelationshipType` defines `EXACT_MATCH`, `QUERY_CONTAINED_IN_TARGET`, `TARGET_CONTAINED_IN_QUERY`, `QUERY_SUFFIX_TO_TARGET_PREFIX`, `TARGET_SUFFIX_TO_QUERY_PREFIX`, `AMBIGUOUS_OVERLAP`, and `NO_RELATIONSHIP`. Classification considers identity, aligned length, query and target coverage, distance to every query and target end, explicit orientation, alignment topology, competing alignments, and repeat/ambiguity signals. The scaffold handles simple single hits; competing-hit and repeat logic remains required before production use.
+
+## 12. Containment criteria
+
+Containment is evaluated separately from overlap. The contained sequence must be covered at both ends within tolerance, meet minimum containment span and coverage, and meet identity. The containing sequence need not terminate at the alignment. Near-equal sequences require deterministic representative selection and complete provenance. Threshold defaults require benchmarking.
+
+## 13. Terminal-overlap criteria
+
+A merge candidate must meet identity and minimum aligned span and connect exactly one compatible pair of oriented terminals within end tolerance. Internal local similarity is `NO_RELATIONSHIP`, regardless of identity. Simultaneously compatible or inconsistent topologies become ambiguous rather than being selected greedily. Sequence identity alone is never merge evidence.
+
+## 14. Graph representation
+
+The future graph has stable sequence nodes and typed relationship edges containing orientation, coordinates, quality observations, and diagnostics. Containment must not be represented as an ordinary overlap edge. Edge and node iteration is explicitly sorted. Components expose ambiguity rather than hiding it.
+
+## 15. Conservative graph simplification
+
+Confident contained nodes may be removed from representative output only after provenance is attached. Only unambiguous degree-compatible linear overlap paths may be proposed for merging. Branches, orientation conflicts, competing edges, repeat signals, cycles without a justified rule, and conflicting evidence are preserved. No greedy best-score collapse is permitted.
+
+## 16. Sequence conflict handling
+
+Evidence collection and decision policy are separate interfaces. Evidence modes are `none`, `alignments`, and `reads`. Proposed policies are `representative`, `majority`, `quality-weighted`, `sample-aware`, `ambiguous`, and `reject`. These names establish configuration boundaries only; unsupported biological decisions are not implemented. The conservative default is `reject`.
+
+## 17. BAM/CRAM evidence model
+
+Three claims must remain distinct: sequence-overlap evidence, source-contig pileup evidence, and support for a newly constructed join. Existing BAM/CRAM records can provide depth, allele counts, base qualities, mapping qualities, strand support, clipping, paired-read metadata, and sample identity within source contigs. Providers are sample-scoped and must validate reference names and lengths against the source FASTA.
+
+## 18. Sample-aware variation
+
+Evidence is retained by sample. For example:
+
+```text
+sample A: allele A strongly supported
+sample B: allele G strongly supported
+```
+
+This must not become a pooled majority call without an explicit policy; it may be genuine strain or population variation. Outputs must permit both observations to remain recoverable.
+
+## 19. Targeted remapping for new junctions
+
+The merged sequence did not exist when the original BAM was produced, so that BAM cannot directly contain an alignment spanning its new junction. A later workflow should (1) identify reads near relevant contig ends, (2) recover mates and soft-clipped reads where possible, (3) construct a provisional merged reference, (4) remap only the relevant subset, and (5) assess junction-spanning support. Minimap2 may perform remapping and samtools may extract/convert reads; neither implies a junction decision by itself.
+
+## 20. Provenance model
+
+Every retained, contained, merged, ambiguous, or rejected source contig remains represented. Rows record output ID, sample, source ID, relationship, explicit orientation, zero-based half-open source and output intervals, identity where applicable, disposition, and reason. Stable output IDs must not depend on traversal timing. Writers use fixed columns and sorted rows.
+
+## 21. Output formats
+
+First-milestone planned outputs are `contigger.fasta`, `contigger.provenance.tsv`, `contigger.relationships.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`; they are not emitted by the current scaffold. Later planned outputs are `contigger.variants.tsv`, `contigger.join_support.tsv`, `contigger.consensus.vcf`, and `contigger.low_confidence.bed`. A dry run writes no biological outputs. Each tabular format will document coordinates and schema versions before implementation.
+
+## 22. Determinism and reproducibility
+
+Samples, candidates, relationships, graph nodes/edges, and output rows use documented stable sort keys. Configuration, exact external commands, executable versions, and input identities belong in run statistics. Future randomness must accept and record a seed. Hash-table and traversal order cannot affect output identifiers or decisions.
+
+## 23. Performance and scalability
+
+Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
+
+## 24. Error handling
+
+Malformed syntax, unreadable supplied files, missing references, duplicate identifiers, invalid coordinates, inconsistent lengths, unsupported policies, and failed tools are explicit domain errors. External failures include stderr and exact arguments. Warnings cover non-fatal conditions such as a supplied BAM lacking an adjacent index. Placeholder methods raise `FeatureNotImplementedError`.
+
+## 25. Testing strategy
+
+Unit tests use synthetic FASTA and manually built alignment records and require no external tools. They cover both orientations, containment directions, terminal geometries, internal similarity, thresholds, zero spans, ambiguity, malformed input, determinism, and CLI status codes. External-tool tests are marked integration tests. False-join regressions are permanent; random tests use fixed seeds and temporary files use pytest fixtures.
+
+## 26. Staged roadmap
+
+1. Complete and benchmark relationship classification from minimap2 PAF using synthetic contigs.
+2. Implement and benchmark canonical positional-minimiser candidates.
+3. Add typed, ambiguity-preserving graph construction and containment handling.
+4. Implement provenance-complete unambiguous linear-path merging.
+5. Validate source BAM/CRAM references and expose sample-aware pileups.
+6. Add targeted read extraction/remapping and junction-support reporting.
+7. Evaluate consensus and variation policies only with reviewed benchmarks.
+
+## 27. Open design questions
+
+- Which minimap2 preset and secondary-alignment policy best balances sensitivity and repeat safety?
+- How should multiple near-equivalent PAF records establish ambiguity?
+- Are containment thresholds length- or technology-dependent?
+- How should circular contigs be represented without unsafe linearisation?
+- Which graph patterns can be simplified safely in the presence of reverse complements?
+- What constitutes adequate junction support for each sequencing technology?
+- How should read names, mates, and sample metadata be retained without excessive storage?
+- Which representative-selection policy is stable, explainable, and biologically neutral?
+- Which benchmark truth sets adequately measure false merges across microbes, viruses, and phages?
