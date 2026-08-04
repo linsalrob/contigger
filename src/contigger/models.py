@@ -243,9 +243,9 @@ class RunConfig:
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.identity <= 1.0:
-            raise ConfigurationError("identity must be between 0 and 100 percent")
+            raise ConfigurationError("identity must be a fraction between 0.0 and 1.0")
         if not 0.0 <= self.containment_coverage <= 1.0:
-            raise ConfigurationError("containment coverage must be between 0 and 100 percent")
+            raise ConfigurationError("containment_coverage must be a fraction between 0.0 and 1.0")
         if self.min_overlap < 1 or self.min_containment < 1:
             raise ConfigurationError("minimum overlap and containment must be positive")
         if self.end_tolerance < 0:
