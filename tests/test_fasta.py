@@ -40,3 +40,10 @@ def test_rejects_malformed_fasta(tmp_path: Path, content: str, message: str) -> 
 
 def test_reverse_complement_with_ambiguity() -> None:
     assert reverse_complement("ACGTRYSWKMBDHVN") == "NBDHVKMWSRYACGT"
+
+
+def test_invalid_sequence_reports_last_sequence_line_before_blanks(tmp_path: Path) -> None:
+    path = write_fasta(tmp_path, ">bad\nAC-X\n\n\n>good\nACGT\n")
+
+    with pytest.raises(FastaFormatError, match=r"input\.fasta:2: invalid DNA"):
+        list(read_fasta(path))

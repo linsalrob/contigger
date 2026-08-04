@@ -56,12 +56,13 @@ def _parse_fasta(handle: TextIO, path: Path, sample: str) -> Iterator[SequenceRe
         return record
 
     last_line = 0
+    last_record_line = 0
     for line_number, raw_line in enumerate(handle, start=1):
         last_line = line_number
         line = raw_line.rstrip("\r\n")
         if line.startswith(">"):
             if identifier is not None:
-                yield make_record(line_number - 1)
+                yield make_record(last_record_line)
             header = line[1:].strip()
             if not header:
                 raise FastaFormatError(f"{path}:{line_number}: empty FASTA identifier")
@@ -74,12 +75,14 @@ def _parse_fasta(handle: TextIO, path: Path, sample: str) -> Iterator[SequenceRe
                 )
             seen.add(identifier)
             chunks = []
+            last_record_line = line_number
         elif line.strip():
             if identifier is None:
                 raise FastaFormatError(f"{path}:{line_number}: sequence data before first header")
             chunks.append("".join(line.split()))
+            last_record_line = line_number
     if identifier is not None:
-        yield make_record(last_line)
+        yield make_record(last_record_line)
     elif last_line == 0:
         raise FastaFormatError(f"{path}: FASTA file is empty")
 

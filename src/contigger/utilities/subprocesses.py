@@ -42,7 +42,7 @@ def run_command(arguments: Sequence[str]) -> CommandResult:
     )
     if completed.returncode != 0:
         raise ExternalToolError(
-            f"command failed ({completed.returncode}): {' '.join(arguments)}\n"
+            f"command failed ({completed.returncode}): {tuple(arguments)!r}\n"
             f"{completed.stderr.strip()}"
         )
     return result
