@@ -132,10 +132,10 @@ def test_equivalent_primary_and_secondary_hits_collapse() -> None:
             if field
             not in {"query_start", "query_end", "target_start", "target_end", "alignment_type"}
         },
-        query_start=705,
-        query_end=995,
+        query_start=700,
+        query_end=1000,
         target_start=5,
-        target_end=295,
+        target_end=305,
         alignment_type=AlignmentType.SECONDARY,
     )
     result = classify_pair([secondary, primary], CONFIG)

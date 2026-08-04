@@ -27,16 +27,25 @@ def test_synthetic_fixture_catalog_is_deterministic_and_complete() -> None:
     assert mutate_substitutions("AAAA", 2) == "CCAA"
 
 
+def test_reverse_overlap_places_forward_target_match_at_suffix() -> None:
+    case = next(case for case in synthetic_cases() if case.name == "reverse_suffix_prefix")
+    reverse_complement_query_suffix = case.query[-300:]
+    expected_forward_overlap = reverse_complement_query_suffix.translate(
+        str.maketrans("ACGT", "TGCA")
+    )[::-1]
+    assert case.target.endswith(expected_forward_overlap)
+
+
 def _boundary_hit(*, end_distance: int = 10, matches: int = 98, block: int = 100) -> AlignmentHit:
     return AlignmentHit(
         query_id="q",
         target_id="t",
-        query_length=200,
-        target_length=200,
-        query_start=100,
-        query_end=200 - end_distance,
+        query_length=210,
+        target_length=210,
+        query_start=210 - end_distance - block,
+        query_end=210 - end_distance,
         target_start=end_distance,
-        target_end=end_distance + 100,
+        target_end=end_distance + block,
         orientation=Orientation.FORWARD,
         matching_bases=matches,
         alignment_block_length=block,

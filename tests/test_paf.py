@@ -42,3 +42,8 @@ def test_parse_paf_stream_ignores_only_blank_lines() -> None:
 def test_malformed_paf_reports_physical_line_number(record: str) -> None:
     with pytest.raises(InputValidationError, match="PAF line 3"):
         list(parse_paf(["\n", "\n", record]))
+
+
+def test_valid_paf_indel_can_have_block_longer_than_one_sequence_span() -> None:
+    hit = parse_paf_line("q\t301\t0\t301\t+\tt\t300\t0\t300\t300\t301\t60")
+    assert hit.alignment_block_length == 301

@@ -210,9 +210,10 @@ def _write_relationships_tsv(decisions: list[PairRelationship], output: TextIO) 
         if hit is None:
             hit = decision.rejected_alignments[0].hit
         relationship = decision.relationship
-        reasons = relationship.reasons or tuple(
+        reasons = tuple(
             sorted(
-                {
+                set(relationship.reasons)
+                | {
                     reason
                     for rejected in decision.rejected_alignments
                     for reason in rejected.relationship.reasons

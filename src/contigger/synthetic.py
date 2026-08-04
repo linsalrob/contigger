@@ -59,7 +59,7 @@ def synthetic_cases(seed: int = 1729) -> tuple[SyntheticCase, ...]:
         SyntheticCase(
             "reverse_suffix_prefix",
             left + _reverse_complement(overlap),
-            overlap + right,
+            right + overlap,
             RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX,
         ),
         SyntheticCase(

@@ -133,6 +133,18 @@ class AlignmentHit:
             raise InputValidationError("matching bases must be within the alignment block")
         if self.mapping_quality is not None and not 0 <= self.mapping_quality <= 255:
             raise InputValidationError("mapping quality must be between 0 and 255")
+        query_span = self.query_end - self.query_start
+        target_span = self.target_end - self.target_start
+        if self.matching_bases > min(query_span, target_span):
+            raise InputValidationError("matching bases cannot exceed either aligned sequence span")
+        if self.alignment_block_length < max(query_span, target_span):
+            raise InputValidationError(
+                "alignment block length cannot be shorter than an aligned sequence span"
+            )
+        if self.alignment_block_length > query_span + target_span:
+            raise InputValidationError(
+                "alignment block length cannot exceed the sum of aligned sequence spans"
+            )
 
     @property
     def identity(self) -> float:
