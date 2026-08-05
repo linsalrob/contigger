@@ -194,16 +194,16 @@ def _terminal_topologies(
     topologies: set[str] = set()
 
     def query_prefix(position: int) -> bool:
-        return position <= terminal_band
+        return position < terminal_band
 
     def query_suffix(position: int) -> bool:
-        return position + kmer_size >= query_length - terminal_band
+        return position + kmer_size > query_length - terminal_band
 
     def target_prefix(position: int) -> bool:
-        return position <= terminal_band
+        return position < terminal_band
 
     def target_suffix(position: int) -> bool:
-        return position + kmer_size >= target_length - terminal_band
+        return position + kmer_size > target_length - terminal_band
 
     by_orientation: dict[Orientation, list[tuple[MinimiserObservation, MinimiserObservation]]] = {
         Orientation.FORWARD: [],

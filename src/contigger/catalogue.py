@@ -39,10 +39,13 @@ def load_source_sequences(samples: Iterable[SampleInput]) -> tuple[SequenceRecor
 def build_catalogue(records: Iterable[SequenceRecord]) -> SequenceCatalogue:
     """Collapse only byte-exact forward or reverse-complement sequence duplicates."""
     ordered = tuple(sorted(records, key=_source_sort_key))
-    source_ids = [record.identifier for record in ordered]
-    if len(source_ids) != len(set(source_ids)):
-        duplicate = next(item for item in source_ids if source_ids.count(item) > 1)
-        raise InputValidationError(f"duplicate source identifier in catalogue input: {duplicate}")
+    seen: set[str] = set()
+    for record in ordered:
+        if record.identifier in seen:
+            raise InputValidationError(
+                f"duplicate source identifier in catalogue input: {record.identifier}"
+            )
+        seen.add(record.identifier)
 
     groups: dict[str, list[tuple[SequenceRecord, Orientation]]] = {}
     canonical_sequences: dict[str, str] = {}
