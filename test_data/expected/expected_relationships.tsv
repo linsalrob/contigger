@@ -66,10 +66,10 @@ reverse_exact_r02_a	reverse_exact_r02_b	EXACT_MATCH	-	VALID	true	20000	100.0000	
 reverse_exact_r02_b	reverse_exact_r02_a	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r02	exact construction
 reverse_exact_r03_a	reverse_exact_r03_b	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r03	exact construction
 reverse_exact_r03_b	reverse_exact_r03_a	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r03	exact construction
-small_deletion_left	small_deletion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	5000		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
-small_deletion_right	small_deletion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	5000	15000	20000		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
-small_insertion_left	small_insertion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	5000		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
-small_insertion_right	small_insertion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	5000	15000	20000		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
+small_deletion_left	small_deletion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	4997		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
+small_deletion_right	small_deletion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	4997	15000	20000		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
+small_insertion_left	small_insertion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	5003		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
+small_insertion_right	small_insertion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	5003	15000	20000		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
 terminal_repeat_left	terminal_repeat_right_a	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	terminal_repeat	terminal_repeat	terminal synthetic repeat lacks unique-flank adjacency evidence
 terminal_repeat_left	terminal_repeat_right_b	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	terminal_repeat	terminal_repeat	terminal synthetic repeat lacks unique-flank adjacency evidence
 unrelated_unique_a	unrelated_unique_b	NO_RELATIONSHIP	.	FORBIDDEN	false	0	0.0000	0	0	0	0		unrelated_unique	two distant unique contigs have no constructed relationship

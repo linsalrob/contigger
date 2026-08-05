@@ -1,6 +1,6 @@
 {
-  "benchmark_version": "1.0.0",
   "archive_size_bytes": 12253667,
+  "benchmark_version": "1.0.0",
   "cases": 43,
   "configured_thresholds": {
     "containment_coverage_inclusive": true,
@@ -15,7 +15,7 @@
   },
   "construction_seed": 47291,
   "contigs": 90,
-  "directory_size_bytes": 12338807,
+  "directory_size_bytes": 12379985,
   "expected_relationship_types": 7,
   "reads_retained": 1500,
   "relationship_counts": {
