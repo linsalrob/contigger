@@ -1,0 +1,69 @@
+name: contigger-benchmark
+
+# Channel order follows Bioconda's recommendation: conda-forge has the
+# highest priority, followed by bioconda. nodefaults prevents accidental
+# mixing with packages from the defaults channel.
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+
+dependencies:
+  # Runtime and environment tooling
+  - python=3.13
+  - pip
+  - setuptools
+  - wheel
+  - conda-lock
+
+  # Reproducible workflow execution
+  - snakemake-minimal=9.24
+  - pyyaml
+  - rich
+
+  # Sequence and alignment tools
+  - minimap2=2.31
+  - samtools=1.24
+  - bcftools=1.24
+  - htslib=1.24
+  - bedtools
+  - mummer4=4.0.1
+
+  # FASTA/FASTQ inspection, filtering, and deterministic subsampling
+  - seqkit=2.13
+  - seqtk=1.5
+  - rasusa=4.1
+  - filtlong=0.3.1
+  - pigz
+
+  # ONT assembly and assembly/reference assessment
+  - flye=2.9.6
+  - quast=5.3
+  - mosdepth=0.3.14
+  - gnuplot
+
+  # Long-read simulation for controlled strain/error benchmarks
+  - badread=0.4.2
+
+  # Python benchmark generation and analysis
+  - numpy
+  - scipy
+  - pandas
+  - polars
+  - pyarrow
+  - biopython
+  - pysam
+  - pyfaidx
+  - matplotlib-base
+
+  # Development, validation, and command-line utilities
+  - pytest
+  - pytest-cov
+  - hypothesis
+  - ruff
+  - mypy
+  - git
+  - git-lfs
+  - jq
+  - yq
+  - parallel

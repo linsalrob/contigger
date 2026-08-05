@@ -29,3 +29,6 @@ __pycache__/
 htmlcov/
 build/
 dist/
+
+# Generated benchmark archive
+test_data.tar.gz

@@ -1,0 +1,52 @@
+{
+  "assembly": {
+    "contig_id": "1",
+    "gc_percent": 66.08150661433356,
+    "header": ">1 length=6852769 circular=true topology=circular",
+    "header_claims_circular": true,
+    "length": 6852769
+  },
+  "benchmark_seed": 47291,
+  "generation_date": "2026-08-05",
+  "gfa": {
+    "consistent_single_circular": true,
+    "links": 2,
+    "paths": 0,
+    "segment_lengths": [
+      6852769
+    ],
+    "segments": 1,
+    "self_links": 2,
+    "walks": 0
+  },
+  "inferred_circularity": true,
+  "natural_repeat_assessment": {
+    "decision": "synthetic fallback used for controlled repeat ambiguity; natural repeat not asserted as truth",
+    "self_alignment_file": "private source_self.asm5.paf"
+  },
+  "reads": {
+    "count": 2009823,
+    "gc_percent": 65.9,
+    "maximum_length": 1231655,
+    "mean_length": 3099.8,
+    "median_length": 2222,
+    "minimum_length": 1,
+    "n50": 5096,
+    "total_bases": 6229995885
+  },
+  "source_basenames": {
+    "assembly": "consensus_assembly.fasta",
+    "graph": "consensus_assembly.gfa",
+    "reads": "BC04.trimmed.fastq.gz"
+  },
+  "source_file_sizes": {
+    "assembly": 6852820,
+    "graph": 6852837,
+    "reads": 4071068886
+  },
+  "source_sha256": {
+    "assembly": "b9d746dfc7abd4a4c6c9bba37b077a8554d4b67f80f741b28e59adbe74e74b81",
+    "graph": "134e54a0e5fafe75b54a7f537b7afc3df4b421930a3effd4da70a800a0f80c7f",
+    "reads": "e5ebf942aa15cc8e3329817f64f5e0dc2211bd009dad715a77ddfff779183daf"
+  }
+}

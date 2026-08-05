@@ -1,0 +1,35 @@
+generation:
+  contained_contig_length: 10000
+  containment_target_length: 25000
+  identity_test_overlap_length: 10000
+  ordinary_contig_length: 20000
+  ordinary_replicates: 3
+  standard_overlap_length: 5000
+  unique_kmer_size: 21
+inputs:
+  assembly: consensus_assembly.fasta
+  graph: consensus_assembly.gfa
+  reads: BC04.trimmed.fastq.gz
+reads:
+  alignment_preset: map-ont
+  flank_length: 5000
+  maximum_reads_per_locus: 100
+  minimum_spanning_flank: 500
+  nonspanning_reads_per_locus: 6
+  sample_partitions: 3
+seed: 47291
+size_limits:
+  maximum_archive_mb: 150
+  maximum_file_mb: 50
+  preferred_archive_mb: 100
+thresholds:
+  containment_coverage_inclusive: true
+  containment_coverage_percent: 98.0
+  end_tolerance: 50
+  end_tolerance_inclusive: true
+  identity_inclusive: true
+  identity_percent: 98.0
+  minimum_containment: 500
+  minimum_overlap: 1000
+  overlap_inclusive: true
+version: 1

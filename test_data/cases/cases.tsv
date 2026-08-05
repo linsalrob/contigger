@@ -1,0 +1,45 @@
+case_id	category	description	governing_decision
+chimera	negative	contig joins two distant source loci	merge only when uniquely and conservatively supported
+circular_origin	positive	native overlap crosses reference end/origin	merge only when uniquely and conservatively supported
+contain_r01	positive	10 kb query exactly contained in 25 kb target	merge only when uniquely and conservatively supported
+contain_r02	positive	10 kb query exactly contained in 25 kb target	merge only when uniquely and conservatively supported
+contain_r03	positive	10 kb query exactly contained in 25 kb target	merge only when uniquely and conservatively supported
+containment_coverage_above	positive	containment aligned coverage 98.01%	merge only when uniquely and conservatively supported
+containment_coverage_at	positive	containment aligned coverage 98.00%	merge only when uniquely and conservatively supported
+containment_coverage_below	negative	containment aligned coverage 97.99%	merge only when uniquely and conservatively supported
+end_tolerance_49	positive	alignment endpoint is 49 bp from query end	merge only when uniquely and conservatively supported
+end_tolerance_50	positive	alignment endpoint is 50 bp from query end	merge only when uniquely and conservatively supported
+end_tolerance_51	negative	alignment endpoint is 51 bp from query end	merge only when uniquely and conservatively supported
+exact_r01	positive	exact sequence equality	merge only when uniquely and conservatively supported
+exact_r02	positive	exact sequence equality	merge only when uniquely and conservatively supported
+exact_r03	positive	exact sequence equality	merge only when uniquely and conservatively supported
+high_identity_short	negative	high identity overlap is only 900 bp	merge only when uniquely and conservatively supported
+high_identity_short	negative	high identity overlap is only 900 bp	merge only when uniquely and conservatively supported
+identity_9799	negative	10 kb substitution-only boundary: 201 substitutions	merge only when uniquely and conservatively supported
+identity_9800	positive	10 kb substitution-only boundary: 200 substitutions	merge only when uniquely and conservatively supported
+identity_9801	positive	10 kb substitution-only boundary: 199 substitutions	merge only when uniquely and conservatively supported
+incompatible_placements	ambiguous	two valid pairwise placements cannot both define one adjacency	merge only when uniquely and conservatively supported
+internal_shared	negative	shared high-identity block is internal to both contigs	merge only when uniquely and conservatively supported
+length_1000	positive	minimum-overlap boundary at 1000 bp	merge only when uniquely and conservatively supported
+length_1001	positive	minimum-overlap boundary at 1001 bp	merge only when uniquely and conservatively supported
+length_999	negative	minimum-overlap boundary at 999 bp	merge only when uniquely and conservatively supported
+low_complexity	negative	homopolymer-rich terminal match is non-specific	merge only when uniquely and conservatively supported
+near_containment_fail	negative	near containment fails end/coverage criterion	merge only when uniquely and conservatively supported
+opposite_orientations	ambiguous	non-equivalent alignments support opposite orientations	merge only when uniquely and conservatively supported
+overlap_forward_r01	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+overlap_forward_r02	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+overlap_forward_r03	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+overlap_rc_r01	positive	terminal overlap requires reverse-complement target	merge only when uniquely and conservatively supported
+overlap_rc_r02	positive	terminal overlap requires reverse-complement target	merge only when uniquely and conservatively supported
+overlap_rc_r03	positive	terminal overlap requires reverse-complement target	merge only when uniquely and conservatively supported
+overlap_reverse_direction_r01	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+overlap_reverse_direction_r02	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+overlap_reverse_direction_r03	positive	constructed native suffix-prefix overlap	merge only when uniquely and conservatively supported
+repeat_ambiguity	ambiguous	synthetic repeat has two incompatible terminal placements	merge only when uniquely and conservatively supported
+reverse_exact_r01	positive	exact sequence equality under reverse complement	merge only when uniquely and conservatively supported
+reverse_exact_r02	positive	exact sequence equality under reverse complement	merge only when uniquely and conservatively supported
+reverse_exact_r03	positive	exact sequence equality under reverse complement	merge only when uniquely and conservatively supported
+small_deletion	positive	3 bp deletion inside terminal overlap; source reads support reference allele	merge only when uniquely and conservatively supported
+small_insertion	positive	3 bp insertion inside terminal overlap; source reads support reference allele	merge only when uniquely and conservatively supported
+terminal_repeat	ambiguous	terminal synthetic repeat lacks unique-flank adjacency evidence	merge only when uniquely and conservatively supported
+unrelated_unique	negative	two distant unique contigs have no constructed relationship	merge only when uniquely and conservatively supported

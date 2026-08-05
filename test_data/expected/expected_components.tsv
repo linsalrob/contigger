@@ -1,0 +1,45 @@
+component_id	case_id	expected_action	reason
+C001	chimera	KEEP_SEPARATE_OR_AMBIGUOUS	contig joins two distant source loci
+C002	circular_origin	MERGE	native overlap crosses reference end/origin
+C003	contain_r01	MERGE	10 kb query exactly contained in 25 kb target
+C004	contain_r02	MERGE	10 kb query exactly contained in 25 kb target
+C005	contain_r03	MERGE	10 kb query exactly contained in 25 kb target
+C006	containment_coverage_above	MERGE	containment aligned coverage 98.01%
+C007	containment_coverage_at	MERGE	containment aligned coverage 98.00%
+C008	containment_coverage_below	KEEP_SEPARATE_OR_AMBIGUOUS	containment aligned coverage 97.99%
+C009	end_tolerance_49	MERGE	alignment endpoint is 49 bp from query end
+C010	end_tolerance_50	MERGE	alignment endpoint is 50 bp from query end
+C011	end_tolerance_51	KEEP_SEPARATE_OR_AMBIGUOUS	alignment endpoint is 51 bp from query end
+C012	exact_r01	MERGE	exact sequence equality
+C013	exact_r02	MERGE	exact sequence equality
+C014	exact_r03	MERGE	exact sequence equality
+C015	high_identity_short	KEEP_SEPARATE_OR_AMBIGUOUS	high identity overlap is only 900 bp
+C016	high_identity_short	KEEP_SEPARATE_OR_AMBIGUOUS	high identity overlap is only 900 bp
+C017	identity_9799	KEEP_SEPARATE_OR_AMBIGUOUS	10 kb substitution-only boundary: 201 substitutions
+C018	identity_9800	MERGE	10 kb substitution-only boundary: 200 substitutions
+C019	identity_9801	MERGE	10 kb substitution-only boundary: 199 substitutions
+C020	incompatible_placements	KEEP_SEPARATE_OR_AMBIGUOUS	two valid pairwise placements cannot both define one adjacency
+C021	internal_shared	KEEP_SEPARATE_OR_AMBIGUOUS	shared high-identity block is internal to both contigs
+C022	length_1000	MERGE	minimum-overlap boundary at 1000 bp
+C023	length_1001	MERGE	minimum-overlap boundary at 1001 bp
+C024	length_999	KEEP_SEPARATE_OR_AMBIGUOUS	minimum-overlap boundary at 999 bp
+C025	low_complexity	KEEP_SEPARATE_OR_AMBIGUOUS	homopolymer-rich terminal match is non-specific
+C026	near_containment_fail	KEEP_SEPARATE_OR_AMBIGUOUS	near containment fails end/coverage criterion
+C027	opposite_orientations	KEEP_SEPARATE_OR_AMBIGUOUS	non-equivalent alignments support opposite orientations
+C028	overlap_forward_r01	MERGE	constructed native suffix-prefix overlap
+C029	overlap_forward_r02	MERGE	constructed native suffix-prefix overlap
+C030	overlap_forward_r03	MERGE	constructed native suffix-prefix overlap
+C031	overlap_rc_r01	MERGE	terminal overlap requires reverse-complement target
+C032	overlap_rc_r02	MERGE	terminal overlap requires reverse-complement target
+C033	overlap_rc_r03	MERGE	terminal overlap requires reverse-complement target
+C034	overlap_reverse_direction_r01	MERGE	constructed native suffix-prefix overlap
+C035	overlap_reverse_direction_r02	MERGE	constructed native suffix-prefix overlap
+C036	overlap_reverse_direction_r03	MERGE	constructed native suffix-prefix overlap
+C037	repeat_ambiguity	KEEP_SEPARATE_OR_AMBIGUOUS	synthetic repeat has two incompatible terminal placements
+C038	reverse_exact_r01	MERGE	exact sequence equality under reverse complement
+C039	reverse_exact_r02	MERGE	exact sequence equality under reverse complement
+C040	reverse_exact_r03	MERGE	exact sequence equality under reverse complement
+C041	small_deletion	MERGE	3 bp deletion inside terminal overlap; source reads support reference allele
+C042	small_insertion	MERGE	3 bp insertion inside terminal overlap; source reads support reference allele
+C043	terminal_repeat	KEEP_SEPARATE_OR_AMBIGUOUS	terminal synthetic repeat lacks unique-flank adjacency evidence
+C044	unrelated_unique	KEEP_SEPARATE_OR_AMBIGUOUS	two distant unique contigs have no constructed relationship

@@ -1,0 +1,75 @@
+query_id	target_id	expected_relationship	expected_orientation	expected_status	merge_allowed	expected_overlap_length	expected_identity	query_start	query_end	target_start	target_end	ambiguity_group	case_id	reason
+chimera_contig	chimera_native	NO_RELATIONSHIP	+	FORBIDDEN	false	10000	100.0000	0	10000	5000	15000		chimera	contig joins two distant source loci
+circular_origin_left	circular_origin_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		circular_origin	circular native junction
+contain_r01_long	contain_r01_short	TARGET_CONTAINED_IN_QUERY	+	VALID	true	10000	100.0000	7000	17000	0	10000		contain_r01	ordered inverse containment
+contain_r01_short	contain_r01_long	QUERY_CONTAINED_IN_TARGET	+	VALID	true	10000	100.0000	0	10000	7000	17000		contain_r01	constructed containment
+contain_r02_long	contain_r02_short	TARGET_CONTAINED_IN_QUERY	+	VALID	true	10000	100.0000	7000	17000	0	10000		contain_r02	ordered inverse containment
+contain_r02_short	contain_r02_long	QUERY_CONTAINED_IN_TARGET	+	VALID	true	10000	100.0000	0	10000	7000	17000		contain_r02	constructed containment
+contain_r03_long	contain_r03_short	TARGET_CONTAINED_IN_QUERY	+	VALID	true	10000	100.0000	7000	17000	0	10000		contain_r03	ordered inverse containment
+contain_r03_short	contain_r03_long	QUERY_CONTAINED_IN_TARGET	+	VALID	true	10000	100.0000	0	10000	7000	17000		contain_r03	constructed containment
+containment_coverage_above_short	containment_coverage_above_long	QUERY_CONTAINED_IN_TARGET	+	VALID	true	9801	100.0000	0	9801	5000	14801		containment_coverage_above	coverage=98.01%; inclusive 98% threshold
+containment_coverage_at_short	containment_coverage_at_long	QUERY_CONTAINED_IN_TARGET	+	VALID	true	9800	100.0000	0	9800	5000	14800		containment_coverage_at	coverage=98.00%; inclusive 98% threshold
+containment_coverage_below_short	containment_coverage_below_long	NO_RELATIONSHIP	+	FORBIDDEN	false	9799	100.0000	0	9799	5000	14799		containment_coverage_below	coverage=97.99%; inclusive 98% threshold
+end_tolerance_49_left	end_tolerance_49_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		end_tolerance_49	alignment endpoint is 49 bp from query end
+end_tolerance_49_right	end_tolerance_49_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		end_tolerance_49	alignment endpoint is 49 bp from query end
+end_tolerance_50_left	end_tolerance_50_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		end_tolerance_50	alignment endpoint is 50 bp from query end
+end_tolerance_50_right	end_tolerance_50_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		end_tolerance_50	alignment endpoint is 50 bp from query end
+end_tolerance_51_left	end_tolerance_51_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	FORBIDDEN	false	5000	100.0000	15000	20000	0	5000		end_tolerance_51	alignment endpoint is 51 bp from query end
+end_tolerance_51_right	end_tolerance_51_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	FORBIDDEN	false	5000	100.0000	0	5000	15000	20000		end_tolerance_51	alignment endpoint is 51 bp from query end
+exact_r01_a	exact_r01_b	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r01	exact construction
+exact_r01_b	exact_r01_a	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r01	exact construction
+exact_r02_a	exact_r02_b	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r02	exact construction
+exact_r02_b	exact_r02_a	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r02	exact construction
+exact_r03_a	exact_r03_b	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r03	exact construction
+exact_r03_b	exact_r03_a	EXACT_MATCH	+	VALID	true	20000	100.0000	0	20000	0	20000		exact_r03	exact construction
+high_identity_short_left	high_identity_short_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	FORBIDDEN	false	900	100.0000	19100	20000	0	900		high_identity_short	high identity overlap is only 900 bp
+high_identity_short_right	high_identity_short_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	FORBIDDEN	false	900	100.0000	0	900	19100	20000		high_identity_short	high identity overlap is only 900 bp
+identity_9799_left	identity_9799_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	FORBIDDEN	false	10000	97.9900	10000	20000	0	10000		identity_9799	10 kb substitution-only boundary: 201 substitutions
+identity_9799_right	identity_9799_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	FORBIDDEN	false	10000	97.9900	0	10000	10000	20000		identity_9799	10 kb substitution-only boundary: 201 substitutions
+identity_9800_left	identity_9800_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	10000	98.0000	10000	20000	0	10000		identity_9800	10 kb substitution-only boundary: 200 substitutions
+identity_9800_right	identity_9800_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	10000	98.0000	0	10000	10000	20000		identity_9800	10 kb substitution-only boundary: 200 substitutions
+identity_9801_left	identity_9801_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	10000	98.0100	10000	20000	0	10000		identity_9801	10 kb substitution-only boundary: 199 substitutions
+identity_9801_right	identity_9801_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	10000	98.0100	0	10000	10000	20000		identity_9801	10 kb substitution-only boundary: 199 substitutions
+incompatible_placements_left	incompatible_placements_right_a	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	incompatible_placements	incompatible_placements	two valid pairwise placements cannot both define one adjacency
+incompatible_placements_left	incompatible_placements_right_b	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	incompatible_placements	incompatible_placements	two valid pairwise placements cannot both define one adjacency
+internal_shared_a	internal_shared_b	NO_RELATIONSHIP	+	FORBIDDEN	false	5000	100.0000	7000	12000	7000	12000		internal_shared	shared high-identity block is internal to both contigs
+length_1000_left	length_1000_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	1000	100.0000	19000	20000	0	1000		length_1000	minimum-overlap boundary at 1000 bp
+length_1000_right	length_1000_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	1000	100.0000	0	1000	19000	20000		length_1000	minimum-overlap boundary at 1000 bp
+length_1001_left	length_1001_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	1001	100.0000	18999	20000	0	1001		length_1001	minimum-overlap boundary at 1001 bp
+length_1001_right	length_1001_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	1001	100.0000	0	1001	18999	20000		length_1001	minimum-overlap boundary at 1001 bp
+length_999_left	length_999_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	FORBIDDEN	false	999	100.0000	19001	20000	0	999		length_999	minimum-overlap boundary at 999 bp
+length_999_right	length_999_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	FORBIDDEN	false	999	100.0000	0	999	19001	20000		length_999	minimum-overlap boundary at 999 bp
+low_complexity_a	low_complexity_b	NO_RELATIONSHIP	+	FORBIDDEN	false	5000	100.0000	15000	20000	0	5000		low_complexity	homopolymer-rich terminal match is non-specific
+near_containment_fail_short	near_containment_fail_long	NO_RELATIONSHIP	+	FORBIDDEN	false	9800	100.0000	0	9800	500	10300		near_containment_fail	near containment fails end/coverage criterion
+opposite_orientations_left	opposite_orientations_right_a	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	opposite_orientations	opposite_orientations	non-equivalent alignments support opposite orientations
+opposite_orientations_left	opposite_orientations_right_b	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	opposite_orientations	opposite_orientations	non-equivalent alignments support opposite orientations
+overlap_forward_r01_left	overlap_forward_r01_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_forward_r01	constructed native suffix-prefix overlap
+overlap_forward_r01_right	overlap_forward_r01_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_forward_r01	constructed native suffix-prefix overlap
+overlap_forward_r02_left	overlap_forward_r02_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_forward_r02	constructed native suffix-prefix overlap
+overlap_forward_r02_right	overlap_forward_r02_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_forward_r02	constructed native suffix-prefix overlap
+overlap_forward_r03_left	overlap_forward_r03_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_forward_r03	constructed native suffix-prefix overlap
+overlap_forward_r03_right	overlap_forward_r03_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_forward_r03	constructed native suffix-prefix overlap
+overlap_rc_r01_left	overlap_rc_r01_right	QUERY_SUFFIX_TO_TARGET_PREFIX	-	VALID	true	5000	100.0000	15000	20000	15000	20000		overlap_rc_r01	reverse complement restores suffix-prefix overlap
+overlap_rc_r02_left	overlap_rc_r02_right	QUERY_SUFFIX_TO_TARGET_PREFIX	-	VALID	true	5000	100.0000	15000	20000	15000	20000		overlap_rc_r02	reverse complement restores suffix-prefix overlap
+overlap_rc_r03_left	overlap_rc_r03_right	QUERY_SUFFIX_TO_TARGET_PREFIX	-	VALID	true	5000	100.0000	15000	20000	15000	20000		overlap_rc_r03	reverse complement restores suffix-prefix overlap
+overlap_reverse_direction_r01_left	overlap_reverse_direction_r01_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_reverse_direction_r01	constructed native suffix-prefix overlap
+overlap_reverse_direction_r01_right	overlap_reverse_direction_r01_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_reverse_direction_r01	constructed native suffix-prefix overlap
+overlap_reverse_direction_r02_left	overlap_reverse_direction_r02_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_reverse_direction_r02	constructed native suffix-prefix overlap
+overlap_reverse_direction_r02_right	overlap_reverse_direction_r02_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_reverse_direction_r02	constructed native suffix-prefix overlap
+overlap_reverse_direction_r03_left	overlap_reverse_direction_r03_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	100.0000	15000	20000	0	5000		overlap_reverse_direction_r03	constructed native suffix-prefix overlap
+overlap_reverse_direction_r03_right	overlap_reverse_direction_r03_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	100.0000	0	5000	15000	20000		overlap_reverse_direction_r03	constructed native suffix-prefix overlap
+repeat_ambiguity_left	repeat_ambiguity_right_a	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	repeat_ambiguity	repeat_ambiguity	synthetic repeat has two incompatible terminal placements
+repeat_ambiguity_left	repeat_ambiguity_right_b	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	repeat_ambiguity	repeat_ambiguity	synthetic repeat has two incompatible terminal placements
+reverse_exact_r01_a	reverse_exact_r01_b	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r01	exact construction
+reverse_exact_r01_b	reverse_exact_r01_a	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r01	exact construction
+reverse_exact_r02_a	reverse_exact_r02_b	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r02	exact construction
+reverse_exact_r02_b	reverse_exact_r02_a	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r02	exact construction
+reverse_exact_r03_a	reverse_exact_r03_b	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r03	exact construction
+reverse_exact_r03_b	reverse_exact_r03_a	EXACT_MATCH	-	VALID	true	20000	100.0000	0	20000	0	20000		reverse_exact_r03	exact construction
+small_deletion_left	small_deletion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	5000		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
+small_deletion_right	small_deletion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	5000	15000	20000		small_deletion	3 bp deletion inside terminal overlap; source reads support reference allele
+small_insertion_left	small_insertion_right	QUERY_SUFFIX_TO_TARGET_PREFIX	+	VALID	true	5000	99.9400	15000	20000	0	5000		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
+small_insertion_right	small_insertion_left	TARGET_SUFFIX_TO_QUERY_PREFIX	+	VALID	true	5000	99.9400	0	5000	15000	20000		small_insertion	3 bp insertion inside terminal overlap; source reads support reference allele
+terminal_repeat_left	terminal_repeat_right_a	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	terminal_repeat	terminal_repeat	terminal synthetic repeat lacks unique-flank adjacency evidence
+terminal_repeat_left	terminal_repeat_right_b	AMBIGUOUS_OVERLAP	+	AMBIGUOUS	false	6000	100.0000	14000	20000	0	6000	terminal_repeat	terminal_repeat	terminal synthetic repeat lacks unique-flank adjacency evidence
+unrelated_unique_a	unrelated_unique_b	NO_RELATIONSHIP	.	FORBIDDEN	false	0	0.0000	0	0	0	0		unrelated_unique	two distant unique contigs have no constructed relationship
