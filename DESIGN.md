@@ -10,11 +10,11 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, configuration normalisation, aligner/evidence abstractions, strict streaming PAF parsing, deterministic naming and provenance interfaces, conservative classification of complete ordered query-target hit groups, and deterministic evaluation against checked-in Pseudomonas truth. The `classify-paf` and `benchmark` commands are diagnostic and experimental; neither constructs a graph nor merges sequence.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, and deterministic evaluation against checked-in Pseudomonas truth. Catalogue and candidate outputs are evidence/planning artifacts; no current command constructs a graph or merges sequence.
 
 ## 4. Explicit non-goals
 
-This scaffold does not implement a production minimiser index, exhaustive all-v-all alignment, graph path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+This scaffold does not implement persistent minimap2 index reuse or batching across candidates, graph path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
 
 ## 5. Input model
 
@@ -50,9 +50,15 @@ maximum minimiser frequency:     100
 
 General k-mer composition vectors are not preferred because they discard position and can conflate shared composition with overlap. Canonical positional minimisers are the intended first heuristic. Candidate records should retain shared-seed counts, relative positions, and orientation signals. Frequent minimisers must be bounded to limit repeats and quadratic pair expansion.
 
+Exact catalogue sequences use the lexicographically smaller forward/reverse-complement strand and a full SHA-256 content identifier. Every source maps to the full canonical interval with explicit orientation and representative/duplicate disposition. No non-exact sequence is collapsed.
+
+Minimiser generation skips k-mers containing ambiguity symbols, hashes canonical k-mers deterministically, retains tied window minima, and globally suppresses observations above the configured frequency. Candidate evidence retains positions, every supported orientation, and every compatible terminal or possible-containment topology. End evidence may be contributed by different seeds along the same pair; requiring one seed to touch both ends would miss long overlaps. These candidates are intentionally over-inclusive alignment requests, not merge decisions.
+
 ## 10. Alignment abstraction and PAF handling
 
 An `Aligner` can build/reuse an index, align typed sequences, return `AlignmentHit` objects, and report its name, version, and exact last command. The minimap2 adapter can safely align target and query FASTA paths with an argument array and parse the captured PAF stream. It records the executable version and exact alignment command; failures retain stderr. The backend-neutral hit model retains optional alignment role and the `AS`, `cm`, `s1`, and `s2` observations without requiring them.
+
+Selective-alignment planning resolves only canonical candidate pairs into one-query/one-target requests. The executor calls the replaceable `Aligner` once per request and rejects hits whose identifiers escape that ordered pair. The minimap2 adapter materialises each typed request in an isolated temporary directory, captures its version/command, and parses its PAF. Persistent indexing and safe batching remain later performance work; they must not fall back to all-v-all alignment silently.
 
 PAF input is processed line by line. Only blank lines are ignored. Required fields, coordinates, orientation, mapping quality (including the valid unknown value 255), and optional-tag syntax are validated; errors contain physical line numbers. Coordinates remain zero-based and half-open.
 
@@ -123,6 +129,10 @@ Pair-level ambiguity means non-equivalent alignments compete within one ordered 
 
 At the documented defaults, `asm5` produces 58 correct classifications, 2 false merges, and 4 missed relationships. `asm20` produces 60 correct, 2 false merges, and 2 missed relationships. Both false merges are ordered directions of `end_tolerance_51`: minimap2 extends through 51 identical flanking bases, hiding the construction boundary from the pair classifier. No classifier rule changed because the PAF contains insufficient evidence for a general safe distinction. `asm20` is more sensitive here, but the default remains configurable; broader microbial, viral, and phage truth sets are needed before changing it.
 
+### 22.3 Candidate baseline
+
+The 90 source contigs collapse into 84 exact canonical sequences. With `k=21`, window 10, five shared minimisers, maximum global frequency 100, and a 1,000 bp terminal band, all 23 valid non-exact truth case groups reach selective alignment in 61 candidates out of 3,486 possible pairs. Candidate inclusion is not a positive relationship call: threshold-negative and ambiguity cases are expected to remain until alignment/classification. Internal-only and low-complexity negatives have permanent focused regressions.
+
 ## 23. Performance and scalability
 
 Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
@@ -138,13 +148,14 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 ## 26. Staged roadmap
 
 1. Integrate and baseline relationship classification using synthetic and checked-in Pseudomonas truth. (complete)
-2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance.
-3. Implement and benchmark canonical positional-minimiser candidates.
-4. Add typed, ambiguity-preserving graph construction and containment handling.
-5. Implement provenance-complete unambiguous linear-path merging.
-6. Validate source BAM/CRAM references and expose sample-aware pileups.
-7. Add targeted read extraction/remapping and junction-support reporting.
-8. Evaluate consensus and variation policies only with reviewed benchmarks.
+2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
+3. Implement and benchmark canonical positional-minimiser candidates and selective requests. (complete, experimental baseline)
+4. Benchmark executable candidate-to-alignment-to-relationship recall and add persistent indexing/safe batching.
+5. Add typed, ambiguity-preserving graph construction and containment handling.
+6. Implement provenance-complete unambiguous linear-path merging.
+7. Validate source BAM/CRAM references and expose sample-aware pileups.
+8. Add targeted read extraction/remapping and junction-support reporting.
+9. Evaluate consensus and variation policies only with reviewed benchmarks.
 
 ## 27. Open design questions
 

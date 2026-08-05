@@ -30,3 +30,5 @@ For any merge-criterion or relationship-classifier change, run both checked-in e
 contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm5.paf.gz
 contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm20.paf.gz
 ```
+
+Catalogue and candidate-generation changes must also preserve exact/RC provenance tests and the checked-in candidate baseline. Candidates are permitted to be over-inclusive, but any loss of a valid truth case requires biological review before changing `benchmarks/pseudomonas_candidates_baseline.json`.

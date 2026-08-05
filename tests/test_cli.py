@@ -17,6 +17,8 @@ FIXTURES = Path(__file__).parent / "fixtures"
         ["merge", "--help"],
         ["classify-paf", "--help"],
         ["benchmark", "--help"],
+        ["catalogue", "--help"],
+        ["candidates", "--help"],
     ],
 )
 def test_help(arguments: list[str], capsys: pytest.CaptureFixture[str]) -> None:
@@ -79,6 +81,53 @@ def test_real_merge_fails_clearly(capsys: pytest.CaptureFixture[str], tmp_path: 
     )
     assert status != 0
     assert "sequence merging is not implemented" in capsys.readouterr().err
+
+
+def test_catalogue_writes_canonical_fasta_and_complete_provenance(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    fasta = tmp_path / "catalogue.fasta"
+    provenance = tmp_path / "catalogue.provenance.tsv"
+    status = main(
+        [
+            "catalogue",
+            "--manifest",
+            str(FIXTURES / "samples.tsv"),
+            "--output-fasta",
+            str(fasta),
+            "--output-provenance",
+            str(provenance),
+        ]
+    )
+    assert status == 0
+    assert fasta.read_text(encoding="ascii").startswith(">ctg_")
+    assert len(provenance.read_text(encoding="utf-8").splitlines()) == 4
+    assert "canonical sequence" in capsys.readouterr().out
+
+
+def test_candidates_command_emits_evidence_not_relationships(tmp_path: Path) -> None:
+    output = tmp_path / "candidates.tsv"
+    status = main(
+        [
+            "candidates",
+            "--manifest",
+            str(FIXTURES / "samples.tsv"),
+            "--output",
+            str(output),
+            "--kmer-size",
+            "3",
+            "--window-size",
+            "2",
+            "--min-shared-minimisers",
+            "1",
+            "--terminal-band",
+            "4",
+        ]
+    )
+    assert status == 0
+    header = output.read_text(encoding="utf-8").splitlines()[0]
+    assert "terminal_topologies" in header
+    assert "relationship_type" not in header
 
 
 def test_classify_paf_writes_deterministic_tsv(tmp_path: Path) -> None:

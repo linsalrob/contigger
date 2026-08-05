@@ -1,6 +1,6 @@
 """Small streaming-friendly FASTA parser used at validation boundaries."""
 
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 from typing import TextIO
 
@@ -91,3 +91,20 @@ def _parse_fasta(handle: TextIO, path: Path, sample: str) -> Iterator[SequenceRe
 def validate_fasta(path: Path, sample: str = "") -> int:
     """Fully validate a FASTA file and return its record count."""
     return sum(1 for _ in read_fasta(path, sample))
+
+
+def write_fasta_records(records: Iterable[SequenceRecord], path: Path) -> None:
+    """Write typed records as deterministic 80-column FASTA."""
+    ordered = tuple(sorted(records, key=lambda item: item.identifier))
+    identifiers = [record.identifier for record in ordered]
+    if len(identifiers) != len(set(identifiers)):
+        raise FastaFormatError("cannot write duplicate FASTA identifiers")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("w", encoding="ascii", newline="") as output:
+            for record in ordered:
+                output.write(f">{record.identifier}\n")
+                for start in range(0, record.length, 80):
+                    output.write(record.sequence[start : start + 80] + "\n")
+    except (OSError, UnicodeError) as error:
+        raise FastaFormatError(f"cannot write FASTA {path}: {error}") from error

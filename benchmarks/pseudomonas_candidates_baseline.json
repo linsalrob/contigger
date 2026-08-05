@@ -1,0 +1,16 @@
+{
+  "candidate_configuration": {
+    "kmer_size": 21,
+    "max_minimiser_frequency": 100,
+    "min_shared_minimisers": 5,
+    "terminal_band": 1000,
+    "window_size": 10
+  },
+  "candidate_pairs": 61,
+  "canonical_sequences": 84,
+  "dataset_version": "1.0.0",
+  "expected_valid_non_exact_case_groups_recalled": 23,
+  "expected_valid_non_exact_case_groups_total": 23,
+  "possible_canonical_pairs": 3486,
+  "source_contigs": 90
+}

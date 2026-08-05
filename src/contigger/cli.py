@@ -11,12 +11,21 @@ from typing import TextIO
 
 from contigger import __version__
 from contigger.aligners.minimap2 import parse_paf
+from contigger.alignment_planning import plan_selective_alignments
 from contigger.benchmark import evaluate_benchmark, format_summary, write_json, write_tsv
+from contigger.catalogue import (
+    build_catalogue,
+    catalogue_provenance,
+    load_source_sequences,
+    write_catalogue_fasta_path,
+)
 from contigger.config import build_run_config
 from contigger.exceptions import ContiggerError, InputValidationError
 from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
+from contigger.minimisers import generate_candidates, write_candidates_tsv
 from contigger.models import PairRelationship
+from contigger.provenance import write_provenance
 from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.textio import open_text
 from contigger.utilities.subprocesses import find_executable
@@ -103,6 +112,33 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--end-tolerance", type=int, default=50)
     benchmark.add_argument("--fail-on-false-merge", action="store_true")
     benchmark.set_defaults(handler=_run_benchmark)
+
+    catalogue = commands.add_parser(
+        "catalogue",
+        help="create a canonical exact-deduplicated sequence catalogue with provenance",
+    )
+    catalogue.add_argument("--manifest", required=True, type=Path)
+    catalogue.add_argument("--output-fasta", required=True, type=Path)
+    catalogue.add_argument("--output-provenance", required=True, type=Path)
+    catalogue.set_defaults(handler=_run_catalogue)
+
+    candidates = commands.add_parser(
+        "candidates",
+        help="emit positional-minimiser candidate evidence (not relationships or merges)",
+    )
+    candidates.add_argument("--manifest", required=True, type=Path)
+    candidates.add_argument("--output", required=True, type=Path)
+    candidates.add_argument("--kmer-size", type=int, default=21)
+    candidates.add_argument("--window-size", type=int, default=10)
+    candidates.add_argument("--min-shared-minimisers", type=int, default=5)
+    candidates.add_argument("--max-minimiser-frequency", type=int, default=100)
+    candidates.add_argument(
+        "--terminal-band",
+        type=int,
+        default=1000,
+        help="bases at each end eligible for terminal seed evidence (default: 1000)",
+    )
+    candidates.set_defaults(handler=_run_candidates)
     return parser
 
 
@@ -224,6 +260,53 @@ def _run_benchmark(arguments: argparse.Namespace) -> int:
         except OSError as error:
             raise InputValidationError(f"cannot write {label} {path}: {error}") from error
     return int(arguments.fail_on_false_merge and report.summary.false_merges > 0)
+
+
+def _run_catalogue(arguments: argparse.Namespace) -> int:
+    validation = parse_manifest(arguments.manifest)
+    _print_warnings(validation)
+    catalogue = build_catalogue(load_source_sequences(validation.samples))
+    write_catalogue_fasta_path(catalogue, arguments.output_fasta)
+    try:
+        arguments.output_provenance.parent.mkdir(parents=True, exist_ok=True)
+        write_provenance(arguments.output_provenance, catalogue_provenance(catalogue))
+    except OSError as error:
+        raise InputValidationError(
+            f"cannot write catalogue provenance {arguments.output_provenance}: {error}"
+        ) from error
+    print(
+        f"catalogued {len(catalogue.members)} source contig(s) as "
+        f"{len(catalogue.sequences)} canonical sequence(s)"
+    )
+    return 0
+
+
+def _run_candidates(arguments: argparse.Namespace) -> int:
+    validation = parse_manifest(arguments.manifest)
+    _print_warnings(validation)
+    catalogue = build_catalogue(load_source_sequences(validation.samples))
+    candidates = generate_candidates(
+        catalogue.sequences,
+        kmer_size=arguments.kmer_size,
+        window_size=arguments.window_size,
+        min_shared_minimisers=arguments.min_shared_minimisers,
+        max_minimiser_frequency=arguments.max_minimiser_frequency,
+        terminal_band=arguments.terminal_band,
+    )
+    requests = plan_selective_alignments(catalogue.sequences, candidates)
+    try:
+        arguments.output.parent.mkdir(parents=True, exist_ok=True)
+        with arguments.output.open("w", encoding="utf-8", newline="") as output:
+            write_candidates_tsv(candidates, output)
+    except OSError as error:
+        raise InputValidationError(
+            f"cannot write candidates {arguments.output}: {error}"
+        ) from error
+    print(
+        f"planned {len(requests)} selective alignment candidate(s) from "
+        f"{len(catalogue.sequences)} canonical sequence(s)"
+    )
+    return 0
 
 
 def _write_relationships_tsv(decisions: list[PairRelationship], output: TextIO) -> None:

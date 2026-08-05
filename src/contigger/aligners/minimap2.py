@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from contigger.exceptions import ExternalToolError, FeatureNotImplementedError, InputValidationError
+from contigger.fasta import write_fasta_records
 from contigger.models import AlignmentHit, AlignmentType, Orientation, SequenceRecord
 from contigger.utilities.subprocesses import find_executable, run_command
 
@@ -54,8 +56,22 @@ class Minimap2Aligner:
     def align(
         self, queries: Iterable[SequenceRecord], targets: Iterable[SequenceRecord]
     ) -> Iterable[AlignmentHit]:
-        """Reserve the alignment interface without reporting biological results."""
-        raise FeatureNotImplementedError("minimap2 alignment workflow is not implemented")
+        """Align supplied typed records through safe temporary FASTA paths.
+
+        Selective callers pass one query and one target. Multi-record inputs remain
+        valid minimap2 batches but are never constructed by the selective executor.
+        """
+        query_records = tuple(queries)
+        target_records = tuple(targets)
+        if not query_records or not target_records:
+            raise InputValidationError("minimap2 alignment requires queries and targets")
+        with TemporaryDirectory(prefix="contigger-align-") as directory:
+            temporary = Path(directory)
+            query_path = temporary / "queries.fasta"
+            target_path = temporary / "targets.fasta"
+            write_fasta_records(query_records, query_path)
+            write_fasta_records(target_records, target_path)
+            yield from self.align_paths(target_path, query_path)
 
     def command_for_paths(self, target: Path, query: Path) -> tuple[str, ...]:
         """Construct a safe, provenance-ready assembly alignment command."""
