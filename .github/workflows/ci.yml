@@ -35,3 +35,12 @@ jobs:
         run: contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm5.paf.gz
       - name: Evaluate asm20 PAF baseline
         run: contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm20.paf.gz
+      - name: Build exact sequence catalogue
+        run: >-
+          contigger catalogue --manifest test_data/manifest.tsv
+          --output-fasta /tmp/contigger.catalogue.fasta
+          --output-provenance /tmp/contigger.catalogue.provenance.tsv
+      - name: Generate selective alignment candidates
+        run: >-
+          contigger candidates --manifest test_data/manifest.tsv
+          --output /tmp/contigger.candidates.tsv

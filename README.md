@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, conservative complete-pair relationship classification, deterministic benchmark evaluation, a path-based minimap2 adapter, and a functional dry run. Graph construction, graph simplification, consensus, merging, read analysis, and production candidate generation remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, selective-alignment request planning, conservative complete-pair relationship classification, deterministic benchmark evaluation, a path-based minimap2 adapter, and a functional dry run. Graph construction, graph simplification, consensus, merging, and read analysis remain planned.
 
 ## Development installation
 
@@ -92,13 +92,38 @@ At the default thresholds, `asm5` has 58 correct classifications, 2 false merges
 
 This command scores classifier output only. It does not construct a graph or claim that any contigs were merged.
 
+## Exact catalogue and candidate planning
+
+Create deterministic canonical sequences while retaining every source contig and explicit strand in provenance:
+
+```bash
+contigger catalogue --manifest samples.tsv \
+  --output-fasta catalogue.fasta \
+  --output-provenance catalogue.provenance.tsv
+```
+
+Only byte-exact forward or reverse-complement sequences collapse. Catalogue identifiers are derived from the SHA-256 digest of the lexicographically canonical strand; this is exact deduplication, not biological merging.
+
+Generate typed positional-minimiser evidence for selective alignment:
+
+```bash
+contigger candidates --manifest samples.tsv --output candidates.tsv \
+  --kmer-size 21 --window-size 10 --min-shared-minimisers 5 \
+  --max-minimiser-frequency 100 --terminal-band 1000
+```
+
+Ambiguous-base k-mers and globally frequent minimisers are excluded. Shared minimisers alone are not emitted as candidates: retained pairs must have positional evidence at compatible sequence ends or across both ends of a possible contained sequence. Multiple orientation/topology signals remain explicit. Candidate rows request further alignment; they are not relationships and cannot authorize a merge.
+
+On Pseudomonas benchmark 1.0.0, exact/RC deduplication reduces 90 sources to 84 canonical sequences. The documented candidate settings retain all 23 valid non-exact truth case groups in 61 candidates out of 3,486 possible canonical pairs. This is a recall/integration baseline, not evidence that all 61 pairs are mergeable; forbidden boundary and ambiguous repeat pairs deliberately proceed to alignment and conservative classification.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
-2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance.
-3. Implement canonical positional-minimiser candidate generation.
-4. Build ambiguity-preserving containment/overlap graphs.
-5. Add provenance-complete linear-path merging.
-6. Add sample-aware source evidence and targeted junction remapping.
+2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
+3. Implement canonical positional-minimiser candidates and selective-alignment planning. (complete, experimental baseline)
+4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching.
+5. Build ambiguity-preserving containment/overlap graphs.
+6. Add provenance-complete linear-path merging.
+7. Add sample-aware source evidence and targeted junction remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

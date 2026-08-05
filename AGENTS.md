@@ -67,6 +67,7 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Every regression involving a false join receives a permanent test case.
 - Changes affecting relationship classification must run both checked-in Pseudomonas PAF benchmarks.
 - Benchmark baselines must never be updated silently; explain every count change and add a permanent regression test for each new false merge.
+- Catalogue or candidate changes must run the exact/RC and Pseudomonas candidate baselines; candidate recall losses require explicit review and must not be hidden by baseline updates.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 
 ## External tool policy

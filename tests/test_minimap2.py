@@ -7,6 +7,7 @@ import pytest
 import contigger.aligners.minimap2 as minimap2_module
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.exceptions import InputValidationError
+from contigger.models import SequenceRecord
 from contigger.utilities.subprocesses import CommandResult
 
 
@@ -46,3 +47,28 @@ def test_rejects_non_assembly_presets(preset: str) -> None:
 def test_rejects_invalid_threads() -> None:
     with pytest.raises(InputValidationError, match="thread"):
         Minimap2Aligner(Path("minimap2"), threads=0)
+
+
+def test_typed_alignment_materialises_safe_temporary_fastas(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    commands: list[tuple[str, ...]] = []
+
+    def fake_run(command: tuple[str, ...]) -> CommandResult:
+        commands.append(command)
+        stdout = (
+            "2.31-r1302\n"
+            if command[-1] == "--version"
+            else "q\t4\t0\t4\t+\tt\t4\t0\t4\t4\t4\t60\n"
+        )
+        return CommandResult(command, stdout, "", 0)
+
+    monkeypatch.setattr(minimap2_module, "run_command", fake_run)
+    query = SequenceRecord("q", "", "q", "", "ACGT", 4)
+    target = SequenceRecord("t", "", "t", "", "ACGT", 4)
+    aligner = Minimap2Aligner(Path("/opt/minimap2"), preset="asm5")
+    hits = tuple(aligner.align((query,), (target,)))
+    assert [(hit.query_id, hit.target_id) for hit in hits] == [("q", "t")]
+    assert commands[1][1:3] == ("-x", "asm5")
+    assert commands[1][-2].endswith("targets.fasta")
+    assert commands[1][-1].endswith("queries.fasta")

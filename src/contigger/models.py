@@ -97,6 +97,66 @@ class CandidatePair:
     target_id: str
     shared_minimisers: int
     orientation: Orientation | None = None
+    query_positions: tuple[int, ...] = ()
+    target_positions: tuple[int, ...] = ()
+    supported_orientations: tuple[Orientation, ...] = ()
+    terminal_topologies: tuple[str, ...] = ()
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogueSequence:
+    """One canonical sequence retained after exact strand-aware deduplication."""
+
+    identifier: str
+    sequence: str
+    length: int
+    sha256: str
+    representative_source_id: str
+
+    def __post_init__(self) -> None:
+        if self.length != len(self.sequence):
+            raise InputValidationError("catalogue sequence length does not match its bases")
+
+
+@dataclass(frozen=True, slots=True)
+class CatalogueMember:
+    """One source contig mapped recoverably onto a catalogue sequence."""
+
+    catalogue_id: str
+    source_id: str
+    source_sample: str
+    original_identifier: str
+    orientation: Orientation
+    representative: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class SequenceCatalogue:
+    """Deterministically ordered canonical sequences and complete source membership."""
+
+    sequences: tuple[CatalogueSequence, ...]
+    members: tuple[CatalogueMember, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class MinimiserObservation:
+    """One canonical k-mer selected by a minimiser window at a known position."""
+
+    sequence_id: str
+    value: int
+    position: int
+    orientation: Orientation
+    kmer: str
+
+
+@dataclass(frozen=True, slots=True)
+class AlignmentRequest:
+    """Validated request to align exactly one candidate catalogue pair."""
+
+    query: SequenceRecord
+    target: SequenceRecord
+    candidate: CandidatePair
 
 
 @dataclass(frozen=True, slots=True)

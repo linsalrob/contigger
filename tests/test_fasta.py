@@ -6,7 +6,8 @@ from pathlib import Path
 import pytest
 
 from contigger.exceptions import FastaFormatError
-from contigger.fasta import read_fasta
+from contigger.fasta import read_fasta, write_fasta_records
+from contigger.models import SequenceRecord
 from contigger.utilities.sequences import reverse_complement
 
 
@@ -62,3 +63,15 @@ def test_malformed_gzip_fasta_has_deterministic_domain_error(tmp_path: Path) -> 
     path.write_bytes(b"not gzip")
     with pytest.raises(FastaFormatError, match=r"cannot read FASTA .*bad\.fasta\.gz"):
         list(read_fasta(path))
+
+
+def test_write_fasta_records_is_sorted_and_wrapped(tmp_path: Path) -> None:
+    path = tmp_path / "written.fasta"
+    records = [
+        SequenceRecord("z", "", "z", "", "A" * 81, 81),
+        SequenceRecord("a", "", "a", "", "ACGT", 4),
+    ]
+    write_fasta_records(records, path)
+    lines = path.read_text(encoding="ascii").splitlines()
+    assert lines[:2] == [">a", "ACGT"]
+    assert lines[2:] == [">z", "A" * 80, "A"]
