@@ -162,6 +162,10 @@ def load_truth(path: Path) -> tuple[ExpectedRelationship, ...]:
             rows: list[ExpectedRelationship] = []
             seen: set[tuple[str, str]] = set()
             for line_number, row in enumerate(reader, start=2):
+                if None in row:
+                    raise InputValidationError(
+                        f"{path}:{line_number}: row has more fields than expected columns"
+                    )
                 try:
                     parsed = _parse_truth_row(row)
                 except (KeyError, TypeError, ValueError) as error:
@@ -239,12 +243,22 @@ def evaluate_benchmark(dataset: Path, paf: Path, config: RunConfig) -> Benchmark
     if not version or metadata.get("benchmark_version") != version:
         raise InputValidationError("benchmark VERSION does not match metadata benchmark_version")
     truth = load_truth(truth_path)
-    if metadata.get("relationship_counts") and sum(metadata["relationship_counts"].values()) != len(
-        truth
-    ):
-        raise InputValidationError(
-            "benchmark metadata relationship count does not match truth table"
-        )
+    relationship_counts = metadata.get("relationship_counts")
+    if relationship_counts is not None:
+        if not isinstance(relationship_counts, dict):
+            raise InputValidationError(
+                "benchmark metadata relationship_counts must be a JSON object"
+            )
+        try:
+            total = sum(relationship_counts.values())
+        except TypeError as error:
+            raise InputValidationError(
+                f"benchmark metadata relationship_counts contains non-numeric values: {error}"
+            ) from error
+        if total != len(truth):
+            raise InputValidationError(
+                "benchmark metadata relationship count does not match truth table"
+            )
 
     parsing_start = time.perf_counter()
     self_count = 0
@@ -522,4 +536,17 @@ def _sha256(path: Path) -> str:
 
 def _tool_versions(path: Path) -> dict[str, str]:
     with open_text(path, newline="") as handle:
-        return {row["tool"]: row["version"] for row in csv.DictReader(handle, delimiter="\t")}
+        reader = csv.DictReader(handle, delimiter="\t")
+        if reader.fieldnames is None or not {"tool", "version"}.issubset(reader.fieldnames):
+            raise InputValidationError(
+                f"tool_versions.tsv is missing required 'tool' and/or 'version' columns: {path}"
+            )
+        result: dict[str, str] = {}
+        for line_number, row in enumerate(reader, start=2):
+            try:
+                result[row["tool"]] = row["version"]
+            except (KeyError, TypeError) as error:
+                raise InputValidationError(
+                    f"{path}:{line_number}: missing 'tool' or 'version' field: {error}"
+                ) from error
+        return result
