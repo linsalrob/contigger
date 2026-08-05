@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, strict FASTA and TSV-manifest validation, normalised run configuration, strict PAF stream parsing, conservative complete-pair relationship classification, a path-based minimap2 adapter, deterministic output/provenance interfaces, and a functional dry run. Graph construction, graph simplification, consensus, merging, read analysis, and production candidate generation remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, conservative complete-pair relationship classification, deterministic benchmark evaluation, a path-based minimap2 adapter, and a functional dry run. Graph construction, graph simplification, consensus, merging, read analysis, and production candidate generation remain planned.
 
 ## Development installation
 
@@ -64,7 +64,7 @@ The first implemented outputs will be `contigger.fasta`, `contigger.provenance.t
 
 ## External tools and synthetic benchmark
 
-The experimental minimap2 path adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Ordinary tests and PAF classification do not require minimap2. The existing `asm20` default remains unchanged: minimap2 was unavailable in the development environment, so there is not yet local evidence sufficient to replace it despite the conceptual 98% identity threshold.
+The experimental minimap2 path adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Ordinary tests and checked-in PAF classification do not require minimap2. The small fixed-seed synthetic external-tool benchmark remains available:
 
 When minimap2 is installed, compare `asm5` and `asm20` against fixed-seed synthetic truth:
 
@@ -76,12 +76,29 @@ pytest -m integration
 
 The report puts false merges first, then correct, missed, ambiguous, candidate-record, and timing counts. The fixtures cover orientation, containment, terminal overlaps, substitutions, an indel, internal similarity, repeats, incompatible placements, low complexity, unrelated sequence, and classifier boundaries. This small benchmark is experimental and does not establish production sensitivity.
 
+## Checked-in Pseudomonas benchmark
+
+`test_data` version 1.0.0 contains 90 derived contigs across three samples and 74 construction-derived ordered-pair truth rows. It includes checked-in `asm5` and `asm20` PAFs, but not the full source reads, assembly FASTA, or GFA. Evaluate either PAF without minimap2:
+
+```bash
+contigger benchmark --dataset test_data \
+  --paf test_data/alignments/all_vs_all.asm20.paf.gz \
+  --output-json benchmark.json --output-tsv benchmark.tsv
+```
+
+A **false merge** is a merge-like pair result where pairwise truth forbids merging. A **missed relationship** is an absent or `NO_RELATIONSHIP` result for an unambiguous valid truth pair. Unexpected PAF pairs are separate because the construction table is sparse. Multiple incompatible hits within one ordered pair are pair-level ambiguity; ambiguity across different targets requires graph/component context and is explicitly deferred.
+
+At the default thresholds, `asm5` has 58 correct classifications, 2 false merges, and 4 missed relationships; `asm20` has 60 correct, 2 false merges, and 2 missed relationships. Both false merges are the two ordered directions of the 51 bp end-tolerance case: minimap2 extends through identical flanking sequence, so the PAF geometry looks terminal. `asm20` is more sensitive on this dataset, but the production default remains configurable and unchanged. Broader microbial, viral, and phage truth sets are required before changing it. The deterministic baseline is in `benchmarks/pseudomonas_baseline.json`.
+
+This command scores classifier output only. It does not construct a graph or claim that any contigs were merged.
+
 ## Roadmap
 
-1. Complete and benchmark PAF relationship classification on synthetic contigs.
-2. Implement positional-minimiser candidate generation.
-3. Build ambiguity-preserving containment/overlap graphs.
-4. Add provenance-complete linear-path merging.
-5. Add sample-aware source evidence and targeted junction remapping.
+1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
+2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance.
+3. Implement canonical positional-minimiser candidate generation.
+4. Build ambiguity-preserving containment/overlap graphs.
+5. Add provenance-complete linear-path merging.
+6. Add sample-aware source evidence and targeted junction remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

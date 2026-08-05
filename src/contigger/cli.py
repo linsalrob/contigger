@@ -11,12 +11,14 @@ from typing import TextIO
 
 from contigger import __version__
 from contigger.aligners.minimap2 import parse_paf
+from contigger.benchmark import evaluate_benchmark, format_summary, write_json, write_tsv
 from contigger.config import build_run_config
 from contigger.exceptions import ContiggerError, InputValidationError
 from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
 from contigger.models import PairRelationship
 from contigger.relationships import classify_pair, group_ordered_pairs
+from contigger.textio import open_text
 from contigger.utilities.subprocesses import find_executable
 
 
@@ -81,6 +83,26 @@ def build_parser() -> argparse.ArgumentParser:
     classify_paf.add_argument("--containment-coverage", type=float, default=98.0)
     classify_paf.add_argument("--end-tolerance", type=int, default=50)
     classify_paf.set_defaults(handler=_run_classify_paf)
+
+    benchmark = commands.add_parser(
+        "benchmark",
+        help="score pair classification against construction-derived benchmark truth",
+        description=(
+            "Score ordered pairs while deferring graph-level ambiguity that requires "
+            "multiple target pairs or component context. No contigs are merged."
+        ),
+    )
+    benchmark.add_argument("--dataset", required=True, type=Path)
+    benchmark.add_argument("--paf", required=True, type=Path)
+    benchmark.add_argument("--output-json", type=Path)
+    benchmark.add_argument("--output-tsv", type=Path)
+    benchmark.add_argument("--identity", type=float, default=98.0)
+    benchmark.add_argument("--min-overlap", type=int, default=1000)
+    benchmark.add_argument("--min-containment", type=int, default=500)
+    benchmark.add_argument("--containment-coverage", type=float, default=98.0)
+    benchmark.add_argument("--end-tolerance", type=int, default=50)
+    benchmark.add_argument("--fail-on-false-merge", action="store_true")
+    benchmark.set_defaults(handler=_run_benchmark)
     return parser
 
 
@@ -164,13 +186,10 @@ def _run_classify_paf(arguments: argparse.Namespace) -> int:
         containment_coverage=arguments.containment_coverage,
         end_tolerance=arguments.end_tolerance,
     )
-    try:
-        with arguments.paf.open(encoding="utf-8") as paf_file:
-            decisions = [
-                classify_pair(group, config) for group in group_ordered_pairs(parse_paf(paf_file))
-            ]
-    except OSError as error:
-        raise InputValidationError(f"cannot read PAF {arguments.paf}: {error}") from error
+    with open_text(arguments.paf) as paf_file:
+        decisions = [
+            classify_pair(group, config) for group in group_ordered_pairs(parse_paf(paf_file))
+        ]
     try:
         arguments.output.parent.mkdir(parents=True, exist_ok=True)
         with arguments.output.open("w", encoding="utf-8", newline="") as output:
@@ -180,6 +199,31 @@ def _run_classify_paf(arguments: argparse.Namespace) -> int:
             f"cannot write relationships {arguments.output}: {error}"
         ) from error
     return 0
+
+
+def _run_benchmark(arguments: argparse.Namespace) -> int:
+    config = build_run_config(
+        identity=arguments.identity,
+        min_overlap=arguments.min_overlap,
+        min_containment=arguments.min_containment,
+        containment_coverage=arguments.containment_coverage,
+        end_tolerance=arguments.end_tolerance,
+    )
+    report = evaluate_benchmark(arguments.dataset, arguments.paf, config)
+    print(format_summary(report))
+    for path, writer, label in (
+        (arguments.output_json, write_json, "benchmark JSON"),
+        (arguments.output_tsv, write_tsv, "benchmark TSV"),
+    ):
+        if path is None:
+            continue
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("w", encoding="utf-8", newline="") as output:
+                writer(report, output)
+        except OSError as error:
+            raise InputValidationError(f"cannot write {label} {path}: {error}") from error
+    return int(arguments.fail_on_false_merge and report.summary.false_merges > 0)
 
 
 def _write_relationships_tsv(decisions: list[PairRelationship], output: TextIO) -> None:

@@ -10,7 +10,7 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, FASTA and manifest validation, configuration normalisation, aligner/evidence abstractions, strict streaming PAF parsing, deterministic naming and provenance interfaces, and conservative classification of complete ordered query-target hit groups. The `classify-paf` command is diagnostic and experimental; it does not construct a graph or merge sequence.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, configuration normalisation, aligner/evidence abstractions, strict streaming PAF parsing, deterministic naming and provenance interfaces, conservative classification of complete ordered query-target hit groups, and deterministic evaluation against checked-in Pseudomonas truth. The `classify-paf` and `benchmark` commands are diagnostic and experimental; neither constructs a graph nor merges sequence.
 
 ## 4. Explicit non-goals
 
@@ -113,6 +113,16 @@ The experimental `classify-paf` command emits a deterministic diagnostic relatio
 
 Samples, candidates, relationships, graph nodes/edges, and output rows use documented stable sort keys. Configuration, exact external commands, executable versions, and input identities belong in run statistics. Future randomness must accept and record a seed. Hash-table and traversal order cannot affect output identifiers or decisions.
 
+### 22.1 Benchmark truth and ambiguity scope
+
+Benchmark truth parsing is separate from production `Relationship` models. It validates typed TSV fields with physical line numbers, rejects duplicate ordered pairs, and never infers truth from names or PAF output. The table is sparse, so observed pairs absent from truth are unexpected rather than negative truth.
+
+Pair-level ambiguity means non-equivalent alignments compete within one ordered query-target group; `classify_pair()` preserves it. Graph-level ambiguity means one contig has plausible relationships to multiple targets. A pair classifier cannot observe that context, so the evaluator defers the four graph groups (`incompatible_placements`, `opposite_orientations`, `repeat_ambiguity`, and `terminal_repeat`).
+
+### 22.2 Pseudomonas 1.0.0 baseline
+
+At the documented defaults, `asm5` produces 58 correct classifications, 2 false merges, and 4 missed relationships. `asm20` produces 60 correct, 2 false merges, and 2 missed relationships. Both false merges are ordered directions of `end_tolerance_51`: minimap2 extends through 51 identical flanking bases, hiding the construction boundary from the pair classifier. No classifier rule changed because the PAF contains insufficient evidence for a general safe distinction. `asm20` is more sensitive here, but the default remains configurable; broader microbial, viral, and phage truth sets are needed before changing it.
+
 ## 23. Performance and scalability
 
 Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
@@ -127,13 +137,14 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 
 ## 26. Staged roadmap
 
-1. Complete and benchmark relationship classification from minimap2 PAF using synthetic contigs. (current experimental milestone)
-2. Implement and benchmark canonical positional-minimiser candidates.
-3. Add typed, ambiguity-preserving graph construction and containment handling.
-4. Implement provenance-complete unambiguous linear-path merging.
-5. Validate source BAM/CRAM references and expose sample-aware pileups.
-6. Add targeted read extraction/remapping and junction-support reporting.
-7. Evaluate consensus and variation policies only with reviewed benchmarks.
+1. Integrate and baseline relationship classification using synthetic and checked-in Pseudomonas truth. (complete)
+2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance.
+3. Implement and benchmark canonical positional-minimiser candidates.
+4. Add typed, ambiguity-preserving graph construction and containment handling.
+5. Implement provenance-complete unambiguous linear-path merging.
+6. Validate source BAM/CRAM references and expose sample-aware pileups.
+7. Add targeted read extraction/remapping and junction-support reporting.
+8. Evaluate consensus and variation policies only with reviewed benchmarks.
 
 ## 27. Open design questions
 

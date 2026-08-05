@@ -1,0 +1,83 @@
+{
+  "classifier_thresholds": {
+    "containment_coverage": 0.98,
+    "end_tolerance": 50,
+    "identity": 0.98,
+    "min_containment": 500,
+    "min_overlap": 1000
+  },
+  "contigger_version": "0.1.0.dev0",
+  "dataset_version": "1.0.0",
+  "deferred_graph_level_case_ids": [
+    "incompatible_placements",
+    "opposite_orientations",
+    "repeat_ambiguity",
+    "terminal_repeat"
+  ],
+  "metadata_sha256": "6bc53c7c46c2da2d3227c5bffe8981d14b64781451fd173022674bf71ce42838",
+  "minimap2_version": "2.31-r1302",
+  "presets": {
+    "asm20": {
+      "false_merge_pairs": [
+        "end_tolerance_51_left -> end_tolerance_51_right",
+        "end_tolerance_51_right -> end_tolerance_51_left"
+      ],
+      "missed_pairs": [
+        "containment_coverage_above_short -> containment_coverage_above_long",
+        "containment_coverage_at_short -> containment_coverage_at_long"
+      ],
+      "paf_sha256": "5444da64efa5850d2dae0192d2266b8262465b68277c4168cec64ffb4dd363ba",
+      "correct_by_relationship_type": {
+        "EXACT_MATCH": 12,
+        "NO_RELATIONSHIP": 4,
+        "QUERY_CONTAINED_IN_TARGET": 3,
+        "QUERY_SUFFIX_TO_TARGET_PREFIX": 21,
+        "TARGET_CONTAINED_IN_QUERY": 3,
+        "TARGET_SUFFIX_TO_QUERY_PREFIX": 17
+      },
+      "summary": {
+        "correct_classifications": 60,
+        "expected_pairs_absent_from_paf": 2,
+        "expected_relationships": 74,
+        "false_merges": 2,
+        "graph_level_ambiguity_cases_deferred": 4,
+        "missed_relationships": 2,
+        "observed_ordered_pairs": 208,
+        "self_alignments_excluded": 92,
+        "unexpected_observed_pairs": 136
+      }
+    },
+    "asm5": {
+      "false_merge_pairs": [
+        "end_tolerance_51_left -> end_tolerance_51_right",
+        "end_tolerance_51_right -> end_tolerance_51_left"
+      ],
+      "missed_pairs": [
+        "containment_coverage_above_short -> containment_coverage_above_long",
+        "containment_coverage_at_short -> containment_coverage_at_long",
+        "identity_9800_left -> identity_9800_right",
+        "identity_9800_right -> identity_9800_left"
+      ],
+      "paf_sha256": "9b193d5fd163e750d2dc7c4005159bda4f3f9dd9f07e71f2dac5dc19195e326c",
+      "correct_by_relationship_type": {
+        "EXACT_MATCH": 12,
+        "NO_RELATIONSHIP": 4,
+        "QUERY_CONTAINED_IN_TARGET": 3,
+        "QUERY_SUFFIX_TO_TARGET_PREFIX": 20,
+        "TARGET_CONTAINED_IN_QUERY": 3,
+        "TARGET_SUFFIX_TO_QUERY_PREFIX": 16
+      },
+      "summary": {
+        "correct_classifications": 58,
+        "expected_pairs_absent_from_paf": 2,
+        "expected_relationships": 74,
+        "false_merges": 2,
+        "graph_level_ambiguity_cases_deferred": 4,
+        "missed_relationships": 4,
+        "observed_ordered_pairs": 208,
+        "self_alignments_excluded": 94,
+        "unexpected_observed_pairs": 136
+      }
+    }
+  }
+}

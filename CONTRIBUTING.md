@@ -23,3 +23,10 @@ Implement the typed protocol first, isolate the adapter, discover the executable
 ## Changing merge criteria
 
 Open a proposal that identifies the biological assumption, describes expected false-positive and false-negative effects, cites or supplies benchmark data, and explains effects on provenance and ambiguity. Changes affecting biological decisions require rationale and regression tests, including permanent tests for every known false join. Do not make a threshold more aggressive without updating `DESIGN.md` and demonstrating that the non-negotiable invariants still hold.
+
+For any merge-criterion or relationship-classifier change, run both checked-in evaluations and explain every difference from `benchmarks/pseudomonas_baseline.json`:
+
+```bash
+contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm5.paf.gz
+contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.asm20.paf.gz
+```
