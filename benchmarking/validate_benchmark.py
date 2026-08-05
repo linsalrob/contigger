@@ -65,6 +65,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("dataset")
     ap.add_argument("--archive")
+    ap.add_argument(
+        "--lightweight",
+        action="store_true",
+        help="skip BAM semantic checks that require samtools (file checksums still apply)",
+    )
     a = ap.parse_args()
     root = Path(a.dataset).resolve()
     errors = []
@@ -113,22 +118,23 @@ def main():
             and int(r["source_end"]) - int(r["source_start"]) != int(r["length"])
         ):
             fail(errors, f"invalid circular interval: {r['contig_id']}")
-    samtools = resolve_tool("samtools")
-    for sample, ids in sample_ids.items():
-        bam = root / "alignments" / f"{sample}.contigs.bam"
-        z = subprocess.run([samtools, "quickcheck", str(bam)], capture_output=True)
-        if z.returncode:
-            fail(errors, f"BAM quickcheck failed: {sample}")
-        hdr = subprocess.check_output([samtools, "view", "-H", str(bam)], text=True)
-        sq = {}
-        for line in hdr.splitlines():
-            if line.startswith("@HD") and "SO:coordinate" not in line:
-                fail(errors, f"BAM not coordinate sorted: {sample}")
-            if line.startswith("@SQ"):
-                d = dict(x.split(":", 1) for x in line.split("\t")[1:])
-                sq[d["SN"]] = int(d["LN"])
-        if sq != ids:
-            fail(errors, f"BAM dictionary differs from sample FASTA: {sample}")
+    if not a.lightweight:
+        samtools = resolve_tool("samtools")
+        for sample, ids in sample_ids.items():
+            bam = root / "alignments" / f"{sample}.contigs.bam"
+            z = subprocess.run([samtools, "quickcheck", str(bam)], capture_output=True)
+            if z.returncode:
+                fail(errors, f"BAM quickcheck failed: {sample}")
+            hdr = subprocess.check_output([samtools, "view", "-H", str(bam)], text=True)
+            sq = {}
+            for line in hdr.splitlines():
+                if line.startswith("@HD") and "SO:coordinate" not in line:
+                    fail(errors, f"BAM not coordinate sorted: {sample}")
+                if line.startswith("@SQ"):
+                    d = dict(x.split(":", 1) for x in line.split("\t")[1:])
+                    sq[d["SN"]] = int(d["LN"])
+            if sq != ids:
+                fail(errors, f"BAM dictionary differs from sample FASTA: {sample}")
     readnames = set()
     for i in range(1, 4):
         with gzip.open(root / "reads" / f"S0{i}.targeted.fastq.gz", "rt") as f:

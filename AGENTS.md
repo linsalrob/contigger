@@ -65,6 +65,8 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Synthetic fixtures must cover orientation, containment, overlap geometry, ambiguity, and identity thresholds.
 - Test classification first with manually constructed alignment records, not an invoked aligner.
 - Every regression involving a false join receives a permanent test case.
+- Changes affecting relationship classification must run both checked-in Pseudomonas PAF benchmarks.
+- Benchmark baselines must never be updated silently; explain every count change and add a permanent regression test for each new false merge.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 
 ## External tool policy

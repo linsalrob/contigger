@@ -4,8 +4,9 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import TextIO
 
-from contigger.exceptions import FastaFormatError
+from contigger.exceptions import FastaFormatError, InputValidationError
 from contigger.models import SequenceRecord
+from contigger.textio import open_text
 
 # DNA plus standard IUPAC ambiguity symbols. Gap characters are deliberately excluded.
 IUPAC_DNA = frozenset("ACGTRYSWKMBDHVN")
@@ -18,9 +19,9 @@ def read_fasta(path: Path, sample: str = "") -> Iterator[SequenceRecord]:
     be a standard IUPAC DNA symbol; characters are never silently discarded.
     """
     try:
-        with path.open(encoding="utf-8") as handle:
+        with open_text(path, encoding="utf-8") as handle:
             yield from _parse_fasta(handle, path, sample)
-    except OSError as error:
+    except InputValidationError as error:
         raise FastaFormatError(f"cannot read FASTA {path}: {error}") from error
 
 

@@ -11,7 +11,13 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 @pytest.mark.parametrize(
     "arguments",
-    [["--help"], ["validate", "--help"], ["merge", "--help"], ["classify-paf", "--help"]],
+    [
+        ["--help"],
+        ["validate", "--help"],
+        ["merge", "--help"],
+        ["classify-paf", "--help"],
+        ["benchmark", "--help"],
+    ],
 )
 def test_help(arguments: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as error:

@@ -1,5 +1,6 @@
 """FASTA syntax and sequence utility tests."""
 
+import gzip
 from pathlib import Path
 
 import pytest
@@ -46,4 +47,18 @@ def test_invalid_sequence_reports_last_sequence_line_before_blanks(tmp_path: Pat
     path = write_fasta(tmp_path, ">bad\nAC-X\n\n\n>good\nACGT\n")
 
     with pytest.raises(FastaFormatError, match=r"input\.fasta:2: invalid DNA"):
+        list(read_fasta(path))
+
+
+def test_reads_gzip_fasta(tmp_path: Path) -> None:
+    path = tmp_path / "input.fasta.gz"
+    with gzip.open(path, "wt", encoding="utf-8", newline="") as output:
+        output.write(">compressed\nacgt\n")
+    assert [record.sequence for record in read_fasta(path)] == ["ACGT"]
+
+
+def test_malformed_gzip_fasta_has_deterministic_domain_error(tmp_path: Path) -> None:
+    path = tmp_path / "bad.fasta.gz"
+    path.write_bytes(b"not gzip")
+    with pytest.raises(FastaFormatError, match=r"cannot read FASTA .*bad\.fasta\.gz"):
         list(read_fasta(path))
