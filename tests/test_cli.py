@@ -9,7 +9,10 @@ from contigger.cli import main
 FIXTURES = Path(__file__).parent / "fixtures"
 
 
-@pytest.mark.parametrize("arguments", [["--help"], ["validate", "--help"], ["merge", "--help"]])
+@pytest.mark.parametrize(
+    "arguments",
+    [["--help"], ["validate", "--help"], ["merge", "--help"], ["classify-paf", "--help"]],
+)
 def test_help(arguments: list[str], capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as error:
         main(arguments)
@@ -70,3 +73,83 @@ def test_real_merge_fails_clearly(capsys: pytest.CaptureFixture[str], tmp_path: 
     )
     assert status != 0
     assert "sequence merging is not implemented" in capsys.readouterr().err
+
+
+def test_classify_paf_writes_deterministic_tsv(tmp_path: Path) -> None:
+    paf = tmp_path / "hits.paf"
+    paf.write_text(
+        "z\t1000\t700\t1000\t+\ta\t1000\t0\t300\t300\t300\t60\n"
+        "q\t1000\t300\t600\t+\tt\t1000\t400\t700\t300\t300\t255\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "relationships.tsv"
+    status = main(
+        [
+            "classify-paf",
+            "--paf",
+            str(paf),
+            "--output",
+            str(output),
+            "--min-overlap",
+            "100",
+            "--min-containment",
+            "50",
+            "--end-tolerance",
+            "10",
+        ]
+    )
+    assert status == 0
+    lines = output.read_text(encoding="utf-8").splitlines()
+    assert lines[1].startswith("q\tt\tNO_RELATIONSHIP")
+    assert lines[2].startswith("z\ta\tQUERY_SUFFIX_TO_TARGET_PREFIX")
+    assert lines[2].split("\t")[13:15] == ["1", "0"]
+
+
+def test_classify_paf_tsv_includes_accepted_and_rejected_reasons(tmp_path: Path) -> None:
+    paf = tmp_path / "hits.paf"
+    paf.write_text(
+        "q\t1000\t700\t1000\t+\tt\t1000\t0\t300\t300\t300\t60\n"
+        "q\t1000\t300\t600\t+\tt\t1000\t400\t700\t300\t300\t60\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "relationships.tsv"
+    status = main(
+        [
+            "classify-paf",
+            "--paf",
+            str(paf),
+            "--output",
+            str(output),
+            "--min-overlap",
+            "100",
+            "--min-containment",
+            "50",
+            "--end-tolerance",
+            "10",
+        ]
+    )
+    assert status == 0
+    reasons = output.read_text(encoding="utf-8").splitlines()[1].split("\t")[-1]
+    assert reasons == "alignment lacks compatible terminal geometry; compatible terminal geometry"
+
+
+def test_classify_paf_rejects_malformed_input(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    paf = tmp_path / "bad.paf"
+    paf.write_text("bad\n", encoding="utf-8")
+    status = main(["classify-paf", "--paf", str(paf), "--output", str(tmp_path / "out.tsv")])
+    assert status != 0
+    assert "PAF line 1" in capsys.readouterr().err
+
+
+def test_classify_paf_rejects_impossible_alignment_spans(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    paf = tmp_path / "bad-spans.paf"
+    paf.write_text("q\t0\t0\t0\t+\tt\t1000\t0\t300\t300\t300\t60\n", encoding="utf-8")
+    status = main(["classify-paf", "--paf", str(paf), "--output", str(tmp_path / "out.tsv")])
+    assert status != 0
+    error = capsys.readouterr().err
+    assert "PAF line 1" in error
+    assert "matching bases" in error

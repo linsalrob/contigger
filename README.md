@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, strict FASTA and TSV-manifest validation, normalised run configuration, a pure conservative relationship classifier, deterministic output naming/provenance interfaces, minimap2 and BAM/CRAM adapter boundaries, and a functional dry run. Graph simplification, consensus, merging, read analysis, and production candidate generation remain planned.
+The Python 3.11+ package currently provides typed public models, strict FASTA and TSV-manifest validation, normalised run configuration, strict PAF stream parsing, conservative complete-pair relationship classification, a path-based minimap2 adapter, deterministic output/provenance interfaces, and a functional dry run. Graph construction, graph simplification, consensus, merging, read analysis, and production candidate generation remain planned.
 
 ## Development installation
 
@@ -32,6 +32,20 @@ A real merge fails clearly because biological merging is not implemented:
 contigger merge --manifest samples.tsv --output-prefix results/contigger
 ```
 
+## Experimental PAF diagnostics
+
+Classify all ordered query-target groups in a minimap2 PAF file:
+
+```bash
+contigger classify-paf --paf alignments.paf --output relationships.tsv \
+  --identity 98 --min-overlap 1000 --min-containment 500 \
+  --containment-coverage 98 --end-tolerance 50
+```
+
+PAF and TSV coordinates are zero-based and half-open. Blank PAF lines are ignored; malformed fields, coordinates, orientations, or tags fail with the physical source line. Mapping quality 255 is retained as valid PAF data. The TSV is diagnostic and experimental and never claims that contigs were merged.
+
+Every distinct primary, secondary, supplementary/inversion-labelled alignment is classified geometrically. Exact duplicate records are ignored. Equivalent hits can collapse only when topology, orientation, and coordinates agree within end tolerance. Conflicting accepted hits—including repeat placements—become `AMBIGUOUS_OVERLAP`; alignment score and primary status do not elect a winner. Rejected hits and reasons remain counted.
+
 ## Manifest
 
 The manifest is tab-separated. Only `sample` and `contigs` are currently required; relative paths are resolved from the manifest directory.
@@ -48,9 +62,19 @@ Unknown columns are retained as sample metadata. Optional paths, when supplied, 
 
 The first implemented outputs will be `contigger.fasta`, `contigger.provenance.tsv`, `contigger.relationships.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`. Later milestones plan `contigger.variants.tsv`, `contigger.join_support.tsv`, `contigger.consensus.vcf`, and `contigger.low_confidence.bed`. A dry run writes none of these.
 
-## External tools
+## External tools and synthetic benchmark
 
-Future workflows may wrap minimap2 for assembly alignment and targeted remapping, and samtools for BAM/CRAM validation, indexing, extraction, and conversion. Neither tool is required for unit tests or input-only dry runs. `pysam` is not a mandatory dependency.
+The experimental minimap2 path adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Ordinary tests and PAF classification do not require minimap2. The existing `asm20` default remains unchanged: minimap2 was unavailable in the development environment, so there is not yet local evidence sufficient to replace it despite the conceptual 98% identity threshold.
+
+When minimap2 is installed, compare `asm5` and `asm20` against fixed-seed synthetic truth:
+
+```bash
+python benchmarks/evaluate_minimap2.py
+python benchmarks/evaluate_minimap2.py --json benchmark.json
+pytest -m integration
+```
+
+The report puts false merges first, then correct, missed, ambiguous, candidate-record, and timing counts. The fixtures cover orientation, containment, terminal overlaps, substitutions, an indel, internal similarity, repeats, incompatible placements, low complexity, unrelated sequence, and classifier boundaries. This small benchmark is experimental and does not establish production sensitivity.
 
 ## Roadmap
 

@@ -8,9 +8,9 @@ Assemblies from related samples often contain exact duplicates, contained sequen
 
 A **contig** is an input assembled sequence. A **candidate** is a pair selected by positional seed evidence. An **alignment hit** is a coordinate-bearing observation, not a decision. **Containment** means one sequence is covered end-to-end within another. A **terminal overlap** connects compatible ends. A **relationship** is the classified interpretation of an alignment. A **junction** is newly constructed sequence adjacency. **Provenance** maps every source interval and disposition to an output or ambiguity record.
 
-## 3. Scope of the first implementation
+## 3. Scope of the current implementation
 
-The first milestone supplies typed models, FASTA and manifest validation, configuration normalisation, aligner/evidence abstractions, PAF parsing, deterministic naming and provenance writing, conservative classification of simple alignment hits, and a validation/dry-run CLI.
+The current milestone supplies typed models, FASTA and manifest validation, configuration normalisation, aligner/evidence abstractions, strict streaming PAF parsing, deterministic naming and provenance interfaces, and conservative classification of complete ordered query-target hit groups. The `classify-paf` command is diagnostic and experimental; it does not construct a graph or merge sequence.
 
 ## 4. Explicit non-goals
 
@@ -50,13 +50,17 @@ maximum minimiser frequency:     100
 
 General k-mer composition vectors are not preferred because they discard position and can conflate shared composition with overlap. Canonical positional minimisers are the intended first heuristic. Candidate records should retain shared-seed counts, relative positions, and orientation signals. Frequent minimisers must be bounded to limit repeats and quadratic pair expansion.
 
-## 10. Alignment abstraction
+## 10. Alignment abstraction and PAF handling
 
-An `Aligner` can build/reuse an index, align typed sequences, return `AlignmentHit` objects, and report its name, version, and exact last command. The first working adapter will likely invoke minimap2 and parse PAF, but callers must not depend on minimap2-specific objects so a native Python or Rust implementation can replace it.
+An `Aligner` can build/reuse an index, align typed sequences, return `AlignmentHit` objects, and report its name, version, and exact last command. The minimap2 adapter can safely align target and query FASTA paths with an argument array and parse the captured PAF stream. It records the executable version and exact alignment command; failures retain stderr. The backend-neutral hit model retains optional alignment role and the `AS`, `cm`, `s1`, and `s2` observations without requiring them.
+
+PAF input is processed line by line. Only blank lines are ignored. Required fields, coordinates, orientation, mapping quality (including the valid unknown value 255), and optional-tag syntax are validated; errors contain physical line numbers. Coordinates remain zero-based and half-open.
 
 ## 11. Relationship classification
 
-`RelationshipType` defines `EXACT_MATCH`, `QUERY_CONTAINED_IN_TARGET`, `TARGET_CONTAINED_IN_QUERY`, `QUERY_SUFFIX_TO_TARGET_PREFIX`, `TARGET_SUFFIX_TO_QUERY_PREFIX`, `AMBIGUOUS_OVERLAP`, and `NO_RELATIONSHIP`. Classification considers identity, aligned length, query and target coverage, distance to every query and target end, explicit orientation, alignment topology, competing alignments, and repeat/ambiguity signals. The scaffold handles simple single hits; competing-hit and repeat logic remains required before production use.
+`RelationshipType` defines `EXACT_MATCH`, `QUERY_CONTAINED_IN_TARGET`, `TARGET_CONTAINED_IN_QUERY`, `QUERY_SUFFIX_TO_TARGET_PREFIX`, `TARGET_SUFFIX_TO_QUERY_PREFIX`, `AMBIGUOUS_OVERLAP`, and `NO_RELATIONSHIP`. Classification considers identity, aligned length, query and target coverage, distance to every query and target end, explicit orientation, alignment topology, and every distinct hit for the ordered pair.
+
+Single-hit classification remains the geometric primitive. At pair level, exact duplicate records are removed deterministically and rejected-hit diagnostics are retained. Primary, secondary, and inversion-labelled hits receive the same geometric scrutiny: labels and scores never select a winner. Accepted hits collapse only when relationship type, terminal topology, orientation, and all placement coordinates agree within the configured end tolerance. Incompatible types, topologies, orientations, or materially different placements produce `AMBIGUOUS_OVERLAP`. This deliberately turns unresolved repeat evidence into ambiguity rather than a score-selected relationship.
 
 ## 12. Containment criteria
 
@@ -103,7 +107,7 @@ Every retained, contained, merged, ambiguous, or rejected source contig remains 
 
 ## 21. Output formats
 
-First-milestone planned outputs are `contigger.fasta`, `contigger.provenance.tsv`, `contigger.relationships.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`; they are not emitted by the current scaffold. Later planned outputs are `contigger.variants.tsv`, `contigger.join_support.tsv`, `contigger.consensus.vcf`, and `contigger.low_confidence.bed`. A dry run writes no biological outputs. Each tabular format will document coordinates and schema versions before implementation.
+The experimental `classify-paf` command emits a deterministic diagnostic relationships TSV with zero-based half-open coordinates, accepted/rejected counts, and reasons. It is not a merge result or a stable production schema. Planned biological outputs remain `contigger.fasta`, `contigger.provenance.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`; they are not emitted by the current implementation. A dry run writes no biological outputs.
 
 ## 22. Determinism and reproducibility
 
@@ -123,7 +127,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 
 ## 26. Staged roadmap
 
-1. Complete and benchmark relationship classification from minimap2 PAF using synthetic contigs.
+1. Complete and benchmark relationship classification from minimap2 PAF using synthetic contigs. (current experimental milestone)
 2. Implement and benchmark canonical positional-minimiser candidates.
 3. Add typed, ambiguity-preserving graph construction and containment handling.
 4. Implement provenance-complete unambiguous linear-path merging.
@@ -133,8 +137,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 
 ## 27. Open design questions
 
-- Which minimap2 preset and secondary-alignment policy best balances sensitivity and repeat safety?
-- How should multiple near-equivalent PAF records establish ambiguity?
+- Which minimap2 preset best balances sensitivity and repeat safety on broader reviewed truth sets?
 - Are containment thresholds length- or technology-dependent?
 - How should circular contigs be represented without unsafe linearisation?
 - Which graph patterns can be simplified safely in the presence of reverse complements?
