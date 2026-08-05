@@ -1,0 +1,9 @@
+index	command
+1	minimap2 -cx asm5 --secondary=yes consensus_assembly.fasta consensus_assembly.fasta
+2	minimap2 -t 12 -ax map-ont source.mmi BC04.trimmed.fastq.gz | samtools sort -@ 8 -m 1G -o source_reads.bam -
+3	samtools index -@ 8 source_reads.bam
+4	minimap2 -ax map-ont contigs/S01.contigs.fasta.gz reads/S01.targeted.fastq.gz | samtools sort -o alignments/S01.contigs.bam -
+5	minimap2 -ax map-ont contigs/S02.contigs.fasta.gz reads/S02.targeted.fastq.gz | samtools sort -o alignments/S02.contigs.bam -
+6	minimap2 -ax map-ont contigs/S03.contigs.fasta.gz reads/S03.targeted.fastq.gz | samtools sort -o alignments/S03.contigs.bam -
+7	minimap2 -cx asm5 --secondary=yes -p 0 -N 100 all_contigs.fasta all_contigs.fasta
+8	minimap2 -cx asm20 --secondary=yes -p 0 -N 100 all_contigs.fasta all_contigs.fasta

@@ -1,0 +1,20 @@
+case_id	left_contig	right_contig	junction_is_true	source_coordinate	circular_wrap	selected_spanning_reads	selected_nonspanning_reads	expected_read_evidence	reason
+circular_origin	circular_origin_left	circular_origin_right	true	0	true	100	0	reads spanning origin where available	native circular adjacency
+end_tolerance_49	end_tolerance_49_left	end_tolerance_49_right	true	1270000	false	100	0	native spanning reads requested	alignment endpoint is 49 bp from query end
+end_tolerance_50	end_tolerance_50_left	end_tolerance_50_right	true	1320000	false	100	0	native spanning reads requested	alignment endpoint is 50 bp from query end
+end_tolerance_51	end_tolerance_51_left	end_tolerance_51_right	false	1370000	false	0	0	no read should support artificial adjacency	alignment endpoint is 51 bp from query end
+high_identity_short	high_identity_short_left	high_identity_short_right	false	2940000	false	0	0	no read should support artificial adjacency	high identity overlap is only 900 bp
+identity_9799	identity_9799_left	identity_9799_right	false	1070000	false	0	0	no read should support artificial adjacency	10 kb substitution-only boundary: 201 substitutions
+identity_9800	identity_9800_left	identity_9800_right	true	1020000	false	100	0	native spanning reads requested	10 kb substitution-only boundary: 200 substitutions
+identity_9801	identity_9801_left	identity_9801_right	true	970000	false	100	0	native spanning reads requested	10 kb substitution-only boundary: 199 substitutions
+length_1000	length_1000_left	length_1000_right	true	1170000	false	100	0	native spanning reads requested	minimum-overlap boundary at 1000 bp
+length_1001	length_1001_left	length_1001_right	true	1220000	false	100	0	native spanning reads requested	minimum-overlap boundary at 1001 bp
+length_999	length_999_left	length_999_right	false	1120000	false	0	0	no read should support artificial adjacency	minimum-overlap boundary at 999 bp
+overlap_forward_r01	overlap_forward_r01_left	overlap_forward_r01_right	true	220000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+overlap_forward_r02	overlap_forward_r02_left	overlap_forward_r02_right	true	470000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+overlap_forward_r03	overlap_forward_r03_left	overlap_forward_r03_right	true	720000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+overlap_reverse_direction_r01	overlap_reverse_direction_r01_left	overlap_reverse_direction_r01_right	true	270000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+overlap_reverse_direction_r02	overlap_reverse_direction_r02_left	overlap_reverse_direction_r02_right	true	520000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+overlap_reverse_direction_r03	overlap_reverse_direction_r03_left	overlap_reverse_direction_r03_right	true	770000	false	100	0	native spanning reads requested	constructed native suffix-prefix overlap
+small_deletion	small_deletion_left	small_deletion_right	true	920000	false	100	0	native spanning reads requested	3 bp deletion inside terminal overlap; source reads support reference allele
+small_insertion	small_insertion_left	small_insertion_right	true	870000	false	100	0	native spanning reads requested	3 bp insertion inside terminal overlap; source reads support reference allele

@@ -1,0 +1,91 @@
+case_id	contig_id	source_start	source_end	strand	circular_wrap	selection_rationale
+chimera	chimera_contig			+	false	contig joins two distant source loci
+chimera	chimera_native	2595000	2615000	+	false	native comparator
+circular_origin	circular_origin_left	6837769	6857769	+	true	circular slice crossing origin
+circular_origin	circular_origin_right	0	20000	+	false	origin-proximal slice
+contain_r01	contain_r01_long	160000	185000	+	false	unique containment target
+contain_r01	contain_r01_short	167000	177000	+	false	exact contained slice
+contain_r02	contain_r02_long	410000	435000	+	false	unique containment target
+contain_r02	contain_r02_short	417000	427000	+	false	exact contained slice
+contain_r03	contain_r03_long	660000	685000	+	false	unique containment target
+contain_r03	contain_r03_short	667000	677000	+	false	exact contained slice
+containment_coverage_above	containment_coverage_above_long	1520000	1545000	+	false	containment boundary target
+containment_coverage_above	containment_coverage_above_short			+	false	9801 aligned and 199 unaligned bases
+containment_coverage_at	containment_coverage_at_long	1460000	1485000	+	false	containment boundary target
+containment_coverage_at	containment_coverage_at_short			+	false	9800 aligned and 200 unaligned bases
+containment_coverage_below	containment_coverage_below_long	1400000	1425000	+	false	containment boundary target
+containment_coverage_below	containment_coverage_below_short			+	false	9799 aligned and 201 unaligned bases
+end_tolerance_49	end_tolerance_49_left	1250000	1270049	+	false	unique-locus construction; deterministic spaced locus
+end_tolerance_49	end_tolerance_49_right	1265000	1285000	+	false	alignment endpoint is 49 bp from query end
+end_tolerance_50	end_tolerance_50_left	1300000	1320050	+	false	unique-locus construction; deterministic spaced locus
+end_tolerance_50	end_tolerance_50_right	1315000	1335000	+	false	alignment endpoint is 50 bp from query end
+end_tolerance_51	end_tolerance_51_left	1350000	1370051	+	false	unique-locus construction; deterministic spaced locus
+end_tolerance_51	end_tolerance_51_right	1365000	1385000	+	false	alignment endpoint is 51 bp from query end
+exact_r01	exact_r01_a	100000	120000	+	false	unique-locus exact duplicate
+exact_r01	exact_r01_b	100000	120000	+	false	exact duplicate
+exact_r02	exact_r02_a	350000	370000	+	false	unique-locus exact duplicate
+exact_r02	exact_r02_b	350000	370000	+	false	exact duplicate
+exact_r03	exact_r03_a	600000	620000	+	false	unique-locus exact duplicate
+exact_r03	exact_r03_b	600000	620000	+	false	exact duplicate
+high_identity_short	high_identity_short_left	2920000	2940000	+	false	unique-locus construction; deterministic spaced locus
+high_identity_short	high_identity_short_right	2939100	2959100	+	false	high identity overlap is only 900 bp
+identity_9799	identity_9799_left	1050000	1070000	+	false	unique-locus construction; deterministic spaced locus
+identity_9799	identity_9799_right	1060000	1080000	+	false	10 kb substitution-only boundary: 201 substitutions
+identity_9800	identity_9800_left	1000000	1020000	+	false	unique-locus construction; deterministic spaced locus
+identity_9800	identity_9800_right	1010000	1030000	+	false	10 kb substitution-only boundary: 200 substitutions
+identity_9801	identity_9801_left	950000	970000	+	false	unique-locus construction; deterministic spaced locus
+identity_9801	identity_9801_right	960000	980000	+	false	10 kb substitution-only boundary: 199 substitutions
+incompatible_placements	incompatible_placements_left			+	false	two valid pairwise placements cannot both define one adjacency
+incompatible_placements	incompatible_placements_right_a			+	false	two valid pairwise placements cannot both define one adjacency
+incompatible_placements	incompatible_placements_right_b			+	false	two valid pairwise placements cannot both define one adjacency
+internal_shared	internal_shared_a			+	false	shared high-identity block is internal to both contigs
+internal_shared	internal_shared_b			+	false	shared high-identity block is internal to both contigs
+length_1000	length_1000_left	1150000	1170000	+	false	unique-locus construction; deterministic spaced locus
+length_1000	length_1000_right	1169000	1189000	+	false	minimum-overlap boundary at 1000 bp
+length_1001	length_1001_left	1200000	1220000	+	false	unique-locus construction; deterministic spaced locus
+length_1001	length_1001_right	1218999	1238999	+	false	minimum-overlap boundary at 1001 bp
+length_999	length_999_left	1100000	1120000	+	false	unique-locus construction; deterministic spaced locus
+length_999	length_999_right	1119001	1139001	+	false	minimum-overlap boundary at 999 bp
+low_complexity	low_complexity_a			+	false	homopolymer-rich terminal match is non-specific
+low_complexity	low_complexity_b			+	false	homopolymer-rich terminal match is non-specific
+near_containment_fail	near_containment_fail_long	2840000	2865000	+	false	near containment fails end/coverage criterion
+near_containment_fail	near_containment_fail_short			+	false	near containment fails end/coverage criterion
+opposite_orientations	opposite_orientations_left			+	false	non-equivalent alignments support opposite orientations
+opposite_orientations	opposite_orientations_right_a			+	false	non-equivalent alignments support opposite orientations
+opposite_orientations	opposite_orientations_right_b			+	false	non-equivalent alignments support opposite orientations
+overlap_forward_r01	overlap_forward_r01_left	200000	220000	+	false	unique-locus construction; deterministic spaced locus
+overlap_forward_r01	overlap_forward_r01_right	215000	235000	+	false	constructed native suffix-prefix overlap
+overlap_forward_r02	overlap_forward_r02_left	450000	470000	+	false	unique-locus construction; deterministic spaced locus
+overlap_forward_r02	overlap_forward_r02_right	465000	485000	+	false	constructed native suffix-prefix overlap
+overlap_forward_r03	overlap_forward_r03_left	700000	720000	+	false	unique-locus construction; deterministic spaced locus
+overlap_forward_r03	overlap_forward_r03_right	715000	735000	+	false	constructed native suffix-prefix overlap
+overlap_rc_r01	overlap_rc_r01_left	300000	320000	+	false	unique RC overlap locus
+overlap_rc_r01	overlap_rc_r01_right	315000	335000	-	false	reverse-complement terminal partner
+overlap_rc_r02	overlap_rc_r02_left	550000	570000	+	false	unique RC overlap locus
+overlap_rc_r02	overlap_rc_r02_right	565000	585000	-	false	reverse-complement terminal partner
+overlap_rc_r03	overlap_rc_r03_left	800000	820000	+	false	unique RC overlap locus
+overlap_rc_r03	overlap_rc_r03_right	815000	835000	-	false	reverse-complement terminal partner
+overlap_reverse_direction_r01	overlap_reverse_direction_r01_left	250000	270000	+	false	unique-locus construction; deterministic spaced locus
+overlap_reverse_direction_r01	overlap_reverse_direction_r01_right	265000	285000	+	false	constructed native suffix-prefix overlap
+overlap_reverse_direction_r02	overlap_reverse_direction_r02_left	500000	520000	+	false	unique-locus construction; deterministic spaced locus
+overlap_reverse_direction_r02	overlap_reverse_direction_r02_right	515000	535000	+	false	constructed native suffix-prefix overlap
+overlap_reverse_direction_r03	overlap_reverse_direction_r03_left	750000	770000	+	false	unique-locus construction; deterministic spaced locus
+overlap_reverse_direction_r03	overlap_reverse_direction_r03_right	765000	785000	+	false	constructed native suffix-prefix overlap
+repeat_ambiguity	repeat_ambiguity_left			+	false	synthetic repeat has two incompatible terminal placements
+repeat_ambiguity	repeat_ambiguity_right_a			+	false	synthetic repeat has two incompatible terminal placements
+repeat_ambiguity	repeat_ambiguity_right_b			+	false	synthetic repeat has two incompatible terminal placements
+reverse_exact_r01	reverse_exact_r01_a	130000	150000	+	false	unique-locus exact duplicate
+reverse_exact_r01	reverse_exact_r01_b	130000	150000	-	false	reverse-complement duplicate
+reverse_exact_r02	reverse_exact_r02_a	380000	400000	+	false	unique-locus exact duplicate
+reverse_exact_r02	reverse_exact_r02_b	380000	400000	-	false	reverse-complement duplicate
+reverse_exact_r03	reverse_exact_r03_a	630000	650000	+	false	unique-locus exact duplicate
+reverse_exact_r03	reverse_exact_r03_b	630000	650000	-	false	reverse-complement duplicate
+small_deletion	small_deletion_left	900000	920000	+	false	unique-locus construction; deterministic spaced locus
+small_deletion	small_deletion_right	915000	935000	+	false	3 bp deletion inside terminal overlap; source reads support reference allele
+small_insertion	small_insertion_left	850000	870000	+	false	unique-locus construction; deterministic spaced locus
+small_insertion	small_insertion_right	865000	885000	+	false	3 bp insertion inside terminal overlap; source reads support reference allele
+terminal_repeat	terminal_repeat_left			+	false	terminal synthetic repeat lacks unique-flank adjacency evidence
+terminal_repeat	terminal_repeat_right_a			+	false	terminal synthetic repeat lacks unique-flank adjacency evidence
+terminal_repeat	terminal_repeat_right_b			+	false	terminal synthetic repeat lacks unique-flank adjacency evidence
+unrelated_unique	unrelated_unique_a	2200000	2220000	+	false	two distant unique contigs have no constructed relationship
+unrelated_unique	unrelated_unique_b	4000000	4020000	+	false	two distant unique contigs have no constructed relationship

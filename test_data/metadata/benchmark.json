@@ -1,0 +1,38 @@
+{
+  "archive_size_bytes": 12253667,
+  "benchmark_version": "1.0.0",
+  "cases": 43,
+  "configured_thresholds": {
+    "containment_coverage_inclusive": true,
+    "containment_coverage_percent": 98.0,
+    "end_tolerance": 50,
+    "end_tolerance_inclusive": true,
+    "identity_inclusive": true,
+    "identity_percent": 98.0,
+    "minimum_containment": 500,
+    "minimum_overlap": 1000,
+    "overlap_inclusive": true
+  },
+  "construction_seed": 47291,
+  "contigs": 90,
+  "directory_size_bytes": 12379985,
+  "expected_relationship_types": 7,
+  "reads_retained": 1500,
+  "relationship_counts": {
+    "AMBIGUOUS_OVERLAP": 8,
+    "EXACT_MATCH": 12,
+    "NO_RELATIONSHIP": 6,
+    "QUERY_CONTAINED_IN_TARGET": 5,
+    "QUERY_SUFFIX_TO_TARGET_PREFIX": 22,
+    "TARGET_CONTAINED_IN_QUERY": 3,
+    "TARGET_SUFFIX_TO_QUERY_PREFIX": 18
+  },
+  "retained_bases": 9636205,
+  "runtime_metadata_excluded_from_determinism": [],
+  "samples": 3,
+  "source_checksums": {
+    "assembly": "b9d746dfc7abd4a4c6c9bba37b077a8554d4b67f80f741b28e59adbe74e74b81",
+    "graph": "134e54a0e5fafe75b54a7f537b7afc3df4b421930a3effd4da70a800a0f80c7f",
+    "reads": "e5ebf942aa15cc8e3329817f64f5e0dc2211bd009dad715a77ddfff779183daf"
+  }
+}

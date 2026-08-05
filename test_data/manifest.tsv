@@ -1,0 +1,4 @@
+sample	contigs	bam	technology
+S01	contigs/S01.contigs.fasta.gz	alignments/S01.contigs.bam	ont
+S02	contigs/S02.contigs.fasta.gz	alignments/S02.contigs.bam	ont
+S03	contigs/S03.contigs.fasta.gz	alignments/S03.contigs.bam	ont
