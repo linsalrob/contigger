@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph construction, graph simplification, consensus, merging, and read analysis remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, consensus, merging, and read analysis remain planned.
 
 ## Development installation
 
@@ -124,7 +124,15 @@ contigger benchmark-pipeline --dataset test_data \
   --output-json pipeline-benchmark.json
 ```
 
-Both presets recover all 12 exact/RC truth rows and all 23 valid non-exact case groups (40 ordered truth rows); candidate generation adds zero misses. At relationship classification, both retain the two known 51 bp end-tolerance false merges, while `asm5` misses four relationships and `asm20` misses two. Four graph-level ambiguity groups remain deferred. The checked-in result is `benchmarks/pseudomonas_pipeline_baseline.json`. This is a staged recall and safety benchmark, not a graph result or evidence that any contigs were merged.
+Both presets recover all 12 exact/RC truth rows and all 23 valid non-exact case groups (40 ordered truth rows); candidate generation adds zero misses. At relationship classification, both retain the two known 51 bp end-tolerance false merges, while `asm5` misses four relationships and `asm20` misses two. The pair-stage report defers four graph-level ambiguity groups. The checked-in result is `benchmarks/pseudomonas_pipeline_baseline.json`. This is a staged recall and safety benchmark, not a graph result or evidence that any contigs were merged.
+
+## Ambiguity-preserving relationship graphs
+
+`build_relationship_graph()` consumes complete `PairRelationship` decisions and returns stable nodes, structurally separate containment and terminal-overlap edges, explicit ambiguous edges, and deterministically ordered components. Consistent reciprocal PAF decisions collapse to one edge; inconsistent reciprocals remain ambiguous. Components are marked ambiguous for competing use of one oriented terminal, multiple possible containers, pair-level ambiguity, cycles, or contradictory orientations. A degree-two linear path is retained without being declared merged.
+
+Exact matches are rejected at this boundary because exact and reverse-complement deduplication belongs in the catalogue stage. `NO_RELATIONSHIP` decisions do not create edges, although supplied isolated nodes remain in the graph. Graph construction performs no containment removal, edge selection, path simplification, sequence joining, or merge authorization.
+
+The source-identifier diagnostic regression in `benchmarks/pseudomonas_graph_baseline.json` has 90 nodes and three containment edges for both PAFs. `asm5` has 50 overlap edges in 58 components; `asm20` has 51 in 57. In both, the four deferred repeat/branch truth groups occur in one preserved ambiguous component. The known forbidden 51 bp end-tolerance pair also remains an ordinary edge, demonstrating why graph presence alone cannot authorize merging.
 
 ## Roadmap
 
@@ -132,8 +140,8 @@ Both presets recover all 12 exact/RC truth rows and all 23 valid non-exact case 
 2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
 3. Implement canonical positional-minimiser candidates and selective-alignment planning. (complete, experimental baseline)
 4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching. (complete, experimental baseline)
-5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them.
-6. Add provenance-complete linear-path merging.
+5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them. (complete, unsimplified experimental baseline)
+6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility; do not emit merged sequence until provenance-complete path planning is validated.
 7. Add sample-aware source evidence and targeted junction remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

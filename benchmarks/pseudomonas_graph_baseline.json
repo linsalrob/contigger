@@ -1,0 +1,31 @@
+{
+  "asm20": {
+    "ambiguous_components": 1,
+    "ambiguous_edges": 0,
+    "components": 57,
+    "containment_edges": 3,
+    "known_forbidden_pair_edges": 1,
+    "nodes": 90,
+    "overlap_edges": 51,
+    "paf_sha256": "5444da64efa5850d2dae0192d2266b8262465b68277c4168cec64ffb4dd363ba"
+  },
+  "asm5": {
+    "ambiguous_components": 1,
+    "ambiguous_edges": 0,
+    "components": 58,
+    "containment_edges": 3,
+    "known_forbidden_pair_edges": 1,
+    "nodes": 90,
+    "overlap_edges": 50,
+    "paf_sha256": "9b193d5fd163e750d2dc7c4005159bda4f3f9dd9f07e71f2dac5dc19195e326c"
+  },
+  "ambiguity_groups_preserved": [
+    "incompatible_placements",
+    "opposite_orientations",
+    "repeat_ambiguity",
+    "terminal_repeat"
+  ],
+  "dataset_version": "1.0.0",
+  "metadata_sha256": "6bc53c7c46c2da2d3227c5bffe8981d14b64781451fd173022674bf71ce42838",
+  "scope": "unsimplified source-identifier diagnostic graph; no merge authorization"
+}

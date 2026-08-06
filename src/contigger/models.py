@@ -29,6 +29,14 @@ class RelationshipType(StrEnum):
     NO_RELATIONSHIP = "NO_RELATIONSHIP"
 
 
+class GraphEdgeKind(StrEnum):
+    """Structural role of a retained relationship in a sequence graph."""
+
+    CONTAINMENT = "containment"
+    OVERLAP = "overlap"
+    AMBIGUOUS = "ambiguous"
+
+
 class AlignmentType(StrEnum):
     """PAF alignment role reported by an aligner, when available."""
 
@@ -282,6 +290,34 @@ class PairRelationship:
 
 
 @dataclass(frozen=True, slots=True)
+class GraphNode:
+    """One stable sequence identity in a relationship graph."""
+
+    sequence_id: str
+
+
+@dataclass(frozen=True, slots=True)
+class GraphEdge:
+    """One canonical pairwise graph edge retaining alignment diagnostics."""
+
+    edge_id: str
+    kind: GraphEdgeKind
+    relationship_type: RelationshipType
+    query_id: str
+    target_id: str
+    orientation: Orientation
+    query_start: int | None
+    query_end: int | None
+    target_start: int | None
+    target_end: int | None
+    identity: float
+    aligned_length: int
+    accepted_hit_count: int
+    rejected_hit_count: int
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
 class MergeComponent:
     """A planned graph component; it does not imply that merging is safe."""
 
@@ -289,6 +325,18 @@ class MergeComponent:
     sequence_ids: tuple[str, ...]
     relationship_ids: tuple[str, ...] = ()
     ambiguous: bool = False
+    ambiguity_reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class RelationshipGraph:
+    """Deterministic unsimplified graph with structurally separated edge classes."""
+
+    nodes: tuple[GraphNode, ...]
+    containment_edges: tuple[GraphEdge, ...]
+    overlap_edges: tuple[GraphEdge, ...]
+    ambiguous_edges: tuple[GraphEdge, ...]
+    components: tuple[MergeComponent, ...]
 
 
 @dataclass(frozen=True, slots=True)
