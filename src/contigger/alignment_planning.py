@@ -111,11 +111,14 @@ def execute_indexed_selective_alignments(
         index_path = index_directory / f"target-{index_name}.mmi"
         aligner.build_index((target,), index_path)
         queries = tuple(request.query for request in group)
+        batch_expected = {
+            (request.query.identifier, request.target.identifier) for request in group
+        }
         for hit in aligner.align_indexed(queries, (target,), index_path):
             observed = (hit.query_id, hit.target_id)
-            if observed not in expected:
+            if observed not in batch_expected:
                 raise InputValidationError(
-                    "alignment backend returned identifiers outside selective requests: "
+                    "alignment backend returned identifiers outside current selective batch: "
                     f"observed {observed}"
                 )
             hits.append(hit)
