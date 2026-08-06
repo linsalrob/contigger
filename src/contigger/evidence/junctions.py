@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Callable, Iterable
 from pathlib import Path
@@ -62,7 +63,8 @@ class TargetedJunctionRemapper:
                 f"junction request sample {request.sample!r} does not match provider sample "
                 f"{self.source.sample.sample!r}"
             )
-        self.source.validate_source()
+        self._commands.clear()
+        source_command_count = len(self.source.commands)
         left = tuple(
             self.source.reads_near_end(
                 request.left_contig_id, request.left_end, request.extraction_distance
@@ -74,18 +76,30 @@ class TargetedJunctionRemapper:
             )
         )
         selected = tuple(sorted(set(left) | set(right)))
+        evaluation_commands = list(self.source.commands[source_command_count:])
         minimap_version = self._run((self.executable, "--version")).stdout.strip()
+        evaluation_commands.append(self.commands[-1])
         if not minimap_version:
             raise InputValidationError("minimap2 returned an empty version response")
         assert self.source.version is not None
         if not selected:
-            return self._result(request, selected, (), (), minimap_version, ("no reads selected",))
+            return self._result(
+                request,
+                selected,
+                (),
+                (),
+                minimap_version,
+                tuple(evaluation_commands),
+                ("no reads selected",),
+            )
         with TemporaryDirectory(prefix="contigger-junction-") as directory:
             work = Path(directory)
             reference = work / "junction.fasta"
             reads = work / "reads.fastq"
             write_fasta_records((request.provisional_reference,), reference)
+            source_command_count = len(self.source.commands)
             self.source.extract_reads(selected, reads)
+            evaluation_commands.extend(self.source.commands[source_command_count:])
             command = (
                 self.executable,
                 "-a",
@@ -97,6 +111,7 @@ class TargetedJunctionRemapper:
                 str(reads),
             )
             sam = self._run(command).stdout
+            evaluation_commands.append(self.commands[-1])
         remapped, spanning = _score_sam(
             sam,
             request.provisional_reference.identifier,
@@ -108,7 +123,15 @@ class TargetedJunctionRemapper:
         diagnostics = (
             "junction-spanning alignments are evidence only and do not authorize a merge",
         )
-        return self._result(request, selected, remapped, spanning, minimap_version, diagnostics)
+        return self._result(
+            request,
+            selected,
+            remapped,
+            spanning,
+            minimap_version,
+            tuple(evaluation_commands),
+            diagnostics,
+        )
 
     def _run(self, arguments: tuple[str, ...]) -> CommandResult:
         self._commands.append(arguments)
@@ -121,6 +144,7 @@ class TargetedJunctionRemapper:
         remapped: tuple[str, ...],
         spanning: tuple[str, ...],
         minimap_version: str,
+        commands: tuple[tuple[str, ...], ...],
         diagnostics: tuple[str, ...],
     ) -> TargetedJunctionEvidence:
         assert self.source.version is not None
@@ -129,6 +153,10 @@ class TargetedJunctionRemapper:
             left_contig_id=request.left_contig_id,
             right_contig_id=request.right_contig_id,
             provisional_reference_id=request.provisional_reference.identifier,
+            provisional_reference_length=request.provisional_reference.length,
+            provisional_reference_sha256=hashlib.sha256(
+                request.provisional_reference.sequence.encode("ascii")
+            ).hexdigest(),
             junction_position=request.junction_position,
             selected_read_names=selected,
             remapped_read_names=remapped,
@@ -136,7 +164,7 @@ class TargetedJunctionRemapper:
             minimum_spanning_flank=request.minimum_spanning_flank,
             samtools_version=self.source.version,
             minimap2_version=minimap_version,
-            commands=self.source.commands + self.commands,
+            commands=commands,
             diagnostics=diagnostics,
         )
 

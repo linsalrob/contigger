@@ -447,7 +447,7 @@ class JoinEvidence:
 
 @dataclass(frozen=True, slots=True)
 class JunctionRemappingRequest:
-    """Explicit sample-scoped request to test one provisional junction reference."""
+    """Request with a zero-based junction boundary inside one provisional reference."""
 
     sample: str
     left_contig_id: str
@@ -482,6 +482,8 @@ class TargetedJunctionEvidence:
     left_contig_id: str
     right_contig_id: str
     provisional_reference_id: str
+    provisional_reference_length: int
+    provisional_reference_sha256: str
     junction_position: int
     selected_read_names: tuple[str, ...]
     remapped_read_names: tuple[str, ...]

@@ -38,10 +38,7 @@ class FakeTools:
                 f"{name}\t0\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\n"
                 "shared\t0\t*\t0\t0\t*\t*\t0\t0\tACGT\tIIII\n"
             )
-        elif operation == "view":
-            Path(arguments[arguments.index("-o") + 1]).touch()
-            stdout = ""
-        elif operation == "collate":
+        elif operation == "view" or operation == "collate":
             Path(arguments[arguments.index("-o") + 1]).touch()
             stdout = ""
         elif operation == "fastq":
@@ -105,10 +102,44 @@ def test_targeted_remapping_counts_distinct_flank_spanners(tmp_path: Path) -> No
     assert evidence.remapped_read_names == ("left-read", "right-read")
     assert evidence.spanning_read_names == ("left-read",)
     assert evidence.spanning_reads == 1
+    assert evidence.provisional_reference_length == 180
+    assert evidence.provisional_reference_sha256 == (
+        "dbcabec0bf27c25204ea59050e80eb4ffe6bc32a4e491338186fdcf62e49091e"
+    )
     assert evidence.samtools_version == "samtools 1.22"
     assert evidence.minimap2_version == "2.30-r1287"
     assert "do not authorize a merge" in evidence.diagnostics[0]
     assert all(isinstance(command, tuple) for command in evidence.commands)
+
+
+def test_repeated_evaluations_have_request_scoped_ordered_commands(tmp_path: Path) -> None:
+    tools = FakeTools()
+    minimap = tmp_path / "minimap2"
+    minimap.touch()
+    remapper = TargetedJunctionRemapper(
+        setup_provider(tmp_path, tools), minimap2=minimap, runner=tools.minimap2
+    )
+    first = remapper.evaluate(request())
+    second = remapper.evaluate(request())
+    assert [Path(command[0]).name for command in second.commands] == [
+        "samtools",
+        "samtools",
+        "minimap2",
+        "samtools",
+        "samtools",
+        "samtools",
+        "minimap2",
+    ]
+    assert len(first.commands) == len(second.commands) + 4
+    assert [command[1] for command in second.commands] == [
+        "view",
+        "view",
+        "--version",
+        "view",
+        "collate",
+        "fastq",
+        "-a",
+    ]
 
 
 def test_request_rejects_impossible_flank() -> None:
