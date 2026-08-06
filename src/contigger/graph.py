@@ -129,6 +129,10 @@ def _validate_representative(decision: PairRelationship) -> None:
         raise InputValidationError(
             "graph representative alignment identifiers do not match its relationship"
         )
+    if hit is not None and hit.orientation is not relationship.orientation:
+        raise InputValidationError(
+            "graph representative alignment orientation does not match its relationship"
+        )
 
 
 def _canonical_edge(pair: tuple[str, str], decisions: list[PairRelationship]) -> GraphEdge | None:
@@ -182,8 +186,8 @@ def _canonical_edge(pair: tuple[str, str], decisions: list[PairRelationship]) ->
         relationship_type,
         tuple(sorted(_decision_reasons(active))),
         retain_coordinates=True,
-        accepted_hit_count=len(selected.accepted_hits),
-        rejected_hit_count=len(selected.rejected_alignments),
+        accepted_hit_count=sum(len(item.accepted_hits) for item in active),
+        rejected_hit_count=sum(len(item.rejected_alignments) for item in active),
     )
 
 
@@ -329,10 +333,7 @@ def _component_ambiguity(members: tuple[str, ...], edges: tuple[GraphEdge, ...])
         reasons.add("contained sequence has multiple possible containers")
     if any(len(edge_ids) > 1 for edge_ids in ports.values()):
         reasons.add("multiple overlaps compete for the same oriented terminal")
-    overlap_nodes = {
-        identifier for edge in overlap_edges for identifier in (edge.query_id, edge.target_id)
-    }
-    if overlap_edges and len(overlap_edges) >= len(overlap_nodes):
+    if _has_overlap_cycle(overlap_edges):
         reasons.add("overlap subgraph contains a cycle")
     if _has_orientation_conflict(members, overlap_edges):
         reasons.add("overlap orientations are mutually inconsistent")
@@ -374,4 +375,27 @@ def _has_orientation_conflict(members: tuple[str, ...], edges: list[GraphEdge]) 
                 if neighbour not in assigned:
                     assigned[neighbour] = expected
                     queue.append(neighbour)
+    return False
+
+
+def _has_overlap_cycle(edges: list[GraphEdge]) -> bool:
+    adjacency: dict[str, list[str]] = defaultdict(list)
+    for edge in edges:
+        adjacency[edge.query_id].append(edge.target_id)
+        adjacency[edge.target_id].append(edge.query_id)
+    visited: set[str] = set()
+    for start in sorted(adjacency):
+        if start in visited:
+            continue
+        visited.add(start)
+        queue = deque(((start, ""),))
+        while queue:
+            node, parent = queue.popleft()
+            for neighbour in adjacency[node]:
+                if neighbour == parent:
+                    continue
+                if neighbour in visited:
+                    return True
+                visited.add(neighbour)
+                queue.append((neighbour, node))
     return False

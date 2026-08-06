@@ -107,6 +107,8 @@ def test_reciprocal_overlap_collapses_to_one_deterministic_edge() -> None:
     assert edge.kind is GraphEdgeKind.OVERLAP
     assert (edge.query_id, edge.target_id) == ("a", "b")
     assert edge.query_start == 800
+    assert edge.accepted_hit_count == 2
+    assert edge.rejected_hit_count == 0
     assert graph.containment_edges == graph.ambiguous_edges == ()
     assert [component.sequence_ids for component in graph.components] == [
         ("a", "b"),
@@ -233,6 +235,27 @@ def test_cycle_and_orientation_conflict_are_reported_without_simplification() ->
     assert "overlap orientations are mutually inconsistent" in graph.components[0].ambiguity_reasons
 
 
+def test_overlap_cycle_detection_handles_disconnected_overlap_subgraphs() -> None:
+    graph = build_relationship_graph(
+        (
+            decision("a", "b", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+            decision("b", "c", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+            decision("c", "a", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+            decision("d", "e", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+            decision(
+                "c",
+                "d",
+                RelationshipType.QUERY_CONTAINED_IN_TARGET,
+                query_start=0,
+                query_end=1000,
+                target_start=0,
+                target_end=1000,
+            ),
+        )
+    )
+    assert "overlap subgraph contains a cycle" in graph.components[0].ambiguity_reasons
+
+
 def test_invalid_graph_inputs_fail_clearly() -> None:
     exact = decision("a", "b", RelationshipType.EXACT_MATCH)
     with pytest.raises(InputValidationError, match="sequence catalogue"):
@@ -242,6 +265,26 @@ def test_invalid_graph_inputs_fail_clearly() -> None:
         build_relationship_graph((relationship, relationship))
     with pytest.raises(InputValidationError, match="unknown sequence"):
         build_relationship_graph((relationship,), ("a",))
+    mismatched_orientation = PairRelationship(
+        Relationship(
+            RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX,
+            "a",
+            "b",
+            Orientation.REVERSE,
+            1.0,
+            200,
+            0.2,
+            0.2,
+            "candidate",
+            ("synthetic decision",),
+        ),
+        relationship.representative_hit,
+        relationship.accepted_hits,
+        relationship.rejected_alignments,
+        (),
+    )
+    with pytest.raises(InputValidationError, match="orientation"):
+        build_relationship_graph((mismatched_orientation,))
 
 
 def test_component_wrapper_and_graph_order_are_deterministic() -> None:
