@@ -47,3 +47,5 @@ Graph decision-policy changes must also run `pytest tests/test_decision_policy.p
 Path-planning changes must run `pytest tests/test_path_planning.py tests/test_path_planning_benchmark.py`. Plans must retain every source member of every path node with explicit path-relative orientation. A path plan is metadata, not permission to construct sequence, and `benchmarks/pseudomonas_path_planning_baseline.json` must not be updated silently.
 
 BAM/CRAM evidence changes must run `pytest tests/test_bam_evidence.py`. Tests use an injected command runner and must not require samtools. Reference names and lengths must match the sample FASTA exactly, evidence remains sample-scoped, and existing alignments must never be presented as support for a new junction.
+
+Targeted-remapping changes must also run `pytest tests/test_junction_evidence.py`. Keep provisional-reference construction outside the evidence adapter, count distinct primary read names conservatively, retain exact samtools/minimap2 provenance, and do not connect a spanning-read count to graph eligibility without a reviewed technology-specific benchmark and explicit policy.

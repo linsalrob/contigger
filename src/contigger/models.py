@@ -73,6 +73,13 @@ class ConflictPolicy(StrEnum):
     REJECT = "reject"
 
 
+class ContigEnd(StrEnum):
+    """Named physical end of a source contig."""
+
+    PREFIX = "prefix"
+    SUFFIX = "suffix"
+
+
 @dataclass(frozen=True, slots=True)
 class SampleInput:
     """Files and metadata belonging to one biological sample."""
@@ -436,6 +443,61 @@ class JoinEvidence:
     spanning_reads: int | None = None
     testable: bool = False
     diagnostics: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionRemappingRequest:
+    """Request with a zero-based junction boundary inside one provisional reference."""
+
+    sample: str
+    left_contig_id: str
+    left_end: ContigEnd
+    right_contig_id: str
+    right_end: ContigEnd
+    provisional_reference: SequenceRecord
+    junction_position: int
+    extraction_distance: int = 1000
+    minimum_spanning_flank: int = 20
+
+    def __post_init__(self) -> None:
+        if not 0 < self.junction_position < self.provisional_reference.length:
+            raise InputValidationError("junction position must be inside the provisional reference")
+        if self.extraction_distance < 1:
+            raise InputValidationError("read extraction distance must be positive")
+        if self.minimum_spanning_flank < 1:
+            raise InputValidationError("minimum spanning flank must be positive")
+        if self.junction_position < self.minimum_spanning_flank or (
+            self.provisional_reference.length - self.junction_position < self.minimum_spanning_flank
+        ):
+            raise InputValidationError(
+                "provisional reference is too short for the requested spanning flank"
+            )
+
+
+@dataclass(frozen=True, slots=True)
+class TargetedJunctionEvidence:
+    """Deterministic remapping observations that do not themselves authorize a merge."""
+
+    sample: str
+    left_contig_id: str
+    right_contig_id: str
+    provisional_reference_id: str
+    provisional_reference_length: int
+    provisional_reference_sha256: str
+    junction_position: int
+    selected_read_names: tuple[str, ...]
+    remapped_read_names: tuple[str, ...]
+    spanning_read_names: tuple[str, ...]
+    minimum_spanning_flank: int
+    samtools_version: str
+    minimap2_version: str
+    commands: tuple[tuple[str, ...], ...]
+    diagnostics: tuple[str, ...] = ()
+
+    @property
+    def spanning_reads(self) -> int:
+        """Return the number of distinct reads spanning the provisional junction."""
+        return len(self.spanning_read_names)
 
 
 @dataclass(frozen=True, slots=True)

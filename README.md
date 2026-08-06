@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, merging, and junction remapping remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, targeted provisional-junction read extraction/remapping, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, and merging remain planned.
 
 ## Development installation
 
@@ -152,6 +152,10 @@ contigger validate-alignments --manifest samples.tsv
 
 `BamEvidenceProvider` requires an adjacent BAI/CRAI, checks file integrity and index readability, and requires exact `@SQ` reference names and lengths. Pileups accept zero-based half-open source intervals and return sample-labelled allele counts, depth, and mean base/mapping qualities. These observations describe existing source contigs only; they cannot validate a newly constructed junction.
 
+`TargetedJunctionRemapper` tests an explicitly supplied provisional reference rather than constructing one. It uses `samtools view` to nominate primary read names near two named source-contig ends, recovers all primary records (including mates) sharing those names, name-collates and converts the bounded subset to FASTQ, and remaps it with minimap2. A distinct read counts as spanning only when its primary alignment crosses the supplied zero-based junction coordinate by the configured number of reference bases on both sides. Results retain sample identity, exact tool versions and commands, selected/remapped/spanning read names, and diagnostics.
+
+This report is evidence, not merge authorization. It does not infer trimming, construct joined sequence, call consensus, pool samples, or automatically supply graph decision-policy support. Minimum read counts, mapping-quality rules, technology-specific presets, duplicate handling, and adequate flank lengths require reviewed benchmarks before junction observations can affect a biological decision.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -162,6 +166,7 @@ contigger validate-alignments --manifest samples.tsv
 6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility. (complete; no biological output)
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
 8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
-9. Add targeted junction read extraction and remapping.
+9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
+10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

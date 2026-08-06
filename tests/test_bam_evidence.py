@@ -7,17 +7,18 @@ from pathlib import Path
 import pytest
 
 from contigger.evidence.bam import BamEvidenceProvider
-from contigger.exceptions import FeatureNotImplementedError, InputValidationError
-from contigger.models import SampleInput
+from contigger.exceptions import InputValidationError
+from contigger.models import ContigEnd, SampleInput
 from contigger.utilities.subprocesses import CommandResult
 
 
 class FakeSamtools:
     """Deterministic command runner for samtools provider tests."""
 
-    def __init__(self, header: str, pileup: str = "") -> None:
+    def __init__(self, header: str, pileup: str = "", view: str = "") -> None:
         self.header = header
         self.pileup_text = pileup
+        self.view_text = view
         self.commands: list[tuple[str, ...]] = []
 
     def __call__(self, arguments: tuple[str, ...]) -> CommandResult:
@@ -28,6 +29,17 @@ class FakeSamtools:
             stdout = self.header
         elif arguments[1] == "mpileup":
             stdout = self.pileup_text
+        elif arguments[1] == "view":
+            if "-o" in arguments:
+                Path(arguments[arguments.index("-o") + 1]).touch()
+                stdout = ""
+            else:
+                stdout = self.view_text
+        elif arguments[1] == "collate":
+            Path(arguments[arguments.index("-o") + 1]).touch()
+            stdout = ""
+        elif arguments[1] == "fastq":
+            stdout = "@read-a\nACGT\n+\nIIII\n"
         else:
             stdout = ""
         return CommandResult(arguments, stdout, "", 0)
@@ -157,5 +169,33 @@ def test_source_bam_never_claims_new_junction_support(tmp_path: Path) -> None:
     junction = evidence.junction_evidence("a", "b")
     assert not junction.testable
     assert "cannot validate" in junction.diagnostics[0]
-    with pytest.raises(FeatureNotImplementedError, match="read extraction"):
-        tuple(evidence.reads_near_end("a", "suffix", 100))
+
+
+def test_reads_near_end_are_primary_unique_and_deterministic(tmp_path: Path) -> None:
+    sam = (
+        "read-z\t0\ta\t1\t60\t4M\t*\t0\t0\tACGT\tIIII\n"
+        "read-a\t99\ta\t1\t60\t4M\t=\t1\t0\tACGT\tIIII\n"
+        "read-z\t0\ta\t1\t60\t4M\t*\t0\t0\tACGT\tIIII\n"
+    )
+    runner = FakeSamtools("@SQ\tSN:a\tLN:4\n@SQ\tSN:b\tLN:5\n", view=sam)
+    evidence = provider(tmp_path, runner)
+    assert tuple(evidence.reads_near_end("b", ContigEnd.SUFFIX, 3)) == (
+        "read-a",
+        "read-z",
+    )
+    assert runner.commands[-1][-1] == "b:3-5"
+    assert runner.commands[-1][runner.commands[-1].index("-F") + 1] == "2304"
+
+
+def test_extract_reads_recovers_named_primary_records(tmp_path: Path) -> None:
+    runner = FakeSamtools("@SQ\tSN:a\tLN:4\n@SQ\tSN:b\tLN:5\n")
+    evidence = provider(tmp_path, runner)
+    output = tmp_path / "selected.fastq"
+    assert evidence.extract_reads(("read-z", "read-a", "read-z"), output) == (
+        "read-a",
+        "read-z",
+    )
+    assert output.is_file()
+    selection = runner.commands[-3]
+    assert ("-N" in selection) and ("-u" in selection) and ("-F" in selection)
+    assert runner.commands[-2][1] == "collate"

@@ -10,11 +10,11 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, and sample-scoped source BAM/CRAM validation and pileups. No current command simplifies a graph, constructs a joined sequence, or merges contigs.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, and targeted remapping reports for caller-supplied provisional junction references. No current command simplifies a graph, constructs a joined sequence, or merges contigs.
 
 ## 4. Explicit non-goals
 
-This scaffold does not implement graph simplification, containment removal, merge-path authorization, path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+This scaffold does not implement graph simplification, containment removal, merge-path authorization, path merging, consensus construction, variant calling, calibrated junction-support thresholds, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
 
 ## 5. Input model
 
@@ -115,7 +115,9 @@ This must not become a pooled majority call without an explicit policy; it may b
 
 ## 19. Targeted remapping for new junctions
 
-The merged sequence did not exist when the original BAM was produced, so that BAM cannot directly contain an alignment spanning its new junction. A later workflow should (1) identify reads near relevant contig ends, (2) recover mates and soft-clipped reads where possible, (3) construct a provisional merged reference, (4) remap only the relevant subset, and (5) assess junction-spanning support. Minimap2 may perform remapping and samtools may extract/convert reads; neither implies a junction decision by itself.
+The merged sequence did not exist when the original BAM was produced, so that BAM cannot directly contain an alignment spanning its new junction. The implemented evidence boundary (1) identifies primary read names near relevant source-contig ends, (2) recovers all primary records sharing those names so mapped mates are retained, (3) name-collates and converts that bounded subset to FASTQ, (4) accepts—not constructs—an explicit provisional reference and zero-based junction coordinate, (5) remaps only that subset, and (6) reports distinct reads whose primary reference alignment crosses a configured flank on both sides. Minimap2 performs remapping and samtools performs selection/collation/conversion; neither implies a junction decision by itself.
+
+Secondary and supplementary records are excluded from selection and spanning counts to prevent one molecule from inflating support, while distinct read names are counted once. Exact provisional-reference name and length are checked in the SAM header. A deletion or reference skip crossing the junction breaks the aligned block and cannot create support. Unmapped records and alignments not crossing both flanks remain visible through selected/remapped counts but are not spanning support. Mapping-quality, duplicate, clipping, paired-fragment, and technology-specific sufficiency policies remain deliberately unresolved pending reviewed truth sets. Targeted evidence is not automatically converted to a graph-supported edge.
 
 ## 20. Provenance model
 
@@ -181,8 +183,8 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 6. Define and benchmark conservative containment-disposition and merge-path eligibility policies, preserving every branch, conflict, cycle, and forbidden-edge regression. (complete; no graph mutation or biological output)
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
-9. Add targeted read extraction/remapping and junction-support reporting.
-10. Evaluate consensus and variation policies only with reviewed benchmarks.
+9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
+10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions.
 
 ## 27. Open design questions
 

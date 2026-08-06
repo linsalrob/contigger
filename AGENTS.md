@@ -73,6 +73,7 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Graph decision-policy changes must run the checked-in policy regression; no overlap may become eligible without explicit junction evidence, and policy baselines must never hide a forbidden edge.
 - Path-planning changes must retain every catalogue source member with explicit orientation, preserve deferred components, and run the checked-in path-planning regression without emitting sequence.
 - BAM/CRAM evidence must remain sample-scoped, validate exact source reference names and lengths, use zero-based half-open intervals, and never treat source alignments as junction support.
+- Targeted junction evidence must use an explicit provisional reference and junction coordinate, retain selected/remapped/spanning read identities and exact commands, and must not become graph authorization without reviewed benchmark criteria.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 
 ## External tool policy

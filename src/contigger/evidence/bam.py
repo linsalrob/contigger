@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterable
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-from contigger.exceptions import FeatureNotImplementedError, InputValidationError
+from contigger.exceptions import InputValidationError
 from contigger.fasta import read_fasta
-from contigger.models import BaseEvidence, JoinEvidence, SampleInput
+from contigger.models import BaseEvidence, ContigEnd, JoinEvidence, SampleInput
 from contigger.utilities.subprocesses import CommandResult, find_executable, run_command
 
 CommandRunner = Callable[[tuple[str, ...]], CommandResult]
@@ -125,9 +126,77 @@ class BamEvidenceProvider:
         result = self._run(tuple(arguments))
         return tuple(_parse_pileup(result.stdout, self.sample.sample, contig_id, start, end))
 
-    def reads_near_end(self, contig_id: str, end: str, distance: int) -> Iterable[str]:
-        """Reserve end-read extraction for the targeted-remapping milestone."""
-        raise FeatureNotImplementedError("read extraction near contig ends is not implemented")
+    def reads_near_end(self, contig_id: str, end: ContigEnd | str, distance: int) -> Iterable[str]:
+        """Return stable primary read names overlapping one source-contig end interval."""
+        if self._references is None:
+            self.validate_source()
+        assert self._references is not None
+        try:
+            named_end = ContigEnd(end)
+        except ValueError as error:
+            raise InputValidationError(f"invalid contig end: {end!r}") from error
+        if contig_id not in self._references:
+            raise InputValidationError(f"unknown BAM/CRAM source reference: {contig_id}")
+        if distance < 1:
+            raise InputValidationError("read extraction distance must be positive")
+        length = self._references[contig_id]
+        bounded = min(distance, length)
+        start = 0 if named_end is ContigEnd.PREFIX else length - bounded
+        region = f"{contig_id}:{start + 1}-{start + bounded}"
+        arguments = [self._executable, "view"]
+        if self._require_bam().suffix.lower() == ".cram":
+            arguments.extend(("-T", str(self.sample.contigs)))
+        # Secondary and supplementary records do not nominate additional molecules.
+        arguments.extend(("-F", "2304", str(self._require_bam()), region))
+        return _parse_sam_read_names(self._run(tuple(arguments)).stdout)
+
+    def extract_reads(self, read_names: Iterable[str], output_fastq: Path) -> tuple[str, ...]:
+        """Recover all primary records sharing selected names and convert them to FASTQ."""
+        names = tuple(sorted(set(read_names)))
+        if not names:
+            return ()
+        if any(not name or "\n" in name or "\r" in name for name in names):
+            raise InputValidationError("selected read names must be non-empty single-line values")
+        output_fastq.parent.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(prefix="contigger-reads-") as directory:
+            name_path = Path(directory) / "names.txt"
+            subset_path = Path(directory) / "reads.bam"
+            collated_path = Path(directory) / "reads.collated.bam"
+            name_path.write_text("\n".join(names) + "\n", encoding="utf-8", newline="")
+            view = [self._executable, "view"]
+            if self._require_bam().suffix.lower() == ".cram":
+                view.extend(("-T", str(self.sample.contigs)))
+            view.extend(
+                (
+                    "-N",
+                    str(name_path),
+                    "-F",
+                    "2304",
+                    "-u",
+                    "-o",
+                    str(subset_path),
+                    str(self._require_bam()),
+                )
+            )
+            self._run(tuple(view))
+            self._run(
+                (
+                    self._executable,
+                    "collate",
+                    "-u",
+                    "-o",
+                    str(collated_path),
+                    str(subset_path),
+                )
+            )
+            fastq = self._run((self._executable, "fastq", "-n", str(collated_path))).stdout
+            try:
+                output_fastq.write_text(fastq, encoding="ascii", newline="")
+            except (OSError, UnicodeError) as error:
+                raise InputValidationError(
+                    f"cannot write extracted FASTQ {output_fastq}: {error}"
+                ) from error
+        return names
 
     def junction_evidence(self, left_contig_id: str, right_contig_id: str) -> JoinEvidence:
         """State explicitly that a source BAM cannot validate a new junction."""
@@ -138,7 +207,7 @@ class BamEvidenceProvider:
             testable=False,
             diagnostics=(
                 "existing source alignment cannot validate a newly constructed junction; "
-                "targeted remapping is not implemented",
+                "targeted remapping must be evaluated separately",
             ),
         )
 
@@ -157,6 +226,20 @@ def _alignment_index(path: Path) -> Path | None:
     else:
         candidates = [Path(f"{path}.crai"), path.with_suffix(".crai")]
     return next((candidate for candidate in candidates if candidate.is_file()), None)
+
+
+def _parse_sam_read_names(text: str) -> tuple[str, ...]:
+    names: set[str] = set()
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        if not line or line.startswith("@"):
+            continue
+        fields = line.split("\t")
+        if len(fields) < 11 or not fields[0]:
+            raise InputValidationError(
+                f"samtools view line {line_number}: expected a complete SAM record"
+            )
+        names.add(fields[0])
+    return tuple(sorted(names))
 
 
 def _parse_sq_header(header: str, path: Path) -> dict[str, int]:

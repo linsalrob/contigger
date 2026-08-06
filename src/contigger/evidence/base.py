@@ -1,9 +1,10 @@
 """Replaceable evidence-provider interface."""
 
 from collections.abc import Iterable
+from pathlib import Path
 from typing import Protocol
 
-from contigger.models import BaseEvidence, JoinEvidence, SampleInput
+from contigger.models import BaseEvidence, ContigEnd, JoinEvidence, SampleInput
 
 
 class EvidenceProvider(Protocol):
@@ -22,8 +23,12 @@ class EvidenceProvider(Protocol):
         """Return evidence for a zero-based, half-open source interval."""
         ...
 
-    def reads_near_end(self, contig_id: str, end: str, distance: int) -> Iterable[str]:
+    def reads_near_end(self, contig_id: str, end: ContigEnd | str, distance: int) -> Iterable[str]:
         """Return stable identifiers for reads near a named contig end."""
+        ...
+
+    def extract_reads(self, read_names: Iterable[str], output_fastq: Path) -> tuple[str, ...]:
+        """Recover selected reads and their primary mate records into FASTQ."""
         ...
 
     def junction_evidence(self, left_contig_id: str, right_contig_id: str) -> JoinEvidence:
