@@ -10,11 +10,11 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, and deterministic evaluation against checked-in Pseudomonas truth. Catalogue and candidate outputs are evidence/planning artifacts; no current command constructs a graph or merges sequence.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, and unsimplified ambiguity-preserving relationship graph construction. Catalogue, candidate, and graph objects are evidence/planning artifacts; no current command simplifies a graph or merges sequence.
 
 ## 4. Explicit non-goals
 
-This scaffold does not implement graph construction or path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+This scaffold does not implement graph simplification, containment removal, merge-path authorization, path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
 
 ## 5. Input model
 
@@ -80,7 +80,11 @@ A merge candidate must meet identity and minimum aligned span and connect exactl
 
 ## 14. Graph representation
 
-The future graph has stable sequence nodes and typed relationship edges containing orientation, coordinates, quality observations, and diagnostics. Containment must not be represented as an ordinary overlap edge. Edge and node iteration is explicitly sorted. Components expose ambiguity rather than hiding it.
+The relationship graph has stable sequence nodes and typed relationship edges retaining orientation, representative zero-based half-open coordinates, accepted/rejected hit counts, and diagnostics. Containment, terminal overlap, and ambiguous evidence are separate edge collections. `NO_RELATIONSHIP` creates no edge, while supplied isolated nodes remain. Exact matches are rejected because they must already have been resolved by the catalogue.
+
+Complete ordered-pair decisions are the graph boundary because bare relationships do not retain representative coordinates or competing-hit evidence. Reciprocal decisions collapse only when relationship topology, explicit orientation, identity, and swapped coordinates agree. For reverse-complement overlaps, reversing the ordered pair preserves the query-relative topology name because the same physical terminals remain involved. Reciprocal disagreement becomes an ambiguous edge; scores never choose a winner.
+
+Components are deterministic connected components over every retained edge. They expose ambiguity when they contain pairwise ambiguous evidence, multiple possible containers for one sequence, competing overlap edges using the same physical oriented terminal, an overlap cycle, or inconsistent relative orientations. Ordinary degree two is not itself ambiguous: a linear path uses a prefix and suffix once each. Graph construction only records this structure and never removes a node or selects a path.
 
 ## 15. Conservative graph simplification
 
@@ -139,6 +143,10 @@ The 90 source contigs collapse into 84 exact canonical sequences. With `k=21`, w
 
 The stage-aware evaluator uses the checked-in complete PAFs as deterministic alignment observations and does not invoke minimap2. Both presets recover all 12 exact/RC truth rows through the catalogue and route all 23 valid non-exact case groups (40 ordered rows) through candidate selection, so candidate-stage missed relationships are zero. The eligible relationship results retain the established classifier baseline: two false merges for each preset, four missed relationships for `asm5`, two for `asm20`, and four graph-level ambiguity groups deferred. No classifier rule or threshold changed. This separation identifies which stage loses recall without treating a candidate as a relationship or merge.
 
+### 22.5 Unsimplified graph baseline
+
+The checked-in PAF graph regression uses source identifiers as a diagnostic proxy; production candidate alignments use catalogue identifiers. Exact/self decisions are excluded because catalogue construction precedes the graph. Both presets retain 90 nodes and three containment edges. `asm5` produces 50 overlap edges and 58 components; `asm20` produces 51 and 57. Each has one repeat-connected ambiguous component containing all four previously deferred graph ambiguity groups. The known forbidden `end_tolerance_51` pair is also retained as one overlap edge. This is intentional evidence that graph membership is not merge permission and that a later decision policy must remain benchmarked against forbidden edges.
+
 ## 23. Performance and scalability
 
 Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
@@ -157,11 +165,12 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
 3. Implement and benchmark canonical positional-minimiser candidates and selective requests. (complete, experimental baseline)
 4. Benchmark executable candidate-to-alignment-to-relationship recall and add persistent indexing/safe batching. (complete, experimental baseline)
-5. Add typed, ambiguity-preserving graph construction and containment handling, without graph simplification or sequence merging.
-6. Implement provenance-complete unambiguous linear-path merging.
-7. Validate source BAM/CRAM references and expose sample-aware pileups.
-8. Add targeted read extraction/remapping and junction-support reporting.
-9. Evaluate consensus and variation policies only with reviewed benchmarks.
+5. Add typed, ambiguity-preserving graph construction and containment handling, without graph simplification or sequence merging. (complete, unsimplified experimental baseline)
+6. Define and benchmark conservative containment-disposition and merge-path eligibility policies, preserving every branch, conflict, cycle, and forbidden-edge regression.
+7. Implement provenance-complete unambiguous linear-path planning before any sequence merging.
+8. Validate source BAM/CRAM references and expose sample-aware pileups.
+9. Add targeted read extraction/remapping and junction-support reporting.
+10. Evaluate consensus and variation policies only with reviewed benchmarks.
 
 ## 27. Open design questions
 

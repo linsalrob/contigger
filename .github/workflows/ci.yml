@@ -54,3 +54,5 @@ jobs:
           contigger benchmark-pipeline --dataset test_data
           --paf test_data/alignments/all_vs_all.asm20.paf.gz
           --output-json /tmp/contigger.pipeline.asm20.json
+      - name: Validate unsimplified graph baseline
+        run: pytest tests/test_graph.py tests/test_graph_benchmark.py

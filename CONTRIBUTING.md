@@ -39,3 +39,5 @@ Changes to catalogue, candidate, alignment planning, or relationship stages must
 contigger benchmark-pipeline --dataset test_data --paf test_data/alignments/all_vs_all.asm5.paf.gz
 contigger benchmark-pipeline --dataset test_data --paf test_data/alignments/all_vs_all.asm20.paf.gz
 ```
+
+Graph changes must run `pytest tests/test_graph.py tests/test_graph_benchmark.py` and explain every change from `benchmarks/pseudomonas_graph_baseline.json`. A relationship edge is not merge authorization. Never simplify a branch, cycle, orientation conflict, competing containment, or known forbidden edge merely to make component counts smaller.
