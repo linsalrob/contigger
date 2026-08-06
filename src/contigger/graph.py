@@ -166,10 +166,10 @@ def _canonical_edge(pair: tuple[str, str], decisions: list[PairRelationship]) ->
             selected,
             GraphEdgeKind.AMBIGUOUS,
             RelationshipType.AMBIGUOUS_OVERLAP,
-            tuple(sorted(reasons | _decision_reasons(active))),
+            tuple(sorted(reasons | _decision_reasons(decisions))),
             retain_coordinates=False,
-            accepted_hit_count=sum(len(item.accepted_hits) for item in active),
-            rejected_hit_count=sum(len(item.rejected_alignments) for item in active),
+            accepted_hit_count=sum(len(item.accepted_hits) for item in decisions),
+            rejected_hit_count=sum(len(item.rejected_alignments) for item in decisions),
         )
 
     relationship_type = selected.relationship.relationship_type

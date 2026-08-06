@@ -11,6 +11,7 @@ from contigger.models import (
     GraphEdgeKind,
     Orientation,
     PairRelationship,
+    RejectedAlignment,
     Relationship,
     RelationshipType,
 )
@@ -215,6 +216,35 @@ def test_inconsistent_reciprocals_become_ambiguous_instead_of_electing_a_winner(
     assert graph.overlap_edges == ()
     assert len(graph.ambiguous_edges) == 1
     assert "inconsistent" in " ".join(graph.ambiguous_edges[0].reasons)
+
+
+def test_relationship_mismatch_retains_rejected_reciprocal_diagnostics() -> None:
+    overlap = decision("a", "b", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX)
+    rejected_base = decision("b", "a", RelationshipType.NO_RELATIONSHIP)
+    assert rejected_base.representative_hit is not None
+    rejected_relationship = Relationship(
+        RelationshipType.NO_RELATIONSHIP,
+        "b",
+        "a",
+        Orientation.FORWARD,
+        1.0,
+        200,
+        0.2,
+        0.2,
+        "rejected",
+        ("rejected reciprocal evidence",),
+    )
+    rejected = PairRelationship(
+        rejected_relationship,
+        rejected_base.representative_hit,
+        (),
+        (RejectedAlignment(rejected_base.representative_hit, rejected_relationship),),
+    )
+    graph = build_relationship_graph((overlap, rejected))
+    edge = graph.ambiguous_edges[0]
+    assert edge.accepted_hit_count == 1
+    assert edge.rejected_hit_count == 1
+    assert "rejected reciprocal evidence" in edge.reasons
 
 
 def test_cycle_and_orientation_conflict_are_reported_without_simplification() -> None:
