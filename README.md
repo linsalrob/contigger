@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Provenance-complete path planning, graph simplification, consensus, merging, and read analysis remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, merging, and read analysis remain planned.
 
 ## Development installation
 
@@ -138,6 +138,10 @@ The source-identifier diagnostic regression in `benchmarks/pseudomonas_graph_bas
 
 With no junction evidence supplied, `benchmarks/pseudomonas_decision_policy_baseline.json` records three eligible containment dispositions for each preset and zero eligible overlap components. All 50 `asm5` and 51 `asm20` overlap edges remain deferred, including both the repeat-connected ambiguous component and the known forbidden 51 bp boundary edge.
 
+`plan_linear_paths()` accepts a complete catalogue and matching relationship graph, invokes the conservative decision policy, and returns canonical path metadata only for eligible overlap components. Each node carries explicit path orientation and every exact/RC catalogue source member with its path-relative orientation. Reverse-complement-equivalent traversals collapse to one deterministic representation. The planner rejects graph/catalogue mismatches and never trims, joins, or writes sequence.
+
+The checked-in source-ID diagnostic path baseline supplies no junction evidence, so both PAF presets produce zero paths. All 19 `asm5` and 20 `asm20` overlap components remain deferred.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -146,7 +150,8 @@ With no junction evidence supplied, `benchmarks/pseudomonas_decision_policy_base
 4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching. (complete, experimental baseline)
 5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them. (complete, unsimplified experimental baseline)
 6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility. (complete; no biological output)
-7. Implement provenance-complete unambiguous linear-path planning without sequence merging.
-8. Add sample-aware source evidence and targeted junction remapping.
+7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
+8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims.
+9. Add targeted junction read extraction and remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.
