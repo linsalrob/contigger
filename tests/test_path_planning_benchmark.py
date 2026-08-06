@@ -75,4 +75,9 @@ def test_pseudomonas_paths_remain_deferred_without_junction_support(preset: str)
     result = plan_linear_paths(SequenceCatalogue(sequences, members), graph)
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))[preset]
     assert len(result.paths) == baseline["planned_paths"] == 0
+    assert (
+        sum(len(node.source_members) for path in result.paths for node in path.nodes)
+        == baseline["planned_source_members"]
+        == 0
+    )
     assert len(result.deferred_component_ids) == baseline["deferred_overlap_components"]
