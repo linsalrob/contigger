@@ -6,6 +6,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from contigger.exceptions import InputValidationError
+from contigger.graph import validate_relationship_graph
 from contigger.models import (
     ContainmentDecision,
     GraphDecisionPlan,
@@ -31,7 +32,8 @@ def evaluate_graph_decisions(
     Every overlap edge requires explicit junction support; graph structure and
     alignment identity alone are insufficient.
     """
-    components, component_by_node = _validate_graph(graph)
+    validate_relationship_graph(graph)
+    components, component_by_node = _component_lookups(graph)
     overlap_ids = {edge.edge_id for edge in graph.overlap_edges}
     supported = tuple(sorted(junction_supported_edge_ids))
     if len(set(supported)) != len(supported):
@@ -55,54 +57,25 @@ def evaluate_graph_decisions(
         )
         for edge in sorted(graph.containment_edges, key=lambda item: item.edge_id)
     )
+    supported_set = set(supported)
     overlap_decisions = tuple(
         decision
         for component in sorted(graph.components, key=lambda item: item.sequence_ids)
-        if (decision := _overlap_decision(component, graph, set(supported))) is not None
+        if (decision := _overlap_decision(component, graph, supported_set)) is not None
     )
     return GraphDecisionPlan(containment_decisions, overlap_decisions)
 
 
-def _validate_graph(
+def _component_lookups(
     graph: RelationshipGraph,
 ) -> tuple[dict[str, MergeComponent], dict[str, str]]:
-    node_ids = tuple(node.sequence_id for node in graph.nodes)
-    if len(set(node_ids)) != len(node_ids):
-        raise InputValidationError("graph decision policy requires unique node identifiers")
-    edges = graph.containment_edges + graph.overlap_edges + graph.ambiguous_edges
-    edge_ids = tuple(edge.edge_id for edge in edges)
-    if len(set(edge_ids)) != len(edge_ids):
-        raise InputValidationError("graph decision policy requires unique edge identifiers")
-    known_nodes = set(node_ids)
-    for edge in edges:
-        missing_edge_nodes = sorted({edge.query_id, edge.target_id} - known_nodes)
-        if missing_edge_nodes:
-            raise InputValidationError(
-                "graph edge references unknown sequence identifier: "
-                f"{missing_edge_nodes[0]} (edge {edge.edge_id})"
-            )
-
+    """Build lookups after public structural graph validation."""
     components: dict[str, MergeComponent] = {}
     component_by_node: dict[str, str] = {}
     for component in graph.components:
-        if component.component_id in components:
-            raise InputValidationError(
-                "graph decision policy requires unique component identifiers"
-            )
         components[component.component_id] = component
         for sequence_id in component.sequence_ids:
-            if sequence_id not in known_nodes:
-                raise InputValidationError(
-                    f"graph component references unknown sequence identifier: {sequence_id}"
-                )
-            if sequence_id in component_by_node:
-                raise InputValidationError(
-                    f"graph sequence occurs in multiple components: {sequence_id}"
-                )
             component_by_node[sequence_id] = component.component_id
-    missing = sorted(known_nodes - set(component_by_node))
-    if missing:
-        raise InputValidationError(f"graph sequence is absent from components: {missing[0]}")
     return components, component_by_node
 
 

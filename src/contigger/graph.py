@@ -113,6 +113,50 @@ def build_components(
     return build_relationship_graph(relationships).components
 
 
+def validate_relationship_graph(graph: RelationshipGraph) -> None:
+    """Validate that graph collections and derived components are consistent."""
+    node_ids = tuple(node.sequence_id for node in graph.nodes)
+    if any(not identifier for identifier in node_ids):
+        raise InputValidationError("relationship graph node identifiers cannot be empty")
+    if node_ids != tuple(sorted(set(node_ids))):
+        raise InputValidationError(
+            "relationship graph nodes must be uniquely and deterministically ordered"
+        )
+
+    edge_groups = (
+        (graph.containment_edges, GraphEdgeKind.CONTAINMENT, _CONTAINMENTS),
+        (graph.overlap_edges, GraphEdgeKind.OVERLAP, _OVERLAPS),
+        (
+            graph.ambiguous_edges,
+            GraphEdgeKind.AMBIGUOUS,
+            frozenset((RelationshipType.AMBIGUOUS_OVERLAP,)),
+        ),
+    )
+    edges: list[GraphEdge] = []
+    known_nodes = set(node_ids)
+    for group, expected_kind, expected_types in edge_groups:
+        for edge in group:
+            if edge.kind is not expected_kind or edge.relationship_type not in expected_types:
+                raise InputValidationError(
+                    f"relationship graph edge has incompatible kind or type: {edge.edge_id}"
+                )
+            missing = sorted({edge.query_id, edge.target_id} - known_nodes)
+            if missing:
+                raise InputValidationError(
+                    "graph edge references unknown sequence identifier: "
+                    f"{missing[0]} (edge {edge.edge_id})"
+                )
+            edges.append(edge)
+    edge_ids = tuple(edge.edge_id for edge in edges)
+    if len(set(edge_ids)) != len(edge_ids):
+        raise InputValidationError("relationship graph edge identifiers must be unique")
+
+    if graph.components != _components(node_ids, tuple(edges)):
+        raise InputValidationError(
+            "relationship graph components or ambiguity metadata are inconsistent with its edges"
+        )
+
+
 def _validate_representative(decision: PairRelationship) -> None:
     relationship = decision.relationship
     hit = decision.representative_hit

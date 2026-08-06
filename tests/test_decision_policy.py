@@ -149,7 +149,7 @@ def test_inconsistent_graph_component_membership_is_rejected() -> None:
     )
     broken_component = replace(graph.components[0], sequence_ids=("a",))
     broken_graph = replace(graph, components=(broken_component,))
-    with pytest.raises(InputValidationError, match="absent from components: b"):
+    with pytest.raises(InputValidationError, match="components or ambiguity metadata"):
         evaluate_graph_decisions(broken_graph)
 
 
@@ -164,3 +164,19 @@ def test_unknown_edge_node_error_names_the_missing_sequence() -> None:
         match=rf"unknown sequence identifier: missing \(edge {broken_edge.edge_id}\)",
     ):
         evaluate_graph_decisions(broken_graph)
+
+
+def test_falsified_branch_ambiguity_cannot_grant_eligibility() -> None:
+    graph = build_relationship_graph(
+        (
+            decision("a", "b", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+            decision("a", "c", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),
+        )
+    )
+    falsified_component = replace(graph.components[0], ambiguous=False, ambiguity_reasons=())
+    falsified_graph = replace(graph, components=(falsified_component,))
+    with pytest.raises(InputValidationError, match="components or ambiguity metadata"):
+        evaluate_graph_decisions(
+            falsified_graph,
+            junction_supported_edge_ids=(edge.edge_id for edge in graph.overlap_edges),
+        )
