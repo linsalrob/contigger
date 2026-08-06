@@ -37,6 +37,13 @@ class GraphEdgeKind(StrEnum):
     AMBIGUOUS = "ambiguous"
 
 
+class GraphDecisionStatus(StrEnum):
+    """Conservative eligibility assigned by a graph decision policy."""
+
+    ELIGIBLE = "eligible"
+    DEFERRED = "deferred"
+
+
 class AlignmentType(StrEnum):
     """PAF alignment role reported by an aligner, when available."""
 
@@ -337,6 +344,36 @@ class RelationshipGraph:
     overlap_edges: tuple[GraphEdge, ...]
     ambiguous_edges: tuple[GraphEdge, ...]
     components: tuple[MergeComponent, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class ContainmentDecision:
+    """Policy decision for one containment edge without removing a sequence."""
+
+    edge_id: str
+    contained_sequence_id: str
+    container_sequence_id: str
+    status: GraphDecisionStatus
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class OverlapComponentDecision:
+    """Eligibility of one overlap component for later path planning."""
+
+    component_id: str
+    sequence_ids: tuple[str, ...]
+    edge_ids: tuple[str, ...]
+    status: GraphDecisionStatus
+    reasons: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True, slots=True)
+class GraphDecisionPlan:
+    """Deterministic policy output that authorizes no sequence modification."""
+
+    containment_decisions: tuple[ContainmentDecision, ...]
+    overlap_decisions: tuple[OverlapComponentDecision, ...]
 
 
 @dataclass(frozen=True, slots=True)

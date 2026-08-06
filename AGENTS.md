@@ -70,6 +70,7 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Catalogue or candidate changes must run the exact/RC and Pseudomonas candidate baselines; candidate recall losses require explicit review and must not be hidden by baseline updates.
 - Catalogue, candidate, alignment-planning, or relationship changes must run both checked-in pipeline benchmarks; staged baseline changes require an explanation and must never be updated silently.
 - Graph model or construction changes must run the checked-in graph regressions; never hide a forbidden edge or ambiguity loss by silently updating the graph baseline.
+- Graph decision-policy changes must run the checked-in policy regression; no overlap may become eligible without explicit junction evidence, and policy baselines must never hide a forbidden edge.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 
 ## External tool policy

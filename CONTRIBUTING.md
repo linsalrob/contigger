@@ -41,3 +41,5 @@ contigger benchmark-pipeline --dataset test_data --paf test_data/alignments/all_
 ```
 
 Graph changes must run `pytest tests/test_graph.py tests/test_graph_benchmark.py` and explain every change from `benchmarks/pseudomonas_graph_baseline.json`. A relationship edge is not merge authorization. Never simplify a branch, cycle, orientation conflict, competing containment, or known forbidden edge merely to make component counts smaller.
+
+Graph decision-policy changes must also run `pytest tests/test_decision_policy.py tests/test_decision_policy_benchmark.py` and explain every change from `benchmarks/pseudomonas_decision_policy_baseline.json`. Without explicit junction evidence, overlap components remain deferred even when their graph topology is linear. Do not silently turn graph presence into merge authorization.
