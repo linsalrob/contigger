@@ -33,24 +33,36 @@ class FakeSamtools:
         return CommandResult(arguments, stdout, "", 0)
 
 
-def sample_files(tmp_path: Path, *, indexed: bool = True) -> SampleInput:
+def sample_files(tmp_path: Path, *, indexed: bool = True, suffix: str = ".bam") -> SampleInput:
     """Create source FASTA and placeholder BAM paths."""
     fasta = tmp_path / "source.fasta"
     fasta.write_text(">a\nACGT\n>b\nAAAAA\n", encoding="ascii")
-    bam = tmp_path / "source.bam"
+    bam = tmp_path / f"source{suffix}"
     bam.touch()
     if indexed:
-        Path(f"{bam}.bai").touch()
+        Path(f"{bam}{'.bai' if suffix == '.bam' else '.crai'}").touch()
     return SampleInput("sample-a", fasta, bam=bam)
 
 
-def provider(tmp_path: Path, runner: FakeSamtools, *, indexed: bool = True) -> BamEvidenceProvider:
+def provider(
+    tmp_path: Path,
+    runner: FakeSamtools,
+    *,
+    indexed: bool = True,
+    suffix: str = ".bam",
+) -> BamEvidenceProvider:
     """Build a provider with an injected executable and runner."""
     return BamEvidenceProvider(
-        sample_files(tmp_path, indexed=indexed),
-        executable=Path("/test/samtools"),
+        sample_files(tmp_path, indexed=indexed, suffix=suffix),
+        executable=_fake_executable(tmp_path),
         runner=runner,
     )
+
+
+def _fake_executable(tmp_path: Path) -> Path:
+    executable = tmp_path / "samtools"
+    executable.touch()
+    return executable
 
 
 def test_validate_source_checks_index_integrity_header_and_version(tmp_path: Path) -> None:
@@ -58,6 +70,7 @@ def test_validate_source_checks_index_integrity_header_and_version(tmp_path: Pat
     evidence = provider(tmp_path, runner)
     assert evidence.validate_source() == ("a", "b")
     assert evidence.version == "samtools 1.22"
+    assert evidence.commands == tuple(runner.commands)
     assert [command[1] for command in runner.commands] == [
         "--version",
         "quickcheck",
@@ -72,6 +85,19 @@ def test_missing_index_and_reference_mismatch_are_errors(tmp_path: Path) -> None
         provider(tmp_path, runner, indexed=False).validate_source()
     with pytest.raises(InputValidationError, match="missing reference 'b'"):
         provider(tmp_path, runner).validate_source()
+
+
+def test_wrong_index_kind_does_not_satisfy_bam_requirement(tmp_path: Path) -> None:
+    sample = sample_files(tmp_path, indexed=False)
+    assert sample.bam is not None
+    Path(f"{sample.bam}.crai").touch()
+    evidence = BamEvidenceProvider(
+        sample,
+        executable=_fake_executable(tmp_path),
+        runner=FakeSamtools("@SQ\tSN:a\tLN:4\n@SQ\tSN:b\tLN:5\n"),
+    )
+    with pytest.raises(InputValidationError, match="lacks an adjacent index"):
+        evidence.validate_source()
 
 
 def test_pileup_is_zero_based_sample_scoped_and_parses_markers(tmp_path: Path) -> None:
@@ -102,6 +128,28 @@ def test_invalid_interval_and_malformed_pileup_are_errors(tmp_path: Path) -> Non
         tuple(provider(tmp_path, FakeSamtools(header)).pileup("a", 0, 5))
     with pytest.raises(InputValidationError, match="truncated read start"):
         tuple(provider(tmp_path, FakeSamtools(header, "a\t1\tA\t1\t^\t!\t!\n")).pileup("a", 0, 1))
+
+
+def test_zero_depth_placeholder_is_missing_evidence(tmp_path: Path) -> None:
+    header = "@SQ\tSN:a\tLN:4\n@SQ\tSN:b\tLN:5\n"
+    rows = tuple(
+        provider(tmp_path, FakeSamtools(header, "a\t1\tA\t0\t*\t*\t*\n")).pileup("a", 0, 1)
+    )
+    assert rows[0].depth == 0
+    assert rows[0].allele_counts == {}
+    assert rows[0].mean_base_quality is rows[0].mean_mapping_quality is None
+
+
+def test_cram_commands_receive_sample_reference(tmp_path: Path) -> None:
+    header = "@SQ\tSN:a\tLN:4\n@SQ\tSN:b\tLN:5\n"
+    evidence = provider(tmp_path, FakeSamtools(header), suffix=".cram")
+    evidence.validate_source()
+    tuple(evidence.pileup("a", 0, 1))
+    view = next(command for command in evidence.commands if command[1] == "view")
+    pileup = next(command for command in evidence.commands if command[1] == "mpileup")
+    assert view[3:5] == ("-T", str(evidence.sample.contigs))
+    assert "-f" in pileup
+    assert str(evidence.sample.contigs) in pileup
 
 
 def test_source_bam_never_claims_new_junction_support(tmp_path: Path) -> None:

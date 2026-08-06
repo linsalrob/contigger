@@ -27,17 +27,24 @@ class BamEvidenceProvider:
             raise InputValidationError(f"sample {sample.sample!r} has no BAM/CRAM input")
         if not sample.bam.is_file():
             raise InputValidationError(f"BAM/CRAM does not exist: {sample.bam}")
+        if sample.bam.suffix.lower() not in {".bam", ".cram"}:
+            raise InputValidationError(f"alignment input must end in .bam or .cram: {sample.bam}")
         resolved = Path(executable)
-        if resolved.parent == Path("."):
+        if resolved.is_file():
+            resolved = resolved.resolve()
+        elif len(resolved.parts) == 1:
             found = find_executable(str(executable))
             if found is None:
                 raise InputValidationError(f"required executable is unavailable: {executable}")
             resolved = found
+        else:
+            raise InputValidationError(f"required executable does not exist: {executable}")
         self._sample = sample
         self._executable = str(resolved)
         self._runner = runner
         self._references: dict[str, int] | None = None
         self._version: str | None = None
+        self._commands: list[tuple[str, ...]] = []
 
     @property
     def sample(self) -> SampleInput:
@@ -49,19 +56,28 @@ class BamEvidenceProvider:
         """Return the captured samtools version after validation."""
         return self._version
 
+    @property
+    def commands(self) -> tuple[tuple[str, ...], ...]:
+        """Return every exact samtools argument array executed by this provider."""
+        return tuple(self._commands)
+
     def validate_source(self) -> tuple[str, ...]:
         """Validate index, integrity, and exact reference names/lengths against FASTA."""
         bam = self._require_bam()
         index = _alignment_index(bam)
         if index is None:
             raise InputValidationError(f"BAM/CRAM lacks an adjacent index: {bam}")
-        version = self._runner((self._executable, "--version")).stdout.splitlines()
+        version = self._run((self._executable, "--version")).stdout.splitlines()
         if not version:
             raise InputValidationError("samtools returned an empty version response")
         self._version = version[0].strip()
-        self._runner((self._executable, "quickcheck", "-v", str(bam)))
-        self._runner((self._executable, "idxstats", str(bam)))
-        header = self._runner((self._executable, "view", "-H", str(bam))).stdout
+        self._run((self._executable, "quickcheck", "-v", str(bam)))
+        self._run((self._executable, "idxstats", str(bam)))
+        view_arguments = [self._executable, "view", "-H"]
+        if bam.suffix.lower() == ".cram":
+            view_arguments.extend(("-T", str(self.sample.contigs)))
+        view_arguments.append(str(bam))
+        header = self._run(tuple(view_arguments)).stdout
         observed = _parse_sq_header(header, bam)
         expected = {
             record.original_identifier: record.length
@@ -102,9 +118,11 @@ class BamEvidenceProvider:
         if start == end:
             return ()
         region = f"{contig_id}:{start + 1}-{end}"
-        result = self._runner(
-            (self._executable, "mpileup", "-aa", "-s", "-r", region, str(self._require_bam()))
-        )
+        arguments = [self._executable, "mpileup", "-aa", "-s"]
+        if self._require_bam().suffix.lower() == ".cram":
+            arguments.extend(("-f", str(self.sample.contigs)))
+        arguments.extend(("-r", region, str(self._require_bam())))
+        result = self._run(tuple(arguments))
         return tuple(_parse_pileup(result.stdout, self.sample.sample, contig_id, start, end))
 
     def reads_near_end(self, contig_id: str, end: str, distance: int) -> Iterable[str]:
@@ -128,13 +146,16 @@ class BamEvidenceProvider:
         assert self.sample.bam is not None
         return self.sample.bam
 
+    def _run(self, arguments: tuple[str, ...]) -> CommandResult:
+        self._commands.append(arguments)
+        return self._runner(arguments)
+
 
 def _alignment_index(path: Path) -> Path | None:
-    candidates = [Path(f"{path}.bai"), Path(f"{path}.crai")]
     if path.suffix.lower() == ".bam":
-        candidates.append(path.with_suffix(".bai"))
-    elif path.suffix.lower() == ".cram":
-        candidates.append(path.with_suffix(".crai"))
+        candidates = [Path(f"{path}.bai"), path.with_suffix(".bai")]
+    else:
+        candidates = [Path(f"{path}.crai"), path.with_suffix(".crai")]
     return next((candidate for candidate in candidates if candidate.is_file()), None)
 
 
@@ -191,9 +212,14 @@ def _parse_pileup(
                 f"samtools mpileup line {line_number}: unexpected reference or position"
             )
         seen.add(position)
-        alleles = _pileup_alleles(bases, reference_base, line_number)
-        base_scores = [ord(value) - 33 for value in qualities]
-        mapping_scores = [ord(value) - 33 for value in mappings]
+        if depth == 0:
+            alleles: dict[str, int] = {}
+            base_scores: list[int] = []
+            mapping_scores: list[int] = []
+        else:
+            alleles = _pileup_alleles(bases, reference_base, line_number)
+            base_scores = [ord(value) - 33 for value in qualities]
+            mapping_scores = [ord(value) - 33 for value in mappings]
         if len(base_scores) != len(mapping_scores):
             raise InputValidationError(
                 f"samtools mpileup line {line_number}: base and mapping quality counts differ"

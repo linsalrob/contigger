@@ -201,6 +201,7 @@ def _run_validate(arguments: argparse.Namespace) -> int:
 
 def _run_validate_alignments(arguments: argparse.Namespace) -> int:
     validation = parse_manifest(arguments.manifest)
+    _print_warnings(validation)
     supplied = tuple(sample for sample in validation.samples if sample.bam is not None)
     if not supplied:
         raise InputValidationError("manifest supplies no BAM/CRAM inputs")
