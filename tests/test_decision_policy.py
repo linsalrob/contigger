@@ -9,8 +9,53 @@ import pytest
 from contigger.decision_policy import evaluate_graph_decisions
 from contigger.exceptions import InputValidationError
 from contigger.graph import build_relationship_graph
-from contigger.models import GraphDecisionStatus, RelationshipType
-from tests.test_graph import decision
+from contigger.models import (
+    AlignmentHit,
+    GraphDecisionStatus,
+    Orientation,
+    PairRelationship,
+    Relationship,
+    RelationshipType,
+)
+
+
+def decision(
+    query: str,
+    target: str,
+    relationship_type: RelationshipType,
+    *,
+    query_start: int = 800,
+    query_end: int = 1000,
+    target_start: int = 0,
+    target_end: int = 200,
+) -> PairRelationship:
+    """Build one complete synthetic graph decision for policy tests."""
+    hit = AlignmentHit(
+        query,
+        target,
+        1000,
+        1000,
+        query_start,
+        query_end,
+        target_start,
+        target_end,
+        Orientation.FORWARD,
+        min(query_end - query_start, target_end - target_start),
+        max(query_end - query_start, target_end - target_start),
+    )
+    relationship = Relationship(
+        relationship_type,
+        query,
+        target,
+        Orientation.FORWARD,
+        1.0,
+        hit.alignment_block_length,
+        hit.query_coverage,
+        hit.target_coverage,
+        "candidate",
+        ("synthetic policy decision",),
+    )
+    return PairRelationship(relationship, hit, (hit,), ())
 
 
 def test_unique_containment_is_eligible_without_removing_a_node() -> None:
