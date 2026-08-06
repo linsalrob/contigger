@@ -56,3 +56,5 @@ jobs:
           --output-json /tmp/contigger.pipeline.asm20.json
       - name: Validate unsimplified graph baseline
         run: pytest tests/test_graph.py tests/test_graph_benchmark.py
+      - name: Validate conservative graph decision baseline
+        run: pytest tests/test_decision_policy.py tests/test_decision_policy_benchmark.py

@@ -1,0 +1,23 @@
+{
+  "asm20": {
+    "containment_deferred": 0,
+    "containment_eligible": 3,
+    "overlap_components_deferred": 20,
+    "overlap_components_eligible": 0,
+    "overlap_edges_deferred": 51,
+    "paf_sha256": "5444da64efa5850d2dae0192d2266b8262465b68277c4168cec64ffb4dd363ba"
+  },
+  "asm5": {
+    "containment_deferred": 0,
+    "containment_eligible": 3,
+    "overlap_components_deferred": 19,
+    "overlap_components_eligible": 0,
+    "overlap_edges_deferred": 50,
+    "paf_sha256": "9b193d5fd163e750d2dc7c4005159bda4f3f9dd9f07e71f2dac5dc19195e326c"
+  },
+  "dataset_version": "1.0.0",
+  "junction_support": "none",
+  "known_forbidden_pair_status": "deferred",
+  "metadata_sha256": "6bc53c7c46c2da2d3227c5bffe8981d14b64781451fd173022674bf71ce42838",
+  "scope": "graph decision eligibility only; no node removal, path selection, or sequence merge"
+}

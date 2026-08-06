@@ -10,7 +10,7 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, and unsimplified ambiguity-preserving relationship graph construction. Catalogue, candidate, and graph objects are evidence/planning artifacts; no current command simplifies a graph or merges sequence.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, and conservative graph decision eligibility. Catalogue, candidate, graph, and decision objects are evidence/planning artifacts; no current command simplifies a graph or merges sequence.
 
 ## 4. Explicit non-goals
 
@@ -90,6 +90,8 @@ Components are deterministic connected components over every retained edge. They
 
 Confident contained nodes may be removed from representative output only after provenance is attached. Only unambiguous degree-compatible linear overlap paths may be proposed for merging. Branches, orientation conflicts, competing edges, repeat signals, cycles without a justified rule, and conflicting evidence are preserved. No greedy best-score collapse is permitted.
 
+The implemented decision policy stops before simplification. A containment edge is eligible for later disposition only when its component is unambiguous and the contained sequence has exactly one container. The graph and node remain unchanged. An overlap component is eligible for later provenance-complete path planning only when it is unambiguous, contains no containment edge, and every overlap edge has explicit junction support supplied to the policy. Unsupported junctions are deferred because an alignment between source contigs cannot prove a newly constructed adjacency. Even explicit support cannot override graph ambiguity.
+
 ## 16. Sequence conflict handling
 
 Evidence collection and decision policy are separate interfaces. Evidence modes are `none`, `alignments`, and `reads`. Proposed policies are `representative`, `majority`, `quality-weighted`, `sample-aware`, `ambiguous`, and `reject`. These names establish configuration boundaries only; unsupported biological decisions are not implemented. The conservative default is `reject`.
@@ -147,6 +149,10 @@ The stage-aware evaluator uses the checked-in complete PAFs as deterministic ali
 
 The checked-in PAF graph regression uses source identifiers as a diagnostic proxy; production candidate alignments use catalogue identifiers. Exact/self decisions are excluded because catalogue construction precedes the graph. Both presets retain 90 nodes and three containment edges. `asm5` produces 50 overlap edges and 58 components; `asm20` produces 51 and 57. Each has one repeat-connected ambiguous component containing all four previously deferred graph ambiguity groups. The known forbidden `end_tolerance_51` pair is also retained as one overlap edge. This is intentional evidence that graph membership is not merge permission and that a later decision policy must remain benchmarked against forbidden edges.
 
+### 22.6 Conservative decision-policy baseline
+
+The policy baseline supplies no junction-supported edge identifiers. Both presets therefore mark their three unique, unambiguous containment edges eligible for later provenance-aware disposition while leaving the nodes untouched. All overlap components are deferred: 19 components and 50 edges for `asm5`, and 20 components and 51 edges for `asm20`. The repeat-connected ambiguous component and known forbidden `end_tolerance_51` edge remain deferred. This zero-overlap-eligibility baseline is intentionally conservative until a later evidence provider can substantiate individual new junctions.
+
 ## 23. Performance and scalability
 
 Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
@@ -166,7 +172,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 3. Implement and benchmark canonical positional-minimiser candidates and selective requests. (complete, experimental baseline)
 4. Benchmark executable candidate-to-alignment-to-relationship recall and add persistent indexing/safe batching. (complete, experimental baseline)
 5. Add typed, ambiguity-preserving graph construction and containment handling, without graph simplification or sequence merging. (complete, unsimplified experimental baseline)
-6. Define and benchmark conservative containment-disposition and merge-path eligibility policies, preserving every branch, conflict, cycle, and forbidden-edge regression.
+6. Define and benchmark conservative containment-disposition and merge-path eligibility policies, preserving every branch, conflict, cycle, and forbidden-edge regression. (complete; no graph mutation or biological output)
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging.
 8. Validate source BAM/CRAM references and expose sample-aware pileups.
 9. Add targeted read extraction/remapping and junction-support reporting.

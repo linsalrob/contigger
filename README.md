@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, consensus, merging, and read analysis remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Provenance-complete path planning, graph simplification, consensus, merging, and read analysis remain planned.
 
 ## Development installation
 
@@ -134,6 +134,10 @@ Exact matches are rejected at this boundary because exact and reverse-complement
 
 The source-identifier diagnostic regression in `benchmarks/pseudomonas_graph_baseline.json` has 90 nodes and three containment edges for both PAFs. `asm5` has 50 overlap edges in 58 components; `asm20` has 51 in 57. In both, the four deferred repeat/branch truth groups occur in one preserved ambiguous component. The known forbidden 51 bp end-tolerance pair also remains an ordinary edge, demonstrating why graph presence alone cannot authorize merging.
 
+`evaluate_graph_decisions()` is the next conservative boundary. It marks a unique containment in an unambiguous component eligible for later provenance-aware disposition, but does not remove the contained node. An overlap-only component is eligible for later path planning only when it is unambiguous and every proposed junction edge has explicit support supplied by a future evidence stage. Containment-mixed or ambiguous components stay deferred. Eligibility is not merge authorization and produces no biological output.
+
+With no junction evidence supplied, `benchmarks/pseudomonas_decision_policy_baseline.json` records three eligible containment dispositions for each preset and zero eligible overlap components. All 50 `asm5` and 51 `asm20` overlap edges remain deferred, including both the repeat-connected ambiguous component and the known forbidden 51 bp boundary edge.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -141,7 +145,8 @@ The source-identifier diagnostic regression in `benchmarks/pseudomonas_graph_bas
 3. Implement canonical positional-minimiser candidates and selective-alignment planning. (complete, experimental baseline)
 4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching. (complete, experimental baseline)
 5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them. (complete, unsimplified experimental baseline)
-6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility; do not emit merged sequence until provenance-complete path planning is validated.
-7. Add sample-aware source evidence and targeted junction remapping.
+6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility. (complete; no biological output)
+7. Implement provenance-complete unambiguous linear-path planning without sequence merging.
+8. Add sample-aware source evidence and targeted junction remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

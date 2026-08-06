@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from contigger.exceptions import InputValidationError
-from contigger.graph import build_components, build_relationship_graph
+from contigger.graph import build_components, build_relationship_graph, validate_relationship_graph
 from contigger.models import (
     AlignmentHit,
     GraphEdgeKind,
@@ -116,6 +116,7 @@ def test_reciprocal_overlap_collapses_to_one_deterministic_edge() -> None:
         ("isolated",),
     ]
     assert not graph.components[0].ambiguous
+    validate_relationship_graph(graph)
 
 
 def test_containment_is_structurally_separate_from_overlap() -> None:
