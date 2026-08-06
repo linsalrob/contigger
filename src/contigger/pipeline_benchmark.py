@@ -104,7 +104,12 @@ def evaluate_pipeline_benchmark(
         if item.relationship_type is not RelationshipType.EXACT_MATCH
         and _catalogue_pair(item, members) in candidate_pairs
     ]
-    eligible_results = [case_results[(item.query_id, item.target_id)] for item in eligible_truth]
+    try:
+        eligible_results = [case_results[(item.query_id, item.target_id)] for item in eligible_truth]
+    except KeyError as error:
+        raise InputValidationError(
+            f"benchmark truth references a pair with no evaluation result: {error.args[0]}"
+        ) from error
     configuration: dict[str, object] = {
         **config.as_dict(),
         "kmer_size": kmer_size,
@@ -207,8 +212,13 @@ def _catalogue_pair(
 
 
 def _exact_recovered(expected: ExpectedRelationship, members: dict[str, CatalogueMember]) -> bool:
-    query = members[expected.query_id]
-    target = members[expected.target_id]
+    try:
+        query = members[expected.query_id]
+        target = members[expected.target_id]
+    except KeyError as error:
+        raise InputValidationError(
+            f"benchmark truth references unknown source contig: {error.args[0]}"
+        ) from error
     if query.catalogue_id != target.catalogue_id:
         return False
     observed = (

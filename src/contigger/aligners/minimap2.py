@@ -68,6 +68,8 @@ class Minimap2Aligner:
                 raise InputValidationError(
                     f"cannot read minimap2 index metadata {metadata_path}: {error}"
                 ) from error
+            if index_path.stat().st_size == 0:
+                raise InputValidationError(f"minimap2 index is empty (truncated or corrupt): {index_path}")
             if observed != expected:
                 raise InputValidationError(
                     f"minimap2 index metadata does not match requested targets: {index_path}"
@@ -236,7 +238,7 @@ def _index_metadata_path(index_path: Path) -> Path:
 def _validate_unique_identifiers(records: Sequence[SequenceRecord], label: str) -> None:
     identifiers = [record.identifier for record in records]
     if len(set(identifiers)) != len(identifiers):
-        raise InputValidationError(f"{label} require unique identifiers")
+        raise InputValidationError(f"{label} requires unique identifiers")
 
 
 def parse_paf(lines: Iterable[str]) -> Iterator[AlignmentHit]:
