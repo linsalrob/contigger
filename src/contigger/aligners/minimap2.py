@@ -69,7 +69,9 @@ class Minimap2Aligner:
                     f"cannot read minimap2 index metadata {metadata_path}: {error}"
                 ) from error
             if index_path.stat().st_size == 0:
-                raise InputValidationError(f"minimap2 index is empty (truncated or corrupt): {index_path}")
+                raise InputValidationError(
+                    f"minimap2 index is empty (truncated or corrupt): {index_path}"
+                )
             if observed != expected:
                 raise InputValidationError(
                     f"minimap2 index metadata does not match requested targets: {index_path}"
@@ -83,6 +85,7 @@ class Minimap2Aligner:
             with TemporaryDirectory(prefix=".contigger-index-", dir=index_path.parent) as directory:
                 target_path = Path(directory) / "targets.fasta"
                 temporary_index = Path(directory) / "target.mmi"
+                temporary_metadata = Path(directory) / "target.mmi.json"
                 write_fasta_records(target_records, target_path)
                 command = (
                     str(self.executable),
@@ -98,10 +101,12 @@ class Minimap2Aligner:
                     raise ExternalToolError(
                         f"minimap2 did not create requested index: {index_path}"
                     )
+                temporary_metadata.write_text(
+                    json.dumps(expected, indent=2, sort_keys=True) + "\n",
+                    encoding="utf-8",
+                )
                 temporary_index.replace(index_path)
-            metadata_path.write_text(
-                json.dumps(expected, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-            )
+                temporary_metadata.replace(metadata_path)
         except OSError as error:
             raise InputValidationError(
                 f"cannot create minimap2 index {index_path}: {error}"
@@ -121,11 +126,16 @@ class Minimap2Aligner:
             raise InputValidationError("indexed minimap2 alignment requires queries")
         _validate_unique_identifiers(query_records, "indexed queries")
         self.build_index(target_records, index_path)
+        allowed_queries = {record.identifier for record in query_records}
         allowed_targets = {record.identifier for record in target_records}
         with TemporaryDirectory(prefix="contigger-align-") as directory:
             query_path = Path(directory) / "queries.fasta"
             write_fasta_records(query_records, query_path)
             for hit in self.align_paths(index_path, query_path):
+                if hit.query_id not in allowed_queries:
+                    raise InputValidationError(
+                        f"minimap2 returned an unexpected query identifier: {hit.query_id}"
+                    )
                 if hit.target_id not in allowed_targets:
                     raise InputValidationError(
                         f"minimap2 index returned an unexpected target identifier: {hit.target_id}"

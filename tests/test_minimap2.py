@@ -7,7 +7,7 @@ import pytest
 import contigger.aligners.minimap2 as minimap2_module
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.exceptions import InputValidationError
-from contigger.models import SequenceRecord
+from contigger.models import AlignmentHit, Orientation, SequenceRecord
 from contigger.utilities.subprocesses import CommandResult
 
 
@@ -98,6 +98,9 @@ def test_build_index_reuses_only_matching_content(
         aligner.build_index((SequenceRecord("t", "", "t", "", "AAAA", 4),), index)
     with pytest.raises(InputValidationError, match="does not match"):
         Minimap2Aligner(Path("/opt/minimap2"), preset="asm5").build_index((target,), index)
+    index.write_bytes(b"")
+    with pytest.raises(InputValidationError, match="empty"):
+        aligner.build_index((target,), index)
 
 
 def test_incomplete_index_is_rejected(tmp_path: Path) -> None:
@@ -107,3 +110,54 @@ def test_incomplete_index_is_rejected(tmp_path: Path) -> None:
     target = SequenceRecord("t", "", "t", "", "ACGT", 4)
     with pytest.raises(InputValidationError, match="incomplete"):
         aligner.build_index((target,), index)
+
+
+def test_metadata_failure_does_not_publish_index(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def fake_run(command: tuple[str, ...]) -> CommandResult:
+        if command[-1] == "--version":
+            return CommandResult(command, "2.31-r1302\n", "", 0)
+        Path(command[command.index("-d") + 1]).write_bytes(b"mmi")
+        return CommandResult(command, "", "", 0)
+
+    original_write_text = Path.write_text
+
+    def fail_metadata(path: Path, data: str, **kwargs: object) -> int:
+        if path.name == "target.mmi.json":
+            raise OSError("simulated metadata failure")
+        return original_write_text(path, data, **kwargs)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(minimap2_module, "run_command", fake_run)
+    monkeypatch.setattr(Path, "write_text", fail_metadata)
+    index = tmp_path / "target.mmi"
+    target = SequenceRecord("t", "", "t", "", "ACGT", 4)
+    with pytest.raises(InputValidationError, match="simulated metadata failure"):
+        Minimap2Aligner(Path("/opt/minimap2")).build_index((target,), index)
+    assert not index.exists()
+    assert not index.with_name("target.mmi.json").exists()
+
+
+def test_align_indexed_rejects_unexpected_query_identifier(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    query = SequenceRecord("q", "", "q", "", "ACGT", 4)
+    target = SequenceRecord("t", "", "t", "", "ACGT", 4)
+    hit = AlignmentHit(
+        "unexpected",
+        "t",
+        4,
+        4,
+        0,
+        4,
+        0,
+        4,
+        Orientation.FORWARD,
+        4,
+        4,
+    )
+    monkeypatch.setattr(Minimap2Aligner, "build_index", lambda *_args: tmp_path / "x.mmi")
+    monkeypatch.setattr(Minimap2Aligner, "align_paths", lambda *_args: iter((hit,)))
+    aligner = Minimap2Aligner(Path("/opt/minimap2"))
+    with pytest.raises(InputValidationError, match="unexpected query"):
+        tuple(aligner.align_indexed((query,), (target,), tmp_path / "x.mmi"))

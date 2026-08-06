@@ -105,7 +105,9 @@ def evaluate_pipeline_benchmark(
         and _catalogue_pair(item, members) in candidate_pairs
     ]
     try:
-        eligible_results = [case_results[(item.query_id, item.target_id)] for item in eligible_truth]
+        eligible_results = [
+            case_results[(item.query_id, item.target_id)] for item in eligible_truth
+        ]
     except KeyError as error:
         raise InputValidationError(
             f"benchmark truth references a pair with no evaluation result: {error.args[0]}"
