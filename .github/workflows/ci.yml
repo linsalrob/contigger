@@ -62,3 +62,5 @@ jobs:
         run: pytest tests/test_path_planning.py tests/test_path_planning_benchmark.py
       - name: Validate source-alignment evidence boundary
         run: pytest tests/test_bam_evidence.py
+      - name: Validate targeted junction-remapping evidence boundary
+        run: pytest tests/test_junction_evidence.py
