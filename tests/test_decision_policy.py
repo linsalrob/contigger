@@ -151,3 +151,16 @@ def test_inconsistent_graph_component_membership_is_rejected() -> None:
     broken_graph = replace(graph, components=(broken_component,))
     with pytest.raises(InputValidationError, match="absent from components: b"):
         evaluate_graph_decisions(broken_graph)
+
+
+def test_unknown_edge_node_error_names_the_missing_sequence() -> None:
+    graph = build_relationship_graph(
+        (decision("a", "b", RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX),)
+    )
+    broken_edge = replace(graph.overlap_edges[0], target_id="missing")
+    broken_graph = replace(graph, overlap_edges=(broken_edge,))
+    with pytest.raises(
+        InputValidationError,
+        match=rf"unknown sequence identifier: missing \(edge {broken_edge.edge_id}\)",
+    ):
+        evaluate_graph_decisions(broken_graph)

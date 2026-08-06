@@ -75,9 +75,11 @@ def _validate_graph(
         raise InputValidationError("graph decision policy requires unique edge identifiers")
     known_nodes = set(node_ids)
     for edge in edges:
-        if edge.query_id not in known_nodes or edge.target_id not in known_nodes:
+        missing_edge_nodes = sorted({edge.query_id, edge.target_id} - known_nodes)
+        if missing_edge_nodes:
             raise InputValidationError(
-                f"graph edge references unknown sequence identifier: {edge.edge_id}"
+                "graph edge references unknown sequence identifier: "
+                f"{missing_edge_nodes[0]} (edge {edge.edge_id})"
             )
 
     components: dict[str, MergeComponent] = {}
@@ -115,7 +117,7 @@ def _containment_decision(
         reasons.add("component ambiguity prevents containment disposition")
         reasons.update(component.ambiguity_reasons)
     if len(containment_by_child[contained]) != 1:
-        reasons.add("contained sequence does not have exactly one container")
+        reasons.add("contained sequence has multiple possible containers")
     status = GraphDecisionStatus.DEFERRED if reasons else GraphDecisionStatus.ELIGIBLE
     if not reasons:
         reasons.add("unique containment creates no new sequence junction")
