@@ -136,3 +136,10 @@ def test_catalogue_graph_mismatch_and_missing_provenance_are_rejected() -> None:
     )
     with pytest.raises(InputValidationError, match="no source provenance: b"):
         plan_linear_paths(incomplete, graph)
+
+
+def test_malformed_graph_order_raises_domain_error_before_catalogue_comparison() -> None:
+    graph = build_relationship_graph((overlap("a", "b"),), ("a", "b"))
+    unordered = replace(graph, nodes=tuple(reversed(graph.nodes)))
+    with pytest.raises(InputValidationError, match="deterministically ordered"):
+        plan_linear_paths(catalogue("a", "b"), unordered)

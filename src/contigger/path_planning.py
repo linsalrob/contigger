@@ -8,6 +8,7 @@ from collections.abc import Iterable
 
 from contigger.decision_policy import evaluate_graph_decisions
 from contigger.exceptions import InputValidationError
+from contigger.graph import validate_relationship_graph
 from contigger.models import (
     CatalogueMember,
     GraphDecisionStatus,
@@ -31,6 +32,7 @@ def plan_linear_paths(
 ) -> PathPlanningResult:
     """Plan canonical oriented paths without constructing or merging sequence."""
     members = _validate_catalogue(catalogue)
+    validate_relationship_graph(graph)
     catalogue_ids = tuple(item.identifier for item in catalogue.sequences)
     graph_ids = tuple(item.sequence_id for item in graph.nodes)
     if graph_ids != catalogue_ids:
