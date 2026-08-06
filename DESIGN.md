@@ -10,7 +10,7 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, conservative graph decision eligibility, and provenance-complete metadata-only linear-path planning. No current command simplifies a graph, constructs a joined sequence, or merges contigs.
+The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, and sample-scoped source BAM/CRAM validation and pileups. No current command simplifies a graph, constructs a joined sequence, or merges contigs.
 
 ## 4. Explicit non-goals
 
@@ -100,7 +100,7 @@ Evidence collection and decision policy are separate interfaces. Evidence modes 
 
 ## 17. BAM/CRAM evidence model
 
-Three claims must remain distinct: sequence-overlap evidence, source-contig pileup evidence, and support for a newly constructed join. Existing BAM/CRAM records can provide depth, allele counts, base qualities, mapping qualities, strand support, clipping, paired-read metadata, and sample identity within source contigs. Providers are sample-scoped and must validate reference names and lengths against the source FASTA.
+Three claims must remain distinct: sequence-overlap evidence, source-contig pileup evidence, and support for a newly constructed join. Existing BAM/CRAM records can provide depth, allele counts, base qualities, mapping qualities, strand support, clipping, paired-read metadata, and sample identity within source contigs. The implemented samtools provider is sample-scoped, requires an adjacent index, validates file integrity and index readability, and requires exact reference names and lengths against the source FASTA. Pileup requests use zero-based half-open coordinates. Read extraction, clipping analysis, and paired-read interpretation remain deferred.
 
 ## 18. Sample-aware variation
 
@@ -180,7 +180,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 5. Add typed, ambiguity-preserving graph construction and containment handling, without graph simplification or sequence merging. (complete, unsimplified experimental baseline)
 6. Define and benchmark conservative containment-disposition and merge-path eligibility policies, preserving every branch, conflict, cycle, and forbidden-edge regression. (complete; no graph mutation or biological output)
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
-8. Validate source BAM/CRAM references and expose sample-aware pileups.
+8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting.
 10. Evaluate consensus and variation policies only with reviewed benchmarks.
 

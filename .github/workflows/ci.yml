@@ -60,3 +60,5 @@ jobs:
         run: pytest tests/test_decision_policy.py tests/test_decision_policy_benchmark.py
       - name: Validate provenance-complete path planning
         run: pytest tests/test_path_planning.py tests/test_path_planning_benchmark.py
+      - name: Validate source-alignment evidence boundary
+        run: pytest tests/test_bam_evidence.py

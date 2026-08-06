@@ -45,3 +45,5 @@ Graph changes must run `pytest tests/test_graph.py tests/test_graph_benchmark.py
 Graph decision-policy changes must also run `pytest tests/test_decision_policy.py tests/test_decision_policy_benchmark.py` and explain every change from `benchmarks/pseudomonas_decision_policy_baseline.json`. Without explicit junction evidence, overlap components remain deferred even when their graph topology is linear. Do not silently turn graph presence into merge authorization.
 
 Path-planning changes must run `pytest tests/test_path_planning.py tests/test_path_planning_benchmark.py`. Plans must retain every source member of every path node with explicit path-relative orientation. A path plan is metadata, not permission to construct sequence, and `benchmarks/pseudomonas_path_planning_baseline.json` must not be updated silently.
+
+BAM/CRAM evidence changes must run `pytest tests/test_bam_evidence.py`. Tests use an injected command runner and must not require samtools. Reference names and lengths must match the sample FASTA exactly, evidence remains sample-scoped, and existing alignments must never be presented as support for a new junction.

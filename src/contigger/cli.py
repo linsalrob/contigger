@@ -20,6 +20,7 @@ from contigger.catalogue import (
     write_catalogue_fasta_path,
 )
 from contigger.config import build_run_config
+from contigger.evidence.bam import BamEvidenceProvider
 from contigger.exceptions import ContiggerError, InputValidationError
 from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
@@ -48,6 +49,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate = commands.add_parser("validate", help="validate a manifest and referenced inputs")
     validate.add_argument("--manifest", required=True, type=Path)
     validate.set_defaults(handler=_run_validate)
+
+    validate_alignments = commands.add_parser(
+        "validate-alignments",
+        help="validate supplied sample BAM/CRAM references against source FASTA files",
+    )
+    validate_alignments.add_argument("--manifest", required=True, type=Path)
+    validate_alignments.add_argument("--samtools", default="samtools")
+    validate_alignments.set_defaults(handler=_run_validate_alignments)
 
     merge = commands.add_parser("merge", help="plan a merge (execution is not implemented)")
     merge.add_argument("--manifest", required=True, type=Path)
@@ -187,6 +196,19 @@ def _run_validate(arguments: argparse.Namespace) -> int:
     validation = parse_manifest(arguments.manifest)
     _print_warnings(validation)
     print(f"validated {len(validation.samples)} sample(s)")
+    return 0
+
+
+def _run_validate_alignments(arguments: argparse.Namespace) -> int:
+    validation = parse_manifest(arguments.manifest)
+    _print_warnings(validation)
+    supplied = tuple(sample for sample in validation.samples if sample.bam is not None)
+    if not supplied:
+        raise InputValidationError("manifest supplies no BAM/CRAM inputs")
+    for sample in supplied:
+        references = BamEvidenceProvider(sample, executable=arguments.samtools).validate_source()
+        print(f"sample {sample.sample}: validated {len(references)} source reference(s)")
+    print(f"validated BAM/CRAM inputs for {len(supplied)} sample(s)")
     return 0
 
 

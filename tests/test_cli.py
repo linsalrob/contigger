@@ -14,6 +14,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
     [
         ["--help"],
         ["validate", "--help"],
+        ["validate-alignments", "--help"],
         ["merge", "--help"],
         ["classify-paf", "--help"],
         ["benchmark", "--help"],
@@ -33,6 +34,14 @@ def test_successful_manifest_validation(capsys: pytest.CaptureFixture[str]) -> N
     status = main(["validate", "--manifest", str(FIXTURES / "samples.tsv")])
     assert status == 0
     assert "validated 2 sample(s)" in capsys.readouterr().out
+
+
+def test_validate_alignments_requires_supplied_alignment(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    status = main(["validate-alignments", "--manifest", str(FIXTURES / "samples.tsv")])
+    assert status == 2
+    assert "manifest supplies no BAM/CRAM inputs" in capsys.readouterr().err
 
 
 def test_missing_manifest(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:

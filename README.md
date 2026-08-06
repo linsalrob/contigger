@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, merging, and read analysis remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, merging, and junction remapping remain planned.
 
 ## Development installation
 
@@ -142,6 +142,16 @@ With no junction evidence supplied, `benchmarks/pseudomonas_decision_policy_base
 
 The checked-in source-ID diagnostic path baseline supplies no junction evidence, so both PAF presets produce zero paths. All 19 `asm5` and 20 `asm20` overlap components remain deferred.
 
+## Source alignment evidence
+
+Validate supplied BAM/CRAM files against their sample FASTA references using installed `samtools`:
+
+```bash
+contigger validate-alignments --manifest samples.tsv
+```
+
+`BamEvidenceProvider` requires an adjacent BAI/CRAI, checks file integrity and index readability, and requires exact `@SQ` reference names and lengths. Pileups accept zero-based half-open source intervals and return sample-labelled allele counts, depth, and mean base/mapping qualities. These observations describe existing source contigs only; they cannot validate a newly constructed junction.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -151,7 +161,7 @@ The checked-in source-ID diagnostic path baseline supplies no junction evidence,
 5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them. (complete, unsimplified experimental baseline)
 6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility. (complete; no biological output)
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
-8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims.
+8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
 9. Add targeted junction read extraction and remapping.
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.
