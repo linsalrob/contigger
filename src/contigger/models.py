@@ -377,6 +377,43 @@ class GraphDecisionPlan:
 
 
 @dataclass(frozen=True, slots=True)
+class PlannedSourceMember:
+    """One source contig retained in a path node with path-relative strand."""
+
+    source_id: str
+    source_sample: str
+    original_identifier: str
+    orientation: Orientation
+
+
+@dataclass(frozen=True, slots=True)
+class PlannedPathNode:
+    """One catalogue sequence placed in an oriented linear path."""
+
+    sequence_id: str
+    orientation: Orientation
+    source_members: tuple[PlannedSourceMember, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class LinearPathPlan:
+    """Canonical metadata-only plan for an eligible linear overlap component."""
+
+    path_id: str
+    component_id: str
+    nodes: tuple[PlannedPathNode, ...]
+    edge_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class PathPlanningResult:
+    """Deterministic path plans and every overlap component left deferred."""
+
+    paths: tuple[LinearPathPlan, ...]
+    deferred_component_ids: tuple[str, ...]
+
+
+@dataclass(frozen=True, slots=True)
 class BaseEvidence:
     """Sample-specific evidence for a base on a source contig."""
 
