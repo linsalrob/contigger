@@ -17,6 +17,7 @@ FIXTURES = Path(__file__).parent / "fixtures"
         ["merge", "--help"],
         ["classify-paf", "--help"],
         ["benchmark", "--help"],
+        ["benchmark-pipeline", "--help"],
         ["catalogue", "--help"],
         ["candidates", "--help"],
     ],

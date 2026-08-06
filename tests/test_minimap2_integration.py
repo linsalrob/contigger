@@ -6,6 +6,7 @@ import pytest
 
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.config import build_run_config
+from contigger.models import SequenceRecord
 from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.synthetic import synthetic_cases
 from contigger.utilities.subprocesses import find_executable
@@ -37,3 +38,22 @@ def test_minimap2_default_preset_remains_asm20() -> None:
     aligner = Minimap2Aligner(executable=Path("/usr/bin/minimap2"))
     assert aligner.preset == "asm20"
     assert "asm20" in aligner.command_for_paths(Path("target.fa"), Path("query.fa"))
+
+
+@pytest.mark.integration
+@pytest.mark.skipif(MINIMAP2 is None, reason="minimap2 is not installed")
+def test_persistent_index_is_reused_for_query_batches(tmp_path: Path) -> None:
+    case = synthetic_cases()[0]
+    target = SequenceRecord("target", "", "target", "", case.target, len(case.target))
+    queries = (
+        SequenceRecord("query", "", "query", "", case.query, len(case.query)),
+        SequenceRecord("query2", "", "query2", "", case.query, len(case.query)),
+    )
+    index = tmp_path / "target.mmi"
+    aligner = Minimap2Aligner(executable=MINIMAP2, preset="asm5")
+    hits = tuple(aligner.align_indexed(queries, (target,), index))
+    assert index.is_file()
+    assert index.with_name("target.mmi.json").is_file()
+    assert {hit.query_id for hit in hits} == {"query", "query2"}
+    assert {hit.target_id for hit in hits} == {"target"}
+    assert aligner.build_index((target,), index) == index

@@ -8,7 +8,7 @@ The governing principle is simple: **a missed merge is preferable to a false mer
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, selective-alignment request planning, conservative complete-pair relationship classification, deterministic benchmark evaluation, a path-based minimap2 adapter, and a functional dry run. Graph construction, graph simplification, consensus, merging, and read analysis remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph construction, graph simplification, consensus, merging, and read analysis remain planned.
 
 ## Development installation
 
@@ -64,7 +64,7 @@ The first implemented outputs will be `contigger.fasta`, `contigger.provenance.t
 
 ## External tools and synthetic benchmark
 
-The experimental minimap2 path adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Ordinary tests and checked-in PAF classification do not require minimap2. The small fixed-seed synthetic external-tool benchmark remains available:
+The experimental minimap2 adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Persistent target indexes are built with the selected preset and carry deterministic metadata containing that preset, the minimap2 version, target identifiers, lengths, and a sequence checksum; incomplete or mismatched indexes are rejected. Selective batches contain multiple approved queries but exactly one target, preventing accidental all-v-all expansion. Ordinary tests and checked-in PAF classification do not require minimap2. The small fixed-seed synthetic external-tool benchmark remains available:
 
 When minimap2 is installed, compare `asm5` and `asm20` against fixed-seed synthetic truth:
 
@@ -116,13 +116,23 @@ Ambiguous-base k-mers and globally frequent minimisers are excluded. Shared mini
 
 On Pseudomonas benchmark 1.0.0, exact/RC deduplication reduces 90 sources to 84 canonical sequences. The documented candidate settings retain all 23 valid non-exact truth case groups in 61 candidates out of 3,486 possible canonical pairs. This is a recall/integration baseline, not evidence that all 61 pairs are mergeable; forbidden boundary and ambiguous repeat pairs deliberately proceed to alignment and conservative classification.
 
+Evaluate the complete deterministic pathway using the checked-in PAF as alignment observations (minimap2 is not invoked):
+
+```bash
+contigger benchmark-pipeline --dataset test_data \
+  --paf test_data/alignments/all_vs_all.asm20.paf.gz \
+  --output-json pipeline-benchmark.json
+```
+
+Both presets recover all 12 exact/RC truth rows and all 23 valid non-exact case groups (40 ordered truth rows); candidate generation adds zero misses. At relationship classification, both retain the two known 51 bp end-tolerance false merges, while `asm5` misses four relationships and `asm20` misses two. Four graph-level ambiguity groups remain deferred. The checked-in result is `benchmarks/pseudomonas_pipeline_baseline.json`. This is a staged recall and safety benchmark, not a graph result or evidence that any contigs were merged.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
 2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
 3. Implement canonical positional-minimiser candidates and selective-alignment planning. (complete, experimental baseline)
-4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching.
-5. Build ambiguity-preserving containment/overlap graphs.
+4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching. (complete, experimental baseline)
+5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them.
 6. Add provenance-complete linear-path merging.
 7. Add sample-aware source evidence and targeted junction remapping.
 

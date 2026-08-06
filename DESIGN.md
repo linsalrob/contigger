@@ -14,7 +14,7 @@ The current milestone supplies typed models, transparent plain/gzip FASTA and PA
 
 ## 4. Explicit non-goals
 
-This scaffold does not implement persistent minimap2 index reuse or batching across candidates, graph path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+This scaffold does not implement graph construction or path merging, consensus construction, targeted read remapping, variant calling, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
 
 ## 5. Input model
 
@@ -58,7 +58,9 @@ Minimiser generation skips k-mers containing ambiguity symbols, hashes canonical
 
 An `Aligner` can build/reuse an index, align typed sequences, return `AlignmentHit` objects, and report its name, version, and exact last command. The minimap2 adapter can safely align target and query FASTA paths with an argument array and parse the captured PAF stream. It records the executable version and exact alignment command; failures retain stderr. The backend-neutral hit model retains optional alignment role and the `AS`, `cm`, `s1`, and `s2` observations without requiring them.
 
-Selective-alignment planning resolves only canonical candidate pairs into one-query/one-target requests. The executor calls the replaceable `Aligner` once per request and rejects hits whose identifiers escape that ordered pair. The minimap2 adapter materialises each typed request in an isolated temporary directory, captures its version/command, and parses its PAF. Persistent indexing and safe batching remain later performance work; they must not fall back to all-v-all alignment silently.
+Selective-alignment planning resolves only canonical candidate pairs into validated requests. The simple executor retains one-query/one-target calls. The indexed executor groups approved queries by exactly one target, builds or reuses that target index, and rejects returned identifiers outside the request set. It never sends multiple targets in a batch, so batching cannot silently expand into all-v-all alignment.
+
+Minimap2 indexes are built with the selected assembly preset, written through a temporary same-filesystem path, and identified by deterministic sidecar metadata containing format version, preset, minimap2 version, ordered target identifiers and lengths, and a checksum over identifiers and sequences. Reuse requires an exact metadata match; incomplete, corrupt, or stale indexes fail rather than being silently trusted or overwritten. Index filenames are hashes of target identifiers, so identifiers cannot alter the index directory layout.
 
 PAF input is processed line by line. Only blank lines are ignored. Required fields, coordinates, orientation, mapping quality (including the valid unknown value 255), and optional-tag syntax are validated; errors contain physical line numbers. Coordinates remain zero-based and half-open.
 
@@ -133,6 +135,10 @@ At the documented defaults, `asm5` produces 58 correct classifications, 2 false 
 
 The 90 source contigs collapse into 84 exact canonical sequences. With `k=21`, window 10, five shared minimisers, maximum global frequency 100, and a 1,000 bp terminal band, all 23 valid non-exact truth case groups reach selective alignment in 61 candidates out of 3,486 possible pairs. Candidate inclusion is not a positive relationship call: threshold-negative and ambiguity cases are expected to remain until alignment/classification. Internal-only and low-complexity negatives have permanent focused regressions.
 
+### 22.4 Catalogue-to-relationship baseline
+
+The stage-aware evaluator uses the checked-in complete PAFs as deterministic alignment observations and does not invoke minimap2. Both presets recover all 12 exact/RC truth rows through the catalogue and route all 23 valid non-exact case groups (40 ordered rows) through candidate selection, so candidate-stage missed relationships are zero. The eligible relationship results retain the established classifier baseline: two false merges for each preset, four missed relationships for `asm5`, two for `asm20`, and four graph-level ambiguity groups deferred. No classifier rule or threshold changed. This separation identifies which stage loses recall without treating a candidate as a relationship or merge.
+
 ## 23. Performance and scalability
 
 Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
@@ -150,8 +156,8 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 1. Integrate and baseline relationship classification using synthetic and checked-in Pseudomonas truth. (complete)
 2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
 3. Implement and benchmark canonical positional-minimiser candidates and selective requests. (complete, experimental baseline)
-4. Benchmark executable candidate-to-alignment-to-relationship recall and add persistent indexing/safe batching.
-5. Add typed, ambiguity-preserving graph construction and containment handling.
+4. Benchmark executable candidate-to-alignment-to-relationship recall and add persistent indexing/safe batching. (complete, experimental baseline)
+5. Add typed, ambiguity-preserving graph construction and containment handling, without graph simplification or sequence merging.
 6. Implement provenance-complete unambiguous linear-path merging.
 7. Validate source BAM/CRAM references and expose sample-aware pileups.
 8. Add targeted read extraction/remapping and junction-support reporting.

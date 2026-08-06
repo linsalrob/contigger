@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
-from contigger.alignment_planning import execute_selective_alignments, plan_selective_alignments
+from contigger.alignment_planning import (
+    execute_indexed_selective_alignments,
+    execute_selective_alignments,
+    plan_selective_alignments,
+)
 from contigger.exceptions import InputValidationError
 from contigger.models import (
     AlignmentHit,
@@ -47,6 +53,70 @@ class FakeAligner:
         )
 
 
+class FakeIndexedAligner(FakeAligner):
+    """Backend recording safe one-target query batches."""
+
+    def __init__(self) -> None:
+        self.batches: list[tuple[tuple[str, ...], tuple[str, ...]]] = []
+
+    def align_indexed(
+        self,
+        queries: tuple[SequenceRecord, ...],
+        targets: tuple[SequenceRecord, ...],
+        index_path: object,
+    ) -> tuple[AlignmentHit, ...]:
+        self.batches.append(
+            (
+                tuple(record.identifier for record in queries),
+                tuple(record.identifier for record in targets),
+            )
+        )
+        return tuple(
+            AlignmentHit(
+                query.identifier,
+                targets[0].identifier,
+                query.length,
+                targets[0].length,
+                0,
+                query.length,
+                0,
+                targets[0].length,
+                Orientation.FORWARD,
+                query.length,
+                query.length,
+            )
+            for query in queries
+        )
+
+
+class OffBatchAligner(FakeIndexedAligner):
+    """Backend returning another planned pair from the wrong target batch."""
+
+    def align_indexed(
+        self,
+        queries: tuple[SequenceRecord, ...],
+        targets: tuple[SequenceRecord, ...],
+        index_path: object,
+    ) -> tuple[AlignmentHit, ...]:
+        if targets[0].identifier == "b":
+            return (
+                AlignmentHit(
+                    "a",
+                    "c",
+                    4,
+                    4,
+                    0,
+                    4,
+                    0,
+                    4,
+                    Orientation.FORWARD,
+                    4,
+                    4,
+                ),
+            )
+        return super().align_indexed(queries, targets, index_path)
+
+
 def sequence(identifier: str) -> CatalogueSequence:
     """Build a small catalogue sequence."""
     return CatalogueSequence(identifier, "ACGT", 4, identifier, identifier)
@@ -74,3 +144,27 @@ def test_executor_calls_backend_for_only_the_planned_pair() -> None:
     )
     hits = execute_selective_alignments(requests, FakeAligner())
     assert [(hit.query_id, hit.target_id) for hit in hits] == [("a", "b")]
+
+
+def test_indexed_executor_batches_queries_only_for_their_approved_target(tmp_path: Path) -> None:
+    requests = plan_selective_alignments(
+        [sequence("a"), sequence("b"), sequence("c")],
+        [CandidatePair("a", "c", 2), CandidatePair("b", "c", 2), CandidatePair("a", "b", 2)],
+    )
+    aligner = FakeIndexedAligner()
+    hits = execute_indexed_selective_alignments(requests, aligner, tmp_path)
+    assert aligner.batches == [(("a",), ("b",)), (("a", "b"), ("c",))]
+    assert [(hit.query_id, hit.target_id) for hit in hits] == [
+        ("a", "b"),
+        ("a", "c"),
+        ("b", "c"),
+    ]
+
+
+def test_indexed_executor_rejects_pair_from_another_planned_batch(tmp_path: Path) -> None:
+    requests = plan_selective_alignments(
+        [sequence("a"), sequence("b"), sequence("c")],
+        [CandidatePair("a", "b", 2), CandidatePair("a", "c", 2)],
+    )
+    with pytest.raises(InputValidationError, match="current selective batch"):
+        execute_indexed_selective_alignments(requests, OffBatchAligner(), tmp_path)
