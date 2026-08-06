@@ -1,0 +1,45 @@
+{
+  "asm20": {
+    "candidate_pairs": 61,
+    "candidate_stage_missed_relationships": 0,
+    "exact_truth_rows_recovered": 12,
+    "graph_level_ambiguity_cases_deferred": 4,
+    "paf_sha256": "5444da64efa5850d2dae0192d2266b8262465b68277c4168cec64ffb4dd363ba",
+    "relationship_stage_false_merges": 2,
+    "relationship_stage_missed_relationships": 2,
+    "valid_nonexact_case_groups_recalled": 23,
+    "valid_nonexact_truth_rows_recalled": 40
+  },
+  "asm5": {
+    "candidate_pairs": 61,
+    "candidate_stage_missed_relationships": 0,
+    "exact_truth_rows_recovered": 12,
+    "graph_level_ambiguity_cases_deferred": 4,
+    "paf_sha256": "9b193d5fd163e750d2dc7c4005159bda4f3f9dd9f07e71f2dac5dc19195e326c",
+    "relationship_stage_false_merges": 2,
+    "relationship_stage_missed_relationships": 4,
+    "valid_nonexact_case_groups_recalled": 23,
+    "valid_nonexact_truth_rows_recalled": 40
+  },
+  "classifier_thresholds": {
+    "containment_coverage": 0.98,
+    "end_tolerance": 50,
+    "identity": 0.98,
+    "min_containment": 500,
+    "min_overlap": 1000
+  },
+  "contigger_version": "0.1.0",
+  "dataset_version": "1.0.0",
+  "metadata_sha256": "6bc53c7c46c2da2d3227c5bffe8981d14b64781451fd173022674bf71ce42838",
+  "minimiser_configuration": {
+    "kmer_size": 21,
+    "max_minimiser_frequency": 100,
+    "min_shared_minimisers": 5,
+    "terminal_band": 1000,
+    "window_size": 10
+  },
+  "minimap2_version": "2.31-r1302",
+  "possible_canonical_pairs": 3486,
+  "source_contigs": 90,
+  "canonical_sequences": 84
+}

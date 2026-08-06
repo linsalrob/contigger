@@ -32,3 +32,10 @@ contigger benchmark --dataset test_data --paf test_data/alignments/all_vs_all.as
 ```
 
 Catalogue and candidate-generation changes must also preserve exact/RC provenance tests and the checked-in candidate baseline. Candidates are permitted to be over-inclusive, but any loss of a valid truth case requires biological review before changing `benchmarks/pseudomonas_candidates_baseline.json`.
+
+Changes to catalogue, candidate, alignment planning, or relationship stages must run both staged evaluations and explain any difference from `benchmarks/pseudomonas_pipeline_baseline.json`:
+
+```bash
+contigger benchmark-pipeline --dataset test_data --paf test_data/alignments/all_vs_all.asm5.paf.gz
+contigger benchmark-pipeline --dataset test_data --paf test_data/alignments/all_vs_all.asm20.paf.gz
+```

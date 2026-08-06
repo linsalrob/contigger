@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import hashlib
+from collections import defaultdict
 from collections.abc import Iterable
+from pathlib import Path
 
-from contigger.aligners.base import Aligner
+from contigger.aligners.base import Aligner, IndexedAligner
 from contigger.exceptions import InputValidationError
 from contigger.models import (
     AlignmentHit,
@@ -69,6 +72,51 @@ def execute_selective_alignments(
                 raise InputValidationError(
                     "alignment backend returned identifiers outside selective request: "
                     f"expected {expected}, observed {observed}"
+                )
+            hits.append(hit)
+    return tuple(sorted(hits, key=alignment_sort_key))
+
+
+def execute_indexed_selective_alignments(
+    requests: Iterable[AlignmentRequest],
+    aligner: IndexedAligner,
+    index_directory: Path,
+) -> tuple[AlignmentHit, ...]:
+    """Batch approved queries by one target and reuse validated target indexes.
+
+    A batch never contains multiple targets, so minimap2 cannot introduce
+    unrequested query-target combinations through an all-v-all expansion.
+    """
+    request_items = tuple(
+        sorted(requests, key=lambda item: (item.target.identifier, item.query.identifier))
+    )
+    expected: set[tuple[str, str]] = set()
+    grouped: dict[str, list[AlignmentRequest]] = defaultdict(list)
+    for request in request_items:
+        pair = (request.query.identifier, request.target.identifier)
+        if pair in expected:
+            raise InputValidationError(f"duplicate selective-alignment request: {pair}")
+        expected.add(pair)
+        grouped[request.target.identifier].append(request)
+
+    hits: list[AlignmentHit] = []
+    for target_id in sorted(grouped):
+        group = grouped[target_id]
+        target = group[0].target
+        if any(request.target != target for request in group):
+            raise InputValidationError(
+                f"target identifier collision in selective alignment batch: {target_id}"
+            )
+        index_name = hashlib.sha256(target_id.encode("utf-8")).hexdigest()
+        index_path = index_directory / f"target-{index_name}.mmi"
+        aligner.build_index((target,), index_path)
+        queries = tuple(request.query for request in group)
+        for hit in aligner.align_indexed(queries, (target,), index_path):
+            observed = (hit.query_id, hit.target_id)
+            if observed not in expected:
+                raise InputValidationError(
+                    "alignment backend returned identifiers outside selective requests: "
+                    f"observed {observed}"
                 )
             hits.append(hit)
     return tuple(sorted(hits, key=alignment_sort_key))

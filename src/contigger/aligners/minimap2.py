@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from collections.abc import Iterable, Iterator, Sequence
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from contigger.exceptions import ExternalToolError, FeatureNotImplementedError, InputValidationError
+from contigger.exceptions import ExternalToolError, InputValidationError
 from contigger.fasta import write_fasta_records
 from contigger.models import AlignmentHit, AlignmentType, Orientation, SequenceRecord
 from contigger.utilities.subprocesses import find_executable, run_command
@@ -50,8 +52,101 @@ class Minimap2Aligner:
         return self._last_command
 
     def build_index(self, targets: Sequence[SequenceRecord], index_path: Path) -> Path:
-        """Reserve the indexing interface without reporting false completion."""
-        raise FeatureNotImplementedError("minimap2 index construction is not implemented")
+        """Build or safely reuse a content-validated minimap2 target index."""
+        target_records = tuple(sorted(targets, key=lambda record: record.identifier))
+        if not target_records:
+            raise InputValidationError("minimap2 index requires at least one target")
+        _validate_unique_identifiers(target_records, "index targets")
+        metadata_path = _index_metadata_path(index_path)
+        if index_path.exists() or metadata_path.exists():
+            if not index_path.is_file() or not metadata_path.is_file():
+                raise InputValidationError(f"incomplete minimap2 index or metadata at {index_path}")
+            expected = self._index_metadata(target_records)
+            try:
+                observed = json.loads(metadata_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as error:
+                raise InputValidationError(
+                    f"cannot read minimap2 index metadata {metadata_path}: {error}"
+                ) from error
+            if observed != expected:
+                raise InputValidationError(
+                    f"minimap2 index metadata does not match requested targets: {index_path}"
+                )
+            return index_path
+        expected = self._index_metadata(target_records)
+        if self.executable is None:
+            raise ExternalToolError("minimap2 executable not found")
+        try:
+            index_path.parent.mkdir(parents=True, exist_ok=True)
+            with TemporaryDirectory(prefix=".contigger-index-", dir=index_path.parent) as directory:
+                target_path = Path(directory) / "targets.fasta"
+                temporary_index = Path(directory) / "target.mmi"
+                write_fasta_records(target_records, target_path)
+                command = (
+                    str(self.executable),
+                    "-x",
+                    self.preset,
+                    "-d",
+                    str(temporary_index),
+                    str(target_path),
+                )
+                self._last_command = command
+                run_command(command)
+                if not temporary_index.is_file():
+                    raise ExternalToolError(
+                        f"minimap2 did not create requested index: {index_path}"
+                    )
+                temporary_index.replace(index_path)
+            metadata_path.write_text(
+                json.dumps(expected, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+            )
+        except OSError as error:
+            raise InputValidationError(
+                f"cannot create minimap2 index {index_path}: {error}"
+            ) from error
+        return index_path
+
+    def align_indexed(
+        self,
+        queries: Iterable[SequenceRecord],
+        targets: Sequence[SequenceRecord],
+        index_path: Path,
+    ) -> Iterable[AlignmentHit]:
+        """Align a query batch to an index proven to contain the supplied targets."""
+        query_records = tuple(queries)
+        target_records = tuple(targets)
+        if not query_records:
+            raise InputValidationError("indexed minimap2 alignment requires queries")
+        _validate_unique_identifiers(query_records, "indexed queries")
+        self.build_index(target_records, index_path)
+        allowed_targets = {record.identifier for record in target_records}
+        with TemporaryDirectory(prefix="contigger-align-") as directory:
+            query_path = Path(directory) / "queries.fasta"
+            write_fasta_records(query_records, query_path)
+            for hit in self.align_paths(index_path, query_path):
+                if hit.target_id not in allowed_targets:
+                    raise InputValidationError(
+                        f"minimap2 index returned an unexpected target identifier: {hit.target_id}"
+                    )
+                yield hit
+
+    def _index_metadata(self, targets: Sequence[SequenceRecord]) -> dict[str, object]:
+        """Return deterministic index identity without embedding sequence content."""
+        digest = hashlib.sha256()
+        identities: list[dict[str, object]] = []
+        for record in targets:
+            digest.update(record.identifier.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(record.sequence.encode("ascii"))
+            digest.update(b"\0")
+            identities.append({"identifier": record.identifier, "length": record.length})
+        return {
+            "format": 1,
+            "minimap2_version": self.tool_version,
+            "preset": self.preset,
+            "sequence_sha256": digest.hexdigest(),
+            "targets": identities,
+        }
 
     def align(
         self, queries: Iterable[SequenceRecord], targets: Iterable[SequenceRecord]
@@ -132,6 +227,16 @@ def parse_paf_line(line: str) -> AlignmentHit:
         )
     except (ValueError, KeyError, InputValidationError) as error:
         raise InputValidationError(f"invalid PAF record: {error}") from error
+
+
+def _index_metadata_path(index_path: Path) -> Path:
+    return index_path.with_name(index_path.name + ".json")
+
+
+def _validate_unique_identifiers(records: Sequence[SequenceRecord], label: str) -> None:
+    identifiers = [record.identifier for record in records]
+    if len(set(identifiers)) != len(identifiers):
+        raise InputValidationError(f"{label} require unique identifiers")
 
 
 def parse_paf(lines: Iterable[str]) -> Iterator[AlignmentHit]:

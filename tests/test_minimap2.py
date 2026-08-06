@@ -72,3 +72,38 @@ def test_typed_alignment_materialises_safe_temporary_fastas(
     assert commands[1][1:3] == ("-x", "asm5")
     assert commands[1][-2].endswith("targets.fasta")
     assert commands[1][-1].endswith("queries.fasta")
+
+
+def test_build_index_reuses_only_matching_content(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    calls: list[tuple[str, ...]] = []
+
+    def fake_run(command: tuple[str, ...]) -> CommandResult:
+        calls.append(command)
+        if command[-1] == "--version":
+            return CommandResult(command, "2.31-r1302\n", "", 0)
+        Path(command[command.index("-d") + 1]).write_bytes(b"mmi")
+        return CommandResult(command, "", "", 0)
+
+    monkeypatch.setattr(minimap2_module, "run_command", fake_run)
+    aligner = Minimap2Aligner(Path("/opt/minimap2"))
+    index = tmp_path / "target.mmi"
+    target = SequenceRecord("t", "", "t", "", "ACGT", 4)
+    assert aligner.build_index((target,), index) == index
+    assert aligner.build_index((target,), index) == index
+    assert len(calls) == 2
+    assert calls[1][1:4] == ("-x", "asm20", "-d")
+    with pytest.raises(InputValidationError, match="does not match"):
+        aligner.build_index((SequenceRecord("t", "", "t", "", "AAAA", 4),), index)
+    with pytest.raises(InputValidationError, match="does not match"):
+        Minimap2Aligner(Path("/opt/minimap2"), preset="asm5").build_index((target,), index)
+
+
+def test_incomplete_index_is_rejected(tmp_path: Path) -> None:
+    index = tmp_path / "target.mmi"
+    index.write_bytes(b"mmi")
+    aligner = Minimap2Aligner(Path("/opt/minimap2"))
+    target = SequenceRecord("t", "", "t", "", "ACGT", 4)
+    with pytest.raises(InputValidationError, match="incomplete"):
+        aligner.build_index((target,), index)

@@ -44,3 +44,13 @@ jobs:
         run: >-
           contigger candidates --manifest test_data/manifest.tsv
           --output /tmp/contigger.candidates.tsv
+      - name: Evaluate asm5 catalogue-to-relationship baseline
+        run: >-
+          contigger benchmark-pipeline --dataset test_data
+          --paf test_data/alignments/all_vs_all.asm5.paf.gz
+          --output-json /tmp/contigger.pipeline.asm5.json
+      - name: Evaluate asm20 catalogue-to-relationship baseline
+        run: >-
+          contigger benchmark-pipeline --dataset test_data
+          --paf test_data/alignments/all_vs_all.asm20.paf.gz
+          --output-json /tmp/contigger.pipeline.asm20.json

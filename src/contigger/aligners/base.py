@@ -34,3 +34,16 @@ class Aligner(Protocol):
     ) -> Iterable[AlignmentHit]:
         """Yield typed alignments between supplied sequences."""
         ...
+
+
+class IndexedAligner(Aligner, Protocol):
+    """Alignment engine supporting an explicitly validated persistent index."""
+
+    def align_indexed(
+        self,
+        queries: Iterable[SequenceRecord],
+        targets: Sequence[SequenceRecord],
+        index_path: Path,
+    ) -> Iterable[AlignmentHit]:
+        """Align queries to the exact targets represented by ``index_path``."""
+        ...

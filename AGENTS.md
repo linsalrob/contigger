@@ -68,6 +68,7 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Changes affecting relationship classification must run both checked-in Pseudomonas PAF benchmarks.
 - Benchmark baselines must never be updated silently; explain every count change and add a permanent regression test for each new false merge.
 - Catalogue or candidate changes must run the exact/RC and Pseudomonas candidate baselines; candidate recall losses require explicit review and must not be hidden by baseline updates.
+- Catalogue, candidate, alignment-planning, or relationship changes must run both checked-in pipeline benchmarks; staged baseline changes require an explanation and must never be updated silently.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 
 ## External tool policy

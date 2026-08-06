@@ -25,6 +25,11 @@ from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
 from contigger.minimisers import generate_candidates, write_candidates_tsv
 from contigger.models import PairRelationship
+from contigger.pipeline_benchmark import (
+    evaluate_pipeline_benchmark,
+    format_pipeline_summary,
+    write_pipeline_json,
+)
 from contigger.provenance import write_provenance
 from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.textio import open_text
@@ -112,6 +117,30 @@ def build_parser() -> argparse.ArgumentParser:
     benchmark.add_argument("--end-tolerance", type=int, default=50)
     benchmark.add_argument("--fail-on-false-merge", action="store_true")
     benchmark.set_defaults(handler=_run_benchmark)
+
+    pipeline_benchmark = commands.add_parser(
+        "benchmark-pipeline",
+        help="score exact catalogue, candidate recall, and eligible pair classification",
+        description=(
+            "Evaluate the catalogue-to-candidate-to-relationship pathway from checked-in "
+            "PAF observations. This does not invoke minimap2, construct a graph, or merge contigs."
+        ),
+    )
+    pipeline_benchmark.add_argument("--dataset", required=True, type=Path)
+    pipeline_benchmark.add_argument("--paf", required=True, type=Path)
+    pipeline_benchmark.add_argument("--output-json", type=Path)
+    pipeline_benchmark.add_argument("--identity", type=float, default=98.0)
+    pipeline_benchmark.add_argument("--min-overlap", type=int, default=1000)
+    pipeline_benchmark.add_argument("--min-containment", type=int, default=500)
+    pipeline_benchmark.add_argument("--containment-coverage", type=float, default=98.0)
+    pipeline_benchmark.add_argument("--end-tolerance", type=int, default=50)
+    pipeline_benchmark.add_argument("--kmer-size", type=int, default=21)
+    pipeline_benchmark.add_argument("--window-size", type=int, default=10)
+    pipeline_benchmark.add_argument("--min-shared-minimisers", type=int, default=5)
+    pipeline_benchmark.add_argument("--max-minimiser-frequency", type=int, default=100)
+    pipeline_benchmark.add_argument("--terminal-band", type=int, default=1000)
+    pipeline_benchmark.add_argument("--fail-on-false-merge", action="store_true")
+    pipeline_benchmark.set_defaults(handler=_run_pipeline_benchmark)
 
     catalogue = commands.add_parser(
         "catalogue",
@@ -260,6 +289,37 @@ def _run_benchmark(arguments: argparse.Namespace) -> int:
         except OSError as error:
             raise InputValidationError(f"cannot write {label} {path}: {error}") from error
     return int(arguments.fail_on_false_merge and report.summary.false_merges > 0)
+
+
+def _run_pipeline_benchmark(arguments: argparse.Namespace) -> int:
+    config = build_run_config(
+        identity=arguments.identity,
+        min_overlap=arguments.min_overlap,
+        min_containment=arguments.min_containment,
+        containment_coverage=arguments.containment_coverage,
+        end_tolerance=arguments.end_tolerance,
+    )
+    report = evaluate_pipeline_benchmark(
+        arguments.dataset,
+        arguments.paf,
+        config,
+        kmer_size=arguments.kmer_size,
+        window_size=arguments.window_size,
+        min_shared_minimisers=arguments.min_shared_minimisers,
+        max_minimiser_frequency=arguments.max_minimiser_frequency,
+        terminal_band=arguments.terminal_band,
+    )
+    print(format_pipeline_summary(report))
+    if arguments.output_json is not None:
+        try:
+            arguments.output_json.parent.mkdir(parents=True, exist_ok=True)
+            with arguments.output_json.open("w", encoding="utf-8", newline="") as output:
+                write_pipeline_json(report, output)
+        except OSError as error:
+            raise InputValidationError(
+                f"cannot write pipeline benchmark JSON {arguments.output_json}: {error}"
+            ) from error
+    return int(arguments.fail_on_false_merge and report.summary.relationship_stage_false_merges > 0)
 
 
 def _run_catalogue(arguments: argparse.Namespace) -> int:
