@@ -135,3 +135,12 @@ def test_policy_candidate_baseline_loader_is_strict_and_digest_bound(tmp_path: P
     )
     with pytest.raises(InputValidationError, match="non-empty"):
         load_junction_policy_candidate_baseline(malformed)
+    reviewed = tmp_path / "reviewed.json"
+    reviewed.write_text(
+        POLICY_BASELINE.read_text(encoding="utf-8").replace(
+            '"reviewed": false', '"reviewed": true'
+        ),
+        encoding="utf-8",
+    )
+    with pytest.raises(InputValidationError, match="external policy review"):
+        load_junction_policy_candidate_baseline(reviewed)

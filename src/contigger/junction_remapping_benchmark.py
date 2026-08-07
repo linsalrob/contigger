@@ -123,6 +123,10 @@ def load_junction_policy_candidate_baseline(
         raise InputValidationError(f"{path}: negative_controls must be a non-negative integer")
     if type(payload["reviewed"]) is not bool or not isinstance(payload["result"], str):
         raise InputValidationError(f"{path}: invalid candidate baseline metadata")
+    if payload["reviewed"]:
+        raise InputValidationError(
+            f"{path}: candidate baseline reviewed status requires an external policy review"
+        )
     candidates = payload["candidates"]
     if not isinstance(candidates, list) or not candidates:
         raise InputValidationError(f"{path}: candidates must be a non-empty array")
@@ -135,6 +139,7 @@ def load_junction_policy_candidate_baseline(
     }
     parsed: list[JunctionPolicyCandidateBenchmark] = []
     seen: set[tuple[int, float]] = set()
+    true_case_total: int | None = None
     for index, candidate in enumerate(candidates):
         if not isinstance(candidate, dict) or set(candidate) != candidate_fields:
             raise InputValidationError(f"{path}: candidate {index} has invalid fields")
@@ -158,6 +163,17 @@ def load_junction_policy_candidate_baseline(
         )
         if any(type(value) is not int or value < 0 for value in counts):
             raise InputValidationError(f"{path}: candidate {index} has invalid result counts")
+        if counts[0] > payload["negative_controls"]:
+            raise InputValidationError(
+                f"{path}: candidate {index} false support exceeds negative controls"
+            )
+        candidate_true_total = counts[1] + counts[2]
+        if true_case_total is None:
+            true_case_total = candidate_true_total
+        elif candidate_true_total != true_case_total:
+            raise InputValidationError(
+                f"{path}: candidate {index} true-case totals are inconsistent"
+            )
         key = (candidate["minimum_spanning_reads"], float(candidate["minimum_spanning_fraction"]))
         if key in seen:
             raise InputValidationError(f"{path}: duplicate candidate threshold at index {index}")
