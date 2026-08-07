@@ -40,6 +40,7 @@ def evidence(case: str, spanning: int, remapped: int = 10) -> TargetedJunctionEv
         remapped_read_names=tuple(f"read-{i}" for i in range(remapped)),
         spanning_read_names=tuple(f"read-{i}" for i in range(spanning)),
         minimum_spanning_flank=20,
+        minimum_mapping_quality=0,
         samtools_version="samtools test",
         minimap2_version="minimap2 test",
         commands=(),

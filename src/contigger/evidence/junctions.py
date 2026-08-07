@@ -119,6 +119,7 @@ class TargetedJunctionRemapper:
             request.provisional_reference.length,
             request.junction_position,
             request.minimum_spanning_flank,
+            request.minimum_mapping_quality,
             selected,
         )
         diagnostics = (
@@ -165,6 +166,7 @@ class TargetedJunctionRemapper:
             remapped_read_names=remapped,
             spanning_read_names=spanning,
             minimum_spanning_flank=request.minimum_spanning_flank,
+            minimum_mapping_quality=request.minimum_mapping_quality,
             samtools_version=self.source.version,
             minimap2_version=minimap_version,
             commands=commands,
@@ -246,6 +248,7 @@ class FastqJunctionRemapper:
             request.provisional_reference.length,
             request.junction_position,
             request.minimum_spanning_flank,
+            request.minimum_mapping_quality,
             selected,
         )
         return TargetedJunctionEvidence(
@@ -264,6 +267,7 @@ class FastqJunctionRemapper:
             remapped_read_names=remapped,
             spanning_read_names=spanning,
             minimum_spanning_flank=request.minimum_spanning_flank,
+            minimum_mapping_quality=request.minimum_mapping_quality,
             samtools_version="not used",
             minimap2_version=self._version,
             commands=tuple(commands),
@@ -319,6 +323,7 @@ def _score_paf_junction(
     reference_length: int,
     junction: int,
     flank: int,
+    minimum_mapping_quality: int,
     selected_names: Iterable[str],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     selected = set(selected_names)
@@ -343,10 +348,15 @@ def _score_paf_junction(
             target_length = int(fields[6])
             start = int(fields[7])
             end = int(fields[8])
+            mapping_quality = int(fields[11])
         except ValueError as error:
             raise InputValidationError(
                 f"minimap2 PAF line {line_number}: invalid numeric field"
             ) from error
+        if not 0 <= mapping_quality <= 255:
+            raise InputValidationError(
+                f"minimap2 PAF line {line_number}: mapping quality must be between 0 and 255"
+            )
         if target_length != reference_length or not 0 <= start < end <= reference_length:
             raise InputValidationError(
                 f"minimap2 PAF line {line_number}: alignment is outside the provisional reference"
@@ -357,6 +367,10 @@ def _score_paf_junction(
                 f"minimap2 PAF line {line_number}: expected exactly one tp:A alignment-type tag"
             )
         if alignment_types[0] != "P":
+            continue
+        if minimum_mapping_quality and (
+            mapping_quality == 255 or mapping_quality < minimum_mapping_quality
+        ):
             continue
         cigars = [field[5:] for field in fields[12:] if field.startswith("cg:Z:")]
         if len(cigars) != 1:
@@ -383,6 +397,7 @@ def _score_sam(
     reference_length: int,
     junction: int,
     flank: int,
+    minimum_mapping_quality: int,
     selected_names: Iterable[str],
 ) -> tuple[tuple[str, ...], tuple[str, ...]]:
     selected = set(selected_names)
@@ -402,7 +417,7 @@ def _score_sam(
             raise InputValidationError(
                 f"minimap2 SAM line {line_number}: expected at least 11 fields"
             )
-        name, flag_text, target, position_text, _mapq, cigar = record_fields[:6]
+        name, flag_text, target, position_text, mapq_text, cigar = record_fields[:6]
         if name not in selected:
             raise InputValidationError(
                 f"minimap2 SAM line {line_number}: unexpected read name {name!r}"
@@ -410,11 +425,20 @@ def _score_sam(
         try:
             flag = int(flag_text)
             start = int(position_text) - 1
+            mapping_quality = int(mapq_text)
         except ValueError as error:
             raise InputValidationError(
                 f"minimap2 SAM line {line_number}: invalid numeric field"
             ) from error
         if flag & 0x4 or flag & 0x900 or target == "*":
+            continue
+        if not 0 <= mapping_quality <= 255:
+            raise InputValidationError(
+                f"minimap2 SAM line {line_number}: mapping quality must be between 0 and 255"
+            )
+        if minimum_mapping_quality and (
+            mapping_quality == 255 or mapping_quality < minimum_mapping_quality
+        ):
             continue
         if target != reference_id:
             raise InputValidationError(

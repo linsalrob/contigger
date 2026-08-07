@@ -170,15 +170,21 @@ def test_sam_scoring_rejects_unselected_names_and_reference_mismatch() -> None:
     header = "@SQ\tSN:p\tLN:100\n"
     with pytest.raises(InputValidationError, match="unexpected read name"):
         _score_sam(
-            header + "other\t0\tp\t1\t60\t50M\t*\t0\t0\t*\t*\n", "p", 100, 50, 10, ("chosen",)
+            header + "other\t0\tp\t1\t60\t50M\t*\t0\t0\t*\t*\n",
+            "p",
+            100,
+            50,
+            10,
+            0,
+            ("chosen",),
         )
     with pytest.raises(InputValidationError, match="exact provisional reference"):
-        _score_sam("@SQ\tSN:p\tLN:99\n", "p", 100, 50, 10, ())
+        _score_sam("@SQ\tSN:p\tLN:99\n", "p", 100, 50, 10, 0, ())
 
 
 def test_deletion_across_junction_is_not_spanning_support() -> None:
     sam = "@SQ\tSN:p\tLN:100\ngapped\t0\tp\t31\t60\t10M20D10M\t*\t0\t0\t*\t*\n"
-    remapped, spanning = _score_sam(sam, "p", 100, 50, 5, ("gapped",))
+    remapped, spanning = _score_sam(sam, "p", 100, 50, 5, 0, ("gapped",))
     assert remapped == ("gapped",)
     assert spanning == ()
 
@@ -191,10 +197,24 @@ def test_paf_junction_scoring_requires_one_continuous_spanning_block() -> None:
         )
     )
 
-    remapped, spanning = _score_paf_junction(paf, "junction", 100, 50, 10, ("span", "gap"))
+    remapped, spanning = _score_paf_junction(paf, "junction", 100, 50, 10, 0, ("span", "gap"))
 
     assert remapped == ("gap", "span")
     assert spanning == ("span",)
+
+
+def test_paf_junction_scoring_applies_mapping_quality_before_counting() -> None:
+    paf = "\n".join(
+        (
+            "low\t100\t0\t100\t+\tjunction\t100\t0\t100\t100\t100\t19\ttp:A:P\tcg:Z:100M",
+            "unknown\t100\t0\t100\t+\tjunction\t100\t0\t100\t100\t100\t255\ttp:A:P\tcg:Z:100M",
+        )
+    )
+
+    remapped, spanning = _score_paf_junction(paf, "junction", 100, 50, 10, 20, ("low", "unknown"))
+
+    assert remapped == ()
+    assert spanning == ()
 
 
 def test_fastq_remapper_reports_sample_scoped_evidence(tmp_path: Path) -> None:
