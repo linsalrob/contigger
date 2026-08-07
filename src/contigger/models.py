@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -558,6 +559,12 @@ class JunctionPolicyReview:
     reviewer: str
     reviewed_at: str
     decision: str
+    technology: str
+    remapping_preset: str
+    minimum_spanning_reads: int
+    minimum_spanning_fraction: float
+    minimum_spanning_flank: int
+    minimum_mapping_quality: int
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -566,11 +573,29 @@ class JunctionPolicyReview:
         ):
             if len(value) != 64 or any(symbol not in "0123456789abcdef" for symbol in value):
                 raise InputValidationError(f"{label} SHA-256 must be lowercase hexadecimal")
-        if not self.reviewer or not self.reviewed_at:
+        if not self.reviewer.strip():
             raise InputValidationError("junction policy review requires reviewer and timestamp")
+        try:
+            datetime.fromisoformat(self.reviewed_at.replace("Z", "+00:00"))
+        except ValueError as error:
+            raise InputValidationError(
+                "junction policy review timestamp must be RFC 3339"
+            ) from error
         if self.decision not in {"approved", "rejected"}:
             raise InputValidationError(
                 "junction policy review decision must be approved or rejected"
+            )
+        if not self.technology or not self.remapping_preset:
+            raise InputValidationError("junction policy review requires technology and preset")
+        if self.minimum_spanning_reads < 1 or self.minimum_spanning_flank < 1:
+            raise InputValidationError("junction policy review thresholds must be positive")
+        if not 0.0 <= self.minimum_spanning_fraction <= 1.0:
+            raise InputValidationError(
+                "junction policy review fraction must be between zero and one"
+            )
+        if not 0 <= self.minimum_mapping_quality <= 255:
+            raise InputValidationError(
+                "junction policy review mapping quality must be between 0 and 255"
             )
 
 
@@ -602,6 +627,27 @@ class JunctionSupportPolicy:
             raise InputValidationError(
                 "reviewed junction policy requires an approved review artifact"
             )
+        if self.reviewed and self.review is not None:
+            configuration = (
+                self.technology,
+                self.remapping_preset,
+                self.minimum_spanning_reads,
+                self.minimum_spanning_fraction,
+                self.minimum_spanning_flank,
+                self.minimum_mapping_quality,
+            )
+            reviewed_configuration = (
+                self.review.technology,
+                self.review.remapping_preset,
+                self.review.minimum_spanning_reads,
+                self.review.minimum_spanning_fraction,
+                self.review.minimum_spanning_flank,
+                self.review.minimum_mapping_quality,
+            )
+            if configuration != reviewed_configuration:
+                raise InputValidationError(
+                    "reviewed junction policy does not match its approved review artifact"
+                )
 
 
 @dataclass(frozen=True, slots=True)
