@@ -386,7 +386,7 @@ def _run_junction_remapping_benchmark(arguments: argparse.Namespace) -> int:
             raise InputValidationError(
                 f"cannot write junction-remapping benchmark JSON {arguments.output_json}: {error}"
             ) from error
-    return int(arguments.fail_on_false_support and report.benchmark.summary.false_support_cases > 0)
+    return int(arguments.fail_on_false_support and report.summary.false_support_sample_cases > 0)
 
 
 def _run_catalogue(arguments: argparse.Namespace) -> int:

@@ -13,11 +13,7 @@ from contigger.benchmark import load_truth
 from contigger.evidence.junctions import FastqJunctionRemapper
 from contigger.exceptions import InputValidationError
 from contigger.fasta import read_fasta
-from contigger.junction_benchmark import (
-    JunctionBenchmarkReport,
-    load_junction_truth,
-    score_junction_observations,
-)
+from contigger.junction_benchmark import load_junction_truth
 from contigger.manifest import parse_manifest
 from contigger.models import (
     ContigEnd,
@@ -39,8 +35,38 @@ class JunctionRemappingBenchmarkReport:
     minimum_spanning_flank: int
     minimap2_version: str
     contigger_version: str
-    benchmark: JunctionBenchmarkReport
+    summary: SampleScopedJunctionSummary
+    cases: tuple[SampleScopedJunctionCase, ...]
+    aggregate_case_status: dict[str, tuple[str, ...]]
     observations: dict[str, tuple[dict[str, Any], ...]]
+
+
+@dataclass(frozen=True, slots=True)
+class SampleScopedJunctionCase:
+    """One truth case evaluated in one sample without pooling read counts."""
+
+    case_id: str
+    sample: str
+    junction_is_true: bool
+    remapped_reads: int
+    spanning_reads: int
+    testable: bool
+    false_support: bool
+    missed_support: bool
+
+
+@dataclass(frozen=True, slots=True)
+class SampleScopedJunctionSummary:
+    """Counts over independent sample-case observations."""
+
+    expected_junctions: int
+    expected_sample_cases: int
+    true_sample_cases: int
+    artificial_sample_cases: int
+    testable_artificial_sample_cases: int
+    false_support_sample_cases: int
+    missed_support_sample_cases: int
+    false_support_baseline_established: bool
 
 
 def evaluate_junction_remapping_benchmark(
@@ -109,7 +135,58 @@ def evaluate_junction_remapping_benchmark(
             )
         evidence_by_case[expected.case_id] = tuple(reports)
         serialized[expected.case_id] = tuple(details)
-    scored = score_junction_observations(truth, evidence_by_case)
+    cases = tuple(
+        SampleScopedJunctionCase(
+            expected.case_id,
+            report.sample,
+            expected.junction_is_true,
+            len(report.remapped_read_names),
+            report.spanning_reads,
+            bool(report.remapped_read_names),
+            not expected.junction_is_true and report.spanning_reads > 0,
+            expected.junction_is_true and report.spanning_reads == 0,
+        )
+        for expected in truth
+        for report in evidence_by_case[expected.case_id]
+    )
+    artificial = tuple(case for case in cases if not case.junction_is_true)
+    testable_artificial = tuple(case for case in artificial if case.testable)
+    summary = SampleScopedJunctionSummary(
+        expected_junctions=len(truth),
+        expected_sample_cases=len(cases),
+        true_sample_cases=sum(case.junction_is_true for case in cases),
+        artificial_sample_cases=len(artificial),
+        testable_artificial_sample_cases=len(testable_artificial),
+        false_support_sample_cases=sum(case.false_support for case in cases),
+        missed_support_sample_cases=sum(case.missed_support for case in cases),
+        false_support_baseline_established=len(testable_artificial) == len(artificial),
+    )
+    aggregate_status = {
+        "detected_true_cases": tuple(
+            expected.case_id
+            for expected in truth
+            if expected.junction_is_true
+            and any(report.spanning_reads > 0 for report in evidence_by_case[expected.case_id])
+        ),
+        "missed_true_cases": tuple(
+            expected.case_id
+            for expected in truth
+            if expected.junction_is_true
+            and not any(report.spanning_reads > 0 for report in evidence_by_case[expected.case_id])
+        ),
+        "artificial_cases_with_support": tuple(
+            expected.case_id
+            for expected in truth
+            if not expected.junction_is_true
+            and any(report.spanning_reads > 0 for report in evidence_by_case[expected.case_id])
+        ),
+        "untestable_artificial_cases": tuple(
+            expected.case_id
+            for expected in truth
+            if not expected.junction_is_true
+            and not any(report.remapped_read_names for report in evidence_by_case[expected.case_id])
+        ),
+    }
     minimap_version = next(
         report.minimap2_version for reports in evidence_by_case.values() for report in reports
     )
@@ -120,7 +197,9 @@ def evaluate_junction_remapping_benchmark(
         minimum_spanning_flank,
         minimap_version,
         __version__,
-        scored,
+        summary,
+        cases,
+        aggregate_status,
         serialized,
     )
 
@@ -133,16 +212,19 @@ def write_junction_remapping_json(report: JunctionRemappingBenchmarkReport, outp
 
 def format_junction_remapping_summary(report: JunctionRemappingBenchmarkReport) -> str:
     """Format conservative false-support-first benchmark results."""
-    summary = report.benchmark.summary
+    summary = report.summary
     return "\n".join(
         (
-            f"false spanning-support cases: {summary.false_support_cases}",
-            f"missed spanning-support cases: {summary.missed_support_cases}",
+            f"false spanning-support sample cases: {summary.false_support_sample_cases}",
+            f"missed spanning-support sample cases: {summary.missed_support_sample_cases}",
+            "false-support baseline established: "
+            + ("yes" if summary.false_support_baseline_established else "no"),
+            "testable artificial sample cases: "
+            f"{summary.testable_artificial_sample_cases}/{summary.artificial_sample_cases}",
             f"dataset version: {report.dataset_version}",
             f"preset: {report.preset}",
             f"minimum spanning flank: {report.minimum_spanning_flank}",
-            f"expected junctions: {summary.expected_cases}",
-            f"observed junctions: {summary.observed_cases}",
+            f"expected junctions: {summary.expected_junctions}",
             "result: remapping evidence only; no merge was authorized",
         )
     )

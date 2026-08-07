@@ -23,20 +23,28 @@ def test_provisional_junctions_match_construction_truth() -> None:
 
 def test_checked_in_ont_remapping_baseline_is_conservative() -> None:
     baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
-    summary = baseline["benchmark"]["summary"]
+    summary = baseline["summary"]
 
     assert baseline["dataset_version"] == "1.0.0"
     assert baseline["preset"] == "map-ont"
     assert baseline["minimum_spanning_flank"] == 20
     assert summary == {
-        "absent_observations": 0,
-        "artificial_junctions": 4,
-        "correct_detections": 17,
-        "expected_cases": 19,
-        "false_support_cases": 0,
-        "missed_support_cases": 2,
-        "observed_cases": 19,
-        "true_junctions": 15,
+        "artificial_sample_cases": 12,
+        "expected_junctions": 19,
+        "expected_sample_cases": 57,
+        "false_support_baseline_established": False,
+        "false_support_sample_cases": 0,
+        "missed_support_sample_cases": 6,
+        "testable_artificial_sample_cases": 0,
+        "true_sample_cases": 45,
     }
-    missed = {case["case_id"] for case in baseline["benchmark"]["cases"] if case["missed_support"]}
-    assert missed == {"end_tolerance_49", "end_tolerance_50"}
+    assert baseline["aggregate_case_status"]["missed_true_cases"] == [
+        "end_tolerance_49",
+        "end_tolerance_50",
+    ]
+    assert baseline["aggregate_case_status"]["untestable_artificial_cases"] == [
+        "end_tolerance_51",
+        "high_identity_short",
+        "identity_9799",
+        "length_999",
+    ]

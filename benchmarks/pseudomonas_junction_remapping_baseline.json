@@ -1,284 +1,604 @@
 {
-  "benchmark": {
-    "cases": [
-      {
-        "absent_observation": false,
-        "case_id": "circular_origin",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "native circular adjacency"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 27
-      },
-      {
-        "absent_observation": false,
-        "case_id": "end_tolerance_49",
-        "correct_detection": false,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": true,
-        "reasons": [
-          "alignment endpoint is 49 bp from query end"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "end_tolerance_50",
-        "correct_detection": false,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": true,
-        "reasons": [
-          "alignment endpoint is 50 bp from query end"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "end_tolerance_51",
-        "correct_detection": true,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": false,
-        "missed_support": false,
-        "reasons": [
-          "alignment endpoint is 51 bp from query end"
-        ],
-        "remapped_reads": 0,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "high_identity_short",
-        "correct_detection": true,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": false,
-        "missed_support": false,
-        "reasons": [
-          "high identity overlap is only 900 bp"
-        ],
-        "remapped_reads": 0,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "identity_9799",
-        "correct_detection": true,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": false,
-        "missed_support": false,
-        "reasons": [
-          "10 kb substitution-only boundary: 201 substitutions"
-        ],
-        "remapped_reads": 0,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "identity_9800",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "10 kb substitution-only boundary: 200 substitutions"
-        ],
-        "remapped_reads": 191,
-        "spanning_reads": 96
-      },
-      {
-        "absent_observation": false,
-        "case_id": "identity_9801",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "10 kb substitution-only boundary: 199 substitutions"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 97
-      },
-      {
-        "absent_observation": false,
-        "case_id": "length_1000",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "minimum-overlap boundary at 1000 bp"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 94
-      },
-      {
-        "absent_observation": false,
-        "case_id": "length_1001",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "minimum-overlap boundary at 1001 bp"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 95
-      },
-      {
-        "absent_observation": false,
-        "case_id": "length_999",
-        "correct_detection": true,
-        "detected": false,
-        "false_support": false,
-        "junction_is_true": false,
-        "missed_support": false,
-        "reasons": [
-          "minimum-overlap boundary at 999 bp"
-        ],
-        "remapped_reads": 0,
-        "spanning_reads": 0
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_forward_r01",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 95
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_forward_r02",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 187,
-        "spanning_reads": 88
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_forward_r03",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 93
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_reverse_direction_r01",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 98
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_reverse_direction_r02",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 94
-      },
-      {
-        "absent_observation": false,
-        "case_id": "overlap_reverse_direction_r03",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "constructed native suffix-prefix overlap"
-        ],
-        "remapped_reads": 101,
-        "spanning_reads": 88
-      },
-      {
-        "absent_observation": false,
-        "case_id": "small_deletion",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "3 bp deletion inside terminal overlap; source reads support reference allele"
-        ],
-        "remapped_reads": 136,
-        "spanning_reads": 95
-      },
-      {
-        "absent_observation": false,
-        "case_id": "small_insertion",
-        "correct_detection": true,
-        "detected": true,
-        "false_support": false,
-        "junction_is_true": true,
-        "missed_support": false,
-        "reasons": [
-          "3 bp insertion inside terminal overlap; source reads support reference allele"
-        ],
-        "remapped_reads": 100,
-        "spanning_reads": 95
-      }
+  "aggregate_case_status": {
+    "artificial_cases_with_support": [],
+    "detected_true_cases": [
+      "circular_origin",
+      "identity_9800",
+      "identity_9801",
+      "length_1000",
+      "length_1001",
+      "overlap_forward_r01",
+      "overlap_forward_r02",
+      "overlap_forward_r03",
+      "overlap_reverse_direction_r01",
+      "overlap_reverse_direction_r02",
+      "overlap_reverse_direction_r03",
+      "small_deletion",
+      "small_insertion"
     ],
-    "summary": {
-      "absent_observations": 0,
-      "artificial_junctions": 4,
-      "correct_detections": 17,
-      "expected_cases": 19,
-      "false_support_cases": 0,
-      "missed_support_cases": 2,
-      "observed_cases": 19,
-      "true_junctions": 15
-    }
+    "missed_true_cases": [
+      "end_tolerance_49",
+      "end_tolerance_50"
+    ],
+    "untestable_artificial_cases": [
+      "end_tolerance_51",
+      "high_identity_short",
+      "identity_9799",
+      "length_999"
+    ]
   },
+  "cases": [
+    {
+      "case_id": "circular_origin",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 34,
+      "sample": "S01",
+      "spanning_reads": 9,
+      "testable": true
+    },
+    {
+      "case_id": "circular_origin",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 39,
+      "sample": "S02",
+      "spanning_reads": 11,
+      "testable": true
+    },
+    {
+      "case_id": "circular_origin",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 27,
+      "sample": "S03",
+      "spanning_reads": 7,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_49",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 33,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_49",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 35,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_49",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 32,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_50",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 32,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_50",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 32,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_50",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": true,
+      "remapped_reads": 36,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": true
+    },
+    {
+      "case_id": "end_tolerance_51",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "end_tolerance_51",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "end_tolerance_51",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "high_identity_short",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "high_identity_short",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "high_identity_short",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "identity_9799",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "identity_9799",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "identity_9799",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "identity_9800",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 75,
+      "sample": "S01",
+      "spanning_reads": 35,
+      "testable": true
+    },
+    {
+      "case_id": "identity_9800",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 56,
+      "sample": "S02",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "identity_9800",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 60,
+      "sample": "S03",
+      "spanning_reads": 32,
+      "testable": true
+    },
+    {
+      "case_id": "identity_9801",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S01",
+      "spanning_reads": 30,
+      "testable": true
+    },
+    {
+      "case_id": "identity_9801",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 29,
+      "sample": "S02",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "identity_9801",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 41,
+      "sample": "S03",
+      "spanning_reads": 38,
+      "testable": true
+    },
+    {
+      "case_id": "length_1000",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S01",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "length_1000",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 31,
+      "sample": "S02",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "length_1000",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 39,
+      "sample": "S03",
+      "spanning_reads": 36,
+      "testable": true
+    },
+    {
+      "case_id": "length_1001",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S01",
+      "spanning_reads": 27,
+      "testable": true
+    },
+    {
+      "case_id": "length_1001",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 32,
+      "sample": "S02",
+      "spanning_reads": 30,
+      "testable": true
+    },
+    {
+      "case_id": "length_1001",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 38,
+      "sample": "S03",
+      "spanning_reads": 38,
+      "testable": true
+    },
+    {
+      "case_id": "length_999",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S01",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "length_999",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S02",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "length_999",
+      "false_support": false,
+      "junction_is_true": false,
+      "missed_support": false,
+      "remapped_reads": 0,
+      "sample": "S03",
+      "spanning_reads": 0,
+      "testable": false
+    },
+    {
+      "case_id": "overlap_forward_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 31,
+      "sample": "S01",
+      "spanning_reads": 30,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 28,
+      "sample": "S02",
+      "spanning_reads": 26,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 41,
+      "sample": "S03",
+      "spanning_reads": 39,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 73,
+      "sample": "S01",
+      "spanning_reads": 37,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 54,
+      "sample": "S02",
+      "spanning_reads": 23,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 60,
+      "sample": "S03",
+      "spanning_reads": 28,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 23,
+      "sample": "S01",
+      "spanning_reads": 21,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 47,
+      "sample": "S02",
+      "spanning_reads": 43,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_forward_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S03",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 32,
+      "sample": "S01",
+      "spanning_reads": 32,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 38,
+      "sample": "S02",
+      "spanning_reads": 36,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r01",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S03",
+      "spanning_reads": 30,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 29,
+      "sample": "S01",
+      "spanning_reads": 28,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 40,
+      "sample": "S02",
+      "spanning_reads": 37,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r02",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 31,
+      "sample": "S03",
+      "spanning_reads": 29,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 32,
+      "sample": "S01",
+      "spanning_reads": 27,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 35,
+      "sample": "S02",
+      "spanning_reads": 31,
+      "testable": true
+    },
+    {
+      "case_id": "overlap_reverse_direction_r03",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 34,
+      "sample": "S03",
+      "spanning_reads": 30,
+      "testable": true
+    },
+    {
+      "case_id": "small_deletion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 41,
+      "sample": "S01",
+      "spanning_reads": 26,
+      "testable": true
+    },
+    {
+      "case_id": "small_deletion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 54,
+      "sample": "S02",
+      "spanning_reads": 45,
+      "testable": true
+    },
+    {
+      "case_id": "small_deletion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 41,
+      "sample": "S03",
+      "spanning_reads": 24,
+      "testable": true
+    },
+    {
+      "case_id": "small_insertion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 39,
+      "sample": "S01",
+      "spanning_reads": 38,
+      "testable": true
+    },
+    {
+      "case_id": "small_insertion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 30,
+      "sample": "S02",
+      "spanning_reads": 28,
+      "testable": true
+    },
+    {
+      "case_id": "small_insertion",
+      "false_support": false,
+      "junction_is_true": true,
+      "missed_support": false,
+      "remapped_reads": 31,
+      "sample": "S03",
+      "spanning_reads": 29,
+      "testable": true
+    }
+  ],
   "contigger_version": "0.1.0.dev0",
   "dataset_truth_sha256": "4685a0eb5d572dd73144bed1ce5ca491d54deaf8a52162ea928da990f926f9f4",
   "dataset_version": "1.0.0",
@@ -780,5 +1100,15 @@
       }
     ]
   },
-  "preset": "map-ont"
+  "preset": "map-ont",
+  "summary": {
+    "artificial_sample_cases": 12,
+    "expected_junctions": 19,
+    "expected_sample_cases": 57,
+    "false_support_baseline_established": false,
+    "false_support_sample_cases": 0,
+    "missed_support_sample_cases": 6,
+    "testable_artificial_sample_cases": 0,
+    "true_sample_cases": 45
+  }
 }
