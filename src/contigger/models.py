@@ -550,6 +550,31 @@ class TargetedJunctionEvidence:
 
 
 @dataclass(frozen=True, slots=True)
+class JunctionPolicyReview:
+    """External review provenance required before a junction policy is reviewed."""
+
+    truth_dataset_sha256: str
+    candidate_baseline_sha256: str
+    reviewer: str
+    reviewed_at: str
+    decision: str
+
+    def __post_init__(self) -> None:
+        for label, value in (
+            ("truth dataset", self.truth_dataset_sha256),
+            ("candidate baseline", self.candidate_baseline_sha256),
+        ):
+            if len(value) != 64 or any(symbol not in "0123456789abcdef" for symbol in value):
+                raise InputValidationError(f"{label} SHA-256 must be lowercase hexadecimal")
+        if not self.reviewer or not self.reviewed_at:
+            raise InputValidationError("junction policy review requires reviewer and timestamp")
+        if self.decision not in {"approved", "rejected"}:
+            raise InputValidationError(
+                "junction policy review decision must be approved or rejected"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class JunctionSupportPolicy:
     """Explicit technology-specific criteria requiring external benchmark review."""
 
@@ -560,6 +585,7 @@ class JunctionSupportPolicy:
     minimum_spanning_flank: int
     reviewed: bool = False
     minimum_mapping_quality: int = 0
+    review: JunctionPolicyReview | None = None
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -572,6 +598,10 @@ class JunctionSupportPolicy:
             raise InputValidationError("minimum spanning fraction must be between zero and one")
         if not 0 <= self.minimum_mapping_quality <= 255:
             raise InputValidationError("minimum mapping quality must be between 0 and 255")
+        if self.reviewed and (self.review is None or self.review.decision != "approved"):
+            raise InputValidationError(
+                "reviewed junction policy requires an approved review artifact"
+            )
 
 
 @dataclass(frozen=True, slots=True)

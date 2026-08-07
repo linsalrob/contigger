@@ -16,12 +16,14 @@ from contigger.junction_benchmark import (
     score_junction_observations,
 )
 from contigger.models import (
+    JunctionPolicyReview,
     JunctionSupportPolicy,
     JunctionSupportStatus,
     TargetedJunctionEvidence,
 )
 
 DATASET = Path(__file__).parents[1] / "test_data"
+REVIEW = JunctionPolicyReview("a" * 64, "b" * 64, "reviewer", "2026-08-07T00:00:00Z", "approved")
 
 
 def evidence(case: str, spanning: int, remapped: int = 10) -> TargetedJunctionEvidence:
@@ -85,13 +87,13 @@ def test_unreviewed_policy_is_always_deferred() -> None:
     decision = evaluate_junction_support((evidence("case", 10),), policy)
     assert decision.status is JunctionSupportStatus.DEFERRED
     assert "not been reviewed" in decision.reasons[0]
-    absent = evaluate_junction_support((), replace(policy, reviewed=True))
+    absent = evaluate_junction_support((), replace(policy, reviewed=True, review=REVIEW))
     assert absent.status is JunctionSupportStatus.DEFERRED
     assert "no targeted-remapping" in absent.reasons[0]
 
 
 def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
-    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.3, 20, reviewed=True)
+    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.3, 20, reviewed=True, review=REVIEW)
     assert (
         evaluate_junction_support((evidence("case", 3),), policy).status
         is JunctionSupportStatus.SUPPORTED
@@ -137,7 +139,7 @@ def test_observations_reject_unknown_cases() -> None:
 
 
 def test_evidence_groups_reject_duplicate_samples_and_inconsistent_references() -> None:
-    policy = JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20, reviewed=True)
+    policy = JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20, reviewed=True, review=REVIEW)
     first = evidence("case", 1)
     with pytest.raises(InputValidationError, match="duplicate sample"):
         evaluate_junction_support((first, first), policy)
@@ -147,7 +149,7 @@ def test_evidence_groups_reject_duplicate_samples_and_inconsistent_references() 
 
 
 def test_policy_never_pools_samples_and_requires_matching_configuration() -> None:
-    policy = JunctionSupportPolicy("ont", "map-ont", 2, 0.0, 20, reviewed=True)
+    policy = JunctionSupportPolicy("ont", "map-ont", 2, 0.0, 20, reviewed=True, review=REVIEW)
     first = replace(evidence("case", 1), remapped_read_names=("read-0",))
     second = replace(
         first,
@@ -167,3 +169,18 @@ def test_policy_never_pools_samples_and_requires_matching_configuration() -> Non
 def test_evidence_rejects_impossible_spanning_flank() -> None:
     with pytest.raises(InputValidationError, match="fit on both sides"):
         replace(evidence("case", 1), minimum_spanning_flank=51)
+
+
+def test_reviewed_policy_requires_approved_review_artifact() -> None:
+    with pytest.raises(InputValidationError, match="approved review artifact"):
+        JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20, reviewed=True)
+    with pytest.raises(InputValidationError, match="approved review artifact"):
+        JunctionSupportPolicy(
+            "ont",
+            "map-ont",
+            1,
+            0.0,
+            20,
+            reviewed=True,
+            review=JunctionPolicyReview("a" * 64, "b" * 64, "r", "t", "rejected"),
+        )
