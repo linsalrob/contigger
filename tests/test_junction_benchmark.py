@@ -264,6 +264,28 @@ def test_policy_review_loader_is_strict_and_typed(tmp_path: Path) -> None:
     path.write_text("{}", encoding="utf-8")
     with pytest.raises(InputValidationError, match="missing"):
         load_junction_policy_review(path)
+    invalid_type = {
+        "truth_dataset_sha256": 1,
+        "candidate_baseline_sha256": "b" * 64,
+        "reviewer": "reviewer",
+        "reviewed_at": "2026-08-07T00:00:00Z",
+        "decision": "approved",
+        "technology": "ont",
+        "remapping_preset": "map-ont",
+        "minimum_spanning_reads": 3,
+        "minimum_spanning_fraction": 0.3,
+        "minimum_spanning_flank": 20,
+        "minimum_mapping_quality": 0,
+    }
+    path.write_text(json.dumps(invalid_type), encoding="utf-8")
+    with pytest.raises(InputValidationError, match="must be a string"):
+        load_junction_policy_review(path)
+    path.write_text(
+        '{"truth_dataset_sha256":"' + "a" * 64 + '","truth_dataset_sha256":"' + "a" * 64 + '"}',
+        encoding="utf-8",
+    )
+    with pytest.raises(InputValidationError, match="duplicate JSON field"):
+        load_junction_policy_review(path)
     path.write_text(json.dumps({"unknown": 1}), encoding="utf-8")
     with pytest.raises(InputValidationError, match="missing"):
         load_junction_policy_review(path)
