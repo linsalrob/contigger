@@ -131,6 +131,8 @@ Mapping quality is parsed and validated at both SAM and PAF evidence boundaries 
 
 `load_junction_policy_review()` accepts only the typed JSON artifact fields, rejects missing or unknown fields, and applies the same digest, configuration, decision, and timestamp validation as direct model construction. Loading is provenance parsing only; it never marks a policy reviewed or authorizes a graph edge.
 
+`load_junction_truth_set_metadata()` requires a paired truth TSV, verifies its SHA-256 and derives the true/artificial case balance before returning technology, preset, source, false-support, and review metadata. The checked-in Pseudomonas metadata is explicitly unreviewed even though its synthetic negative-control baseline is established.
+
 A `JunctionSupportPolicy` declares an exact technology/remapping-preset pair plus spanning-read, spanning-fraction, and flank thresholds. Policies default to unreviewed and therefore `DEFERRED` even when reads span. Evidence from a different technology or preset is deferred. Thresholds are applied to one sample at a time; multiple samples are never pooled and remain deferred until an explicit aggregation policy is reviewed. A reviewed single-sample policy can label evidence supported or unsupported, but its result remains disconnected from graph eligibility. No ONT threshold is designated reviewed in the current baseline; checked-in remapping observations and wider technology truth are required first.
 
 ## 20. Provenance model
@@ -198,7 +200,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, review-artifact gate, and strict artifact loading complete; reviewed thresholds and broader truth sets pending)
+10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, review-artifact gate, strict artifact loading, and truth-set metadata complete; reviewed thresholds and broader truth sets pending)
 
 ## 27. Open design questions
 

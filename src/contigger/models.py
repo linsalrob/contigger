@@ -603,6 +603,56 @@ class JunctionPolicyReview:
 
 
 @dataclass(frozen=True, slots=True)
+class JunctionTruthSetMetadata:
+    """Auditable scope and counts for one technology-specific junction truth set."""
+
+    dataset_id: str
+    dataset_version: str
+    technology: str
+    remapping_preset: str
+    source_description: str
+    truth_sha256: str
+    case_count: int
+    true_case_count: int
+    artificial_case_count: int
+    false_support_baseline_established: bool
+    reviewed: bool = False
+
+    def __post_init__(self) -> None:
+        if not all(
+            value.strip()
+            for value in (
+                self.dataset_id,
+                self.dataset_version,
+                self.technology,
+                self.remapping_preset,
+                self.source_description,
+            )
+        ):
+            raise InputValidationError("junction truth metadata identifiers cannot be blank")
+        if len(self.truth_sha256) != 64 or any(
+            symbol not in "0123456789abcdef" for symbol in self.truth_sha256
+        ):
+            raise InputValidationError("junction truth SHA-256 must be lowercase hexadecimal")
+        counts = (self.case_count, self.true_case_count, self.artificial_case_count)
+        if any(type(value) is not int or value < 0 for value in counts):
+            raise InputValidationError(
+                "junction truth metadata counts must be non-negative integers"
+            )
+        if self.true_case_count + self.artificial_case_count != self.case_count:
+            raise InputValidationError("junction truth metadata case counts do not balance")
+        if (
+            type(self.false_support_baseline_established) is not bool
+            or type(self.reviewed) is not bool
+        ):
+            raise InputValidationError("junction truth metadata flags must be Boolean")
+        if self.reviewed and not self.false_support_baseline_established:
+            raise InputValidationError(
+                "reviewed junction truth requires an established false-support baseline"
+            )
+
+
+@dataclass(frozen=True, slots=True)
 class JunctionSupportPolicy:
     """Explicit technology-specific criteria requiring external benchmark review."""
 

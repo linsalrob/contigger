@@ -1,0 +1,13 @@
+{
+  "dataset_id": "pseudomonas-ont-junctions",
+  "dataset_version": "1.0.0",
+  "technology": "ont",
+  "remapping_preset": "map-ont",
+  "source_description": "Checked-in Pseudomonas construction-derived junction truth with synthetic negative controls.",
+  "truth_sha256": "4685a0eb5d572dd73144bed1ce5ca491d54deaf8a52162ea928da990f926f9f4",
+  "case_count": 19,
+  "true_case_count": 15,
+  "artificial_case_count": 4,
+  "false_support_baseline_established": true,
+  "reviewed": false
+}
