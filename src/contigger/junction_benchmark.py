@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import csv
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
 from contigger.exceptions import InputValidationError
 from contigger.models import (
+    JunctionPolicyReview,
     JunctionSupportDecision,
     JunctionSupportPolicy,
     JunctionSupportStatus,
@@ -26,6 +28,22 @@ JUNCTION_TRUTH_COLUMNS = (
     "selected_nonspanning_reads",
     "expected_read_evidence",
     "reason",
+)
+
+JUNCTION_POLICY_REVIEW_FIELDS = frozenset(
+    {
+        "truth_dataset_sha256",
+        "candidate_baseline_sha256",
+        "reviewer",
+        "reviewed_at",
+        "decision",
+        "technology",
+        "remapping_preset",
+        "minimum_spanning_reads",
+        "minimum_spanning_fraction",
+        "minimum_spanning_flank",
+        "minimum_mapping_quality",
+    }
 )
 
 
@@ -81,6 +99,72 @@ class JunctionBenchmarkReport:
 
     summary: JunctionBenchmarkSummary
     cases: tuple[JunctionBenchmarkCase, ...]
+
+
+def load_junction_policy_review(path: Path) -> JunctionPolicyReview:
+    """Load one strict JSON review artifact without authorizing a policy."""
+    try:
+        payload = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+        )
+    except (OSError, UnicodeError, ValueError) as error:
+        raise InputValidationError(f"cannot read junction policy review {path}: {error}") from error
+    if not isinstance(payload, dict):
+        raise InputValidationError(f"{path}: review artifact must be a JSON object")
+    keys = set(payload)
+    missing = sorted(JUNCTION_POLICY_REVIEW_FIELDS - keys)
+    unknown = sorted(keys - JUNCTION_POLICY_REVIEW_FIELDS - {"notes"})
+    if missing:
+        raise InputValidationError(f"{path}: review artifact is missing {missing[0]}")
+    if unknown:
+        raise InputValidationError(f"{path}: review artifact has unknown field {unknown[0]!r}")
+    string_fields = {
+        "truth_dataset_sha256",
+        "candidate_baseline_sha256",
+        "reviewer",
+        "reviewed_at",
+        "decision",
+        "technology",
+        "remapping_preset",
+        "notes",
+    }
+    for field in string_fields:
+        if field in payload and not isinstance(payload[field], str):
+            raise InputValidationError(f"{path}: review field {field!r} must be a string")
+    for field in ("minimum_spanning_reads", "minimum_spanning_flank", "minimum_mapping_quality"):
+        if type(payload[field]) is not int:
+            raise InputValidationError(f"{path}: review field {field!r} must be an integer")
+    if type(payload["minimum_spanning_fraction"]) not in {int, float}:
+        raise InputValidationError(
+            f"{path}: review field 'minimum_spanning_fraction' must be a number"
+        )
+    try:
+        return JunctionPolicyReview(
+            truth_dataset_sha256=payload["truth_dataset_sha256"],
+            candidate_baseline_sha256=payload["candidate_baseline_sha256"],
+            reviewer=payload["reviewer"],
+            reviewed_at=payload["reviewed_at"],
+            decision=payload["decision"],
+            technology=payload["technology"],
+            remapping_preset=payload["remapping_preset"],
+            minimum_spanning_reads=payload["minimum_spanning_reads"],
+            minimum_spanning_fraction=payload["minimum_spanning_fraction"],
+            minimum_spanning_flank=payload["minimum_spanning_flank"],
+            minimum_mapping_quality=payload["minimum_mapping_quality"],
+            notes=payload.get("notes", ""),
+        )
+    except (TypeError, ValueError) as error:
+        raise InputValidationError(f"{path}: invalid review artifact value: {error}") from error
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject duplicate JSON object members instead of silently choosing one."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON field {key!r}")
+        result[key] = value
+    return result
 
 
 def load_junction_truth(path: Path) -> tuple[ExpectedJunction, ...]:

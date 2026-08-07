@@ -565,6 +565,7 @@ class JunctionPolicyReview:
     minimum_spanning_fraction: float
     minimum_spanning_flank: int
     minimum_mapping_quality: int
+    notes: str = ""
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -576,11 +577,13 @@ class JunctionPolicyReview:
         if not self.reviewer.strip():
             raise InputValidationError("junction policy review requires reviewer and timestamp")
         try:
-            datetime.fromisoformat(self.reviewed_at.replace("Z", "+00:00"))
+            parsed_timestamp = datetime.fromisoformat(self.reviewed_at.replace("Z", "+00:00"))
         except ValueError as error:
             raise InputValidationError(
                 "junction policy review timestamp must be RFC 3339"
             ) from error
+        if "T" not in self.reviewed_at or parsed_timestamp.tzinfo is None:
+            raise InputValidationError("junction policy review timestamp must be RFC 3339")
         if self.decision not in {"approved", "rejected"}:
             raise InputValidationError(
                 "junction policy review decision must be approved or rejected"

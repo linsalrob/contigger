@@ -168,6 +168,8 @@ The deterministic `map-ont` baseline at a 20 bp continuous spanning flank detect
 
 Reviewed policies now require a `JunctionPolicyReview` artifact containing the exact truth and candidate-baseline digests, reviewer, timestamp, and an approved decision. The checked-in review template remains pending; no current policy is reviewed or connected to graph eligibility.
 
+`load_junction_policy_review()` strictly parses these JSON artifacts, validates their fields and RFC 3339 timestamp, and preserves notes. Parsing alone never reviews a policy or authorizes a graph edge.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -179,6 +181,6 @@ Reviewed policies now require a `JunctionPolicyReview` artifact containing the e
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
 8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
 9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, and review-artifact gate complete; reviewed thresholds and broader truth sets pending)
+10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, review-artifact gate, and strict artifact loading complete; reviewed thresholds and broader truth sets pending)
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.
