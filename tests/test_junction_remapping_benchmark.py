@@ -99,5 +99,15 @@ def test_policy_candidate_benchmark_preserves_negative_controls() -> None:
     ]
     assert all(not item.reviewed for item in results)
     policy_baseline = json.loads(POLICY_BASELINE.read_text(encoding="utf-8"))
+    assert [
+        {
+            "minimum_spanning_fraction": item.minimum_spanning_fraction,
+            "minimum_spanning_reads": item.minimum_spanning_reads,
+            "false_support_cases": item.false_support_cases,
+            "missed_true_cases": item.missed_true_cases,
+            "supported_true_cases": item.supported_true_cases,
+        }
+        for item in results
+    ] == policy_baseline["candidates"]
     assert policy_baseline["negative_controls"] == 4
     assert policy_baseline["reviewed"] is False
