@@ -1,0 +1,10 @@
+{
+  "candidates": [
+    {"minimum_spanning_fraction": 0.0, "minimum_spanning_reads": 1, "false_support_cases": 0, "missed_true_cases": 6, "supported_true_cases": 39},
+    {"minimum_spanning_fraction": 0.3, "minimum_spanning_reads": 3, "false_support_cases": 0, "missed_true_cases": 9, "supported_true_cases": 36},
+    {"minimum_spanning_fraction": 0.5, "minimum_spanning_reads": 5, "false_support_cases": 0, "missed_true_cases": 12, "supported_true_cases": 33}
+  ],
+  "negative_controls": 4,
+  "reviewed": false,
+  "result": "benchmark evidence only; no graph edge authorization"
+}

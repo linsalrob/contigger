@@ -5,12 +5,18 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from contigger.junction_remapping_benchmark import _build_requests
+from contigger.junction_remapping_benchmark import (
+    JunctionRemappingBenchmarkReport,
+    SampleScopedJunctionCase,
+    _build_requests,
+    benchmark_junction_policy_candidates,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 DATASET = ROOT / "test_data"
 BASELINE = ROOT / "benchmarks" / "pseudomonas_junction_remapping_baseline.json"
 CONFIGURATION_BASELINE = ROOT / "benchmarks" / "pseudomonas_junction_configuration_baseline.json"
+POLICY_BASELINE = ROOT / "benchmarks" / "pseudomonas_junction_policy_candidate_baseline.json"
 
 
 def test_provisional_junctions_match_construction_truth() -> None:
@@ -66,3 +72,42 @@ def test_checked_in_configuration_matrix_remains_unreviewed() -> None:
     assert baseline["false_support_cases_each"] == 0
     assert baseline["testable_artificial_controls_each"] == 4
     assert baseline["policy_reviewed"] is False
+
+
+def test_policy_candidate_benchmark_preserves_negative_controls() -> None:
+    baseline = json.loads(BASELINE.read_text(encoding="utf-8"))
+    cases = tuple(SampleScopedJunctionCase(**case) for case in baseline["cases"])
+    report = JunctionRemappingBenchmarkReport(
+        baseline["dataset_version"],
+        baseline["dataset_truth_sha256"],
+        baseline["preset"],
+        baseline["minimum_spanning_flank"],
+        baseline["minimum_mapping_quality"],
+        baseline["minimap2_version"],
+        baseline["contigger_version"],
+        None,  # type: ignore[arg-type]
+        cases,
+        baseline["aggregate_case_status"],
+        baseline["observations"],
+    )
+    results = benchmark_junction_policy_candidates(report, ((1, 0.0), (3, 0.3), (5, 0.5)))
+
+    assert [(item.false_support_cases, item.missed_true_cases) for item in results] == [
+        (0, 6),
+        (0, 9),
+        (0, 12),
+    ]
+    assert all(not item.reviewed for item in results)
+    policy_baseline = json.loads(POLICY_BASELINE.read_text(encoding="utf-8"))
+    assert [
+        {
+            "minimum_spanning_fraction": item.minimum_spanning_fraction,
+            "minimum_spanning_reads": item.minimum_spanning_reads,
+            "false_support_cases": item.false_support_cases,
+            "missed_true_cases": item.missed_true_cases,
+            "supported_true_cases": item.supported_true_cases,
+        }
+        for item in results
+    ] == policy_baseline["candidates"]
+    assert policy_baseline["negative_controls"] == 4
+    assert policy_baseline["reviewed"] is False
