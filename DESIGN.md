@@ -133,6 +133,8 @@ Mapping quality is parsed and validated at both SAM and PAF evidence boundaries 
 
 `load_junction_truth_set_metadata()` requires a paired truth TSV, verifies its SHA-256 and derives the true/artificial case balance before returning technology, preset, source, false-support, and review metadata. The checked-in Pseudomonas metadata is explicitly unreviewed even though its synthetic negative-control baseline is established.
 
+`validate_junction_policy_review()` is the pairing gate: an approved policy review must reference reviewed truth metadata with an established false-support baseline and must match the supplied candidate-baseline digest. No current checked-in metadata is reviewed.
+
 A `JunctionSupportPolicy` declares an exact technology/remapping-preset pair plus spanning-read, spanning-fraction, and flank thresholds. Policies default to unreviewed and therefore `DEFERRED` even when reads span. Evidence from a different technology or preset is deferred. Thresholds are applied to one sample at a time; multiple samples are never pooled and remain deferred until an explicit aggregation policy is reviewed. A reviewed single-sample policy can label evidence supported or unsupported, but its result remains disconnected from graph eligibility. No ONT threshold is designated reviewed in the current baseline; checked-in remapping observations and wider technology truth are required first.
 
 ## 20. Provenance model

@@ -172,6 +172,8 @@ Reviewed policies now require a `JunctionPolicyReview` artifact containing the e
 
 `load_junction_truth_set_metadata(..., truth_path=...)` provides the same auditable boundary for technology-specific truth sets: it verifies the exact digest and derives case balance from the paired TSV before returning version, preset, negative-control status, and review status. The checked-in Pseudomonas metadata remains unreviewed.
 
+`validate_junction_policy_review()` additionally requires an approved review to match reviewed truth metadata and the exact candidate-baseline digest. This remains a provenance gate only; no current artifact authorizes graph decisions.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)

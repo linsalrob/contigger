@@ -16,11 +16,13 @@ from contigger.junction_benchmark import (
     load_junction_truth,
     load_junction_truth_set_metadata,
     score_junction_observations,
+    validate_junction_policy_review,
 )
 from contigger.models import (
     JunctionPolicyReview,
     JunctionSupportPolicy,
     JunctionSupportStatus,
+    JunctionTruthSetMetadata,
     TargetedJunctionEvidence,
 )
 
@@ -37,6 +39,19 @@ REVIEW = JunctionPolicyReview(
     0.3,
     20,
     0,
+)
+METADATA = JunctionTruthSetMetadata(
+    "dataset",
+    "1",
+    "ont",
+    "map-ont",
+    "synthetic reviewed truth",
+    "a" * 64,
+    19,
+    15,
+    4,
+    True,
+    True,
 )
 
 
@@ -113,14 +128,31 @@ def test_unreviewed_policy_is_always_deferred() -> None:
     assert decision.status is JunctionSupportStatus.DEFERRED
     assert "not been reviewed" in decision.reasons[0]
     absent = evaluate_junction_support(
-        (), replace(policy, reviewed=True, review=review_for(policy))
+        (),
+        replace(
+            policy,
+            reviewed=True,
+            review=review_for(policy),
+            truth_metadata=METADATA,
+            candidate_baseline_sha256="b" * 64,
+        ),
     )
     assert absent.status is JunctionSupportStatus.DEFERRED
     assert "no targeted-remapping" in absent.reasons[0]
 
 
 def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
-    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.3, 20, reviewed=True, review=REVIEW)
+    policy = JunctionSupportPolicy(
+        "ont",
+        "map-ont",
+        3,
+        0.3,
+        20,
+        reviewed=True,
+        review=REVIEW,
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
+    )
     assert (
         evaluate_junction_support((evidence("case", 3),), policy).status
         is JunctionSupportStatus.SUPPORTED
@@ -178,6 +210,8 @@ def test_evidence_groups_reject_duplicate_samples_and_inconsistent_references() 
         20,
         reviewed=True,
         review=review_for(JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20)),
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
     )
     first = evidence("case", 1)
     with pytest.raises(InputValidationError, match="duplicate sample"):
@@ -196,6 +230,8 @@ def test_policy_never_pools_samples_and_requires_matching_configuration() -> Non
         20,
         reviewed=True,
         review=review_for(JunctionSupportPolicy("ont", "map-ont", 2, 0.0, 20)),
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
     )
     first = replace(evidence("case", 1), remapped_read_names=("read-0",))
     second = replace(
@@ -235,7 +271,17 @@ def test_reviewed_policy_requires_approved_review_artifact() -> None:
 
 def test_reviewed_policy_matches_artifact_configuration_and_timestamp() -> None:
     with pytest.raises(InputValidationError, match="does not match"):
-        JunctionSupportPolicy("ont", "map-ont", 4, 0.3, 20, reviewed=True, review=REVIEW)
+        JunctionSupportPolicy(
+            "ont",
+            "map-ont",
+            4,
+            0.3,
+            20,
+            reviewed=True,
+            review=REVIEW,
+            truth_metadata=METADATA,
+            candidate_baseline_sha256="b" * 64,
+        )
     with pytest.raises(InputValidationError, match="RFC 3339"):
         replace(REVIEW, reviewed_at="t")
 
@@ -297,3 +343,31 @@ def test_truth_set_metadata_is_typed_and_unreviewed() -> None:
     assert metadata.case_count == metadata.true_case_count + metadata.artificial_case_count
     assert metadata.false_support_baseline_established
     assert not metadata.reviewed
+
+
+def test_policy_review_must_match_reviewed_truth_metadata() -> None:
+    metadata = JunctionTruthSetMetadata(
+        "dataset",
+        "1",
+        "ont",
+        "map-ont",
+        "reviewed truth",
+        "a" * 64,
+        19,
+        15,
+        4,
+        True,
+        reviewed=True,
+    )
+    review = replace(REVIEW, truth_dataset_sha256="a" * 64, candidate_baseline_sha256="b" * 64)
+    validate_junction_policy_review(review, metadata, candidate_baseline_sha256="b" * 64)
+    with pytest.raises(InputValidationError, match="truth digest"):
+        validate_junction_policy_review(
+            replace(review, truth_dataset_sha256="c" * 64),
+            metadata,
+            candidate_baseline_sha256="b" * 64,
+        )
+    with pytest.raises(InputValidationError, match="reviewed truth metadata"):
+        validate_junction_policy_review(
+            review, replace(metadata, reviewed=False), candidate_baseline_sha256="b" * 64
+        )
