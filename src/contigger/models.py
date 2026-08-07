@@ -565,6 +565,7 @@ class JunctionPolicyReview:
     minimum_spanning_fraction: float
     minimum_spanning_flank: int
     minimum_mapping_quality: int
+    notes: str = ""
 
     def __post_init__(self) -> None:
         for label, value in (

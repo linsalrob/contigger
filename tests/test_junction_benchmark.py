@@ -12,6 +12,7 @@ import pytest
 from contigger.exceptions import InputValidationError
 from contigger.junction_benchmark import (
     evaluate_junction_support,
+    load_junction_policy_review,
     load_junction_truth,
     score_junction_observations,
 )
@@ -236,3 +237,33 @@ def test_reviewed_policy_matches_artifact_configuration_and_timestamp() -> None:
         JunctionSupportPolicy("ont", "map-ont", 4, 0.3, 20, reviewed=True, review=REVIEW)
     with pytest.raises(InputValidationError, match="RFC 3339"):
         replace(REVIEW, reviewed_at="t")
+
+
+def test_policy_review_loader_is_strict_and_typed(tmp_path: Path) -> None:
+    path = tmp_path / "review.json"
+    path.write_text(
+        json.dumps(
+            {
+                "truth_dataset_sha256": "a" * 64,
+                "candidate_baseline_sha256": "b" * 64,
+                "reviewer": "reviewer",
+                "reviewed_at": "2026-08-07T00:00:00Z",
+                "decision": "approved",
+                "technology": "ont",
+                "remapping_preset": "map-ont",
+                "minimum_spanning_reads": 3,
+                "minimum_spanning_fraction": 0.3,
+                "minimum_spanning_flank": 20,
+                "minimum_mapping_quality": 0,
+                "notes": "reviewed externally",
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert load_junction_policy_review(path) == replace(REVIEW, notes="reviewed externally")
+    path.write_text("{}", encoding="utf-8")
+    with pytest.raises(InputValidationError, match="missing"):
+        load_junction_policy_review(path)
+    path.write_text(json.dumps({"unknown": 1}), encoding="utf-8")
+    with pytest.raises(InputValidationError, match="missing"):
+        load_junction_policy_review(path)
