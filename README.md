@@ -166,6 +166,8 @@ The deterministic `map-ont` baseline at a 20 bp continuous spanning flank detect
 
 `benchmark_junction_policy_candidates()` evaluates read-count and spanning-fraction candidates independently per observation. The checked-in baseline compares `(1, 0.0)`, `(3, 0.3)`, and `(5, 0.5)`; each retains zero false support, while stricter candidates miss six additional true observations. These candidates remain unreviewed and cannot authorize graph edges.
 
+Reviewed policies now require a `JunctionPolicyReview` artifact containing the exact truth and candidate-baseline digests, reviewer, timestamp, and an approved decision. The checked-in review template remains pending; no current policy is reviewed or connected to graph eligibility.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -177,6 +179,6 @@ The deterministic `map-ont` baseline at a 20 bp continuous spanning flank detect
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
 8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
 9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, and unreviewed policy-candidate baselines complete; reviewed thresholds and broader truth sets pending)
+10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, and review-artifact gate complete; reviewed thresholds and broader truth sets pending)
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

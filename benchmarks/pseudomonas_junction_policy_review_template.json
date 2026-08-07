@@ -1,0 +1,14 @@
+{
+  "truth_dataset_sha256": "",
+  "candidate_baseline_sha256": "",
+  "reviewer": "",
+  "reviewed_at": "",
+  "decision": "pending",
+  "technology": "",
+  "remapping_preset": "",
+  "minimum_spanning_reads": 0,
+  "minimum_spanning_fraction": 0.0,
+  "minimum_spanning_flank": 0,
+  "minimum_mapping_quality": 0,
+  "notes": "Populate only after external review of broader technology-specific truth sets; pending artifacts cannot authorize graph edges."
+}
