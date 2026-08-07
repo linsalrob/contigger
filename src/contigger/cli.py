@@ -171,6 +171,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     junction_benchmark.add_argument("--threads", type=int, default=1)
     junction_benchmark.add_argument("--minimum-spanning-flank", type=int, default=20)
+    junction_benchmark.add_argument("--minimum-mapping-quality", type=int, default=0)
     junction_benchmark.add_argument("--output-json", type=Path)
     junction_benchmark.add_argument("--fail-on-false-support", action="store_true")
     junction_benchmark.set_defaults(handler=_run_junction_remapping_benchmark)
@@ -375,6 +376,7 @@ def _run_junction_remapping_benchmark(arguments: argparse.Namespace) -> int:
         preset=arguments.preset,
         threads=arguments.threads,
         minimum_spanning_flank=arguments.minimum_spanning_flank,
+        minimum_mapping_quality=arguments.minimum_mapping_quality,
     )
     print(format_junction_remapping_summary(report))
     if arguments.output_json is not None:

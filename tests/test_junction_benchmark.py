@@ -40,6 +40,7 @@ def evidence(case: str, spanning: int, remapped: int = 10) -> TargetedJunctionEv
         remapped_read_names=tuple(f"read-{i}" for i in range(remapped)),
         spanning_read_names=tuple(f"read-{i}" for i in range(spanning)),
         minimum_spanning_flank=20,
+        minimum_mapping_quality=0,
         samtools_version="samtools test",
         minimap2_version="minimap2 test",
         commands=(),
@@ -102,6 +103,15 @@ def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
     short_flank = replace(evidence("case", 10), minimum_spanning_flank=19)
     assert (
         evaluate_junction_support((short_flank,), policy).status is JunctionSupportStatus.DEFERRED
+    )
+    filtered = replace(evidence("case", 10), minimum_mapping_quality=20)
+    mapping_quality_mismatch = evaluate_junction_support((filtered,), policy)
+    assert mapping_quality_mismatch.status is JunctionSupportStatus.DEFERRED
+    assert "mapping-quality" in mapping_quality_mismatch.reasons[0]
+    matching_policy = replace(policy, minimum_mapping_quality=20)
+    assert (
+        evaluate_junction_support((filtered,), matching_policy).status
+        is JunctionSupportStatus.SUPPORTED
     )
 
 

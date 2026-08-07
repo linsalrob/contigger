@@ -466,6 +466,7 @@ class JunctionRemappingRequest:
     junction_position: int
     extraction_distance: int = 1000
     minimum_spanning_flank: int = 20
+    minimum_mapping_quality: int = 0
 
     def __post_init__(self) -> None:
         if not 0 < self.junction_position < self.provisional_reference.length:
@@ -474,6 +475,8 @@ class JunctionRemappingRequest:
             raise InputValidationError("read extraction distance must be positive")
         if self.minimum_spanning_flank < 1:
             raise InputValidationError("minimum spanning flank must be positive")
+        if not 0 <= self.minimum_mapping_quality <= 255:
+            raise InputValidationError("minimum mapping quality must be between 0 and 255")
         if self.junction_position < self.minimum_spanning_flank or (
             self.provisional_reference.length - self.junction_position < self.minimum_spanning_flank
         ):
@@ -503,6 +506,7 @@ class TargetedJunctionEvidence:
     minimap2_version: str
     commands: tuple[tuple[str, ...], ...]
     diagnostics: tuple[str, ...] = ()
+    minimum_mapping_quality: int = 0
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -525,6 +529,8 @@ class TargetedJunctionEvidence:
             raise InputValidationError(
                 "minimum spanning flank must fit on both sides of the junction"
             )
+        if not 0 <= self.minimum_mapping_quality <= 255:
+            raise InputValidationError("minimum mapping quality must be between 0 and 255")
         for label, names in (
             ("selected", self.selected_read_names),
             ("remapped", self.remapped_read_names),
@@ -553,6 +559,7 @@ class JunctionSupportPolicy:
     minimum_spanning_fraction: float
     minimum_spanning_flank: int
     reviewed: bool = False
+    minimum_mapping_quality: int = 0
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -563,6 +570,8 @@ class JunctionSupportPolicy:
             raise InputValidationError("junction support counts and flank must be positive")
         if not 0.0 <= self.minimum_spanning_fraction <= 1.0:
             raise InputValidationError("minimum spanning fraction must be between zero and one")
+        if not 0 <= self.minimum_mapping_quality <= 255:
+            raise InputValidationError("minimum mapping quality must be between 0 and 255")
 
 
 @dataclass(frozen=True, slots=True)

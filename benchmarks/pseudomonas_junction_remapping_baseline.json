@@ -20,12 +20,7 @@
       "end_tolerance_49",
       "end_tolerance_50"
     ],
-    "untestable_artificial_cases": [
-      "end_tolerance_51",
-      "high_identity_short",
-      "identity_9799",
-      "length_999"
-    ]
+    "untestable_artificial_cases": []
   },
   "cases": [
     {
@@ -33,6 +28,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 34,
       "sample": "S01",
       "spanning_reads": 9,
@@ -43,6 +39,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 39,
       "sample": "S02",
       "spanning_reads": 11,
@@ -53,6 +50,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 27,
       "sample": "S03",
       "spanning_reads": 7,
@@ -63,6 +61,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 33,
       "sample": "S01",
       "spanning_reads": 0,
@@ -73,6 +72,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 35,
       "sample": "S02",
       "spanning_reads": 0,
@@ -83,6 +83,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S03",
       "spanning_reads": 0,
@@ -93,6 +94,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S01",
       "spanning_reads": 0,
@@ -103,6 +105,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S02",
       "spanning_reads": 0,
@@ -113,6 +116,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": true,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 36,
       "sample": "S03",
       "spanning_reads": 0,
@@ -123,96 +127,40 @@
       "false_support": false,
       "junction_is_true": false,
       "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S01",
+      "observation_kind": "synthetic-source-end-control",
+      "remapped_reads": 2,
+      "sample": "synthetic-negative-control",
       "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "end_tolerance_51",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S02",
-      "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "end_tolerance_51",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S03",
-      "spanning_reads": 0,
-      "testable": false
+      "testable": true
     },
     {
       "case_id": "high_identity_short",
       "false_support": false,
       "junction_is_true": false,
       "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S01",
+      "observation_kind": "synthetic-source-end-control",
+      "remapped_reads": 2,
+      "sample": "synthetic-negative-control",
       "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "high_identity_short",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S02",
-      "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "high_identity_short",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S03",
-      "spanning_reads": 0,
-      "testable": false
+      "testable": true
     },
     {
       "case_id": "identity_9799",
       "false_support": false,
       "junction_is_true": false,
       "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S01",
+      "observation_kind": "synthetic-source-end-control",
+      "remapped_reads": 2,
+      "sample": "synthetic-negative-control",
       "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "identity_9799",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S02",
-      "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "identity_9799",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S03",
-      "spanning_reads": 0,
-      "testable": false
+      "testable": true
     },
     {
       "case_id": "identity_9800",
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 75,
       "sample": "S01",
       "spanning_reads": 35,
@@ -223,6 +171,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 56,
       "sample": "S02",
       "spanning_reads": 29,
@@ -233,6 +182,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 60,
       "sample": "S03",
       "spanning_reads": 32,
@@ -243,6 +193,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S01",
       "spanning_reads": 30,
@@ -253,6 +204,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 29,
       "sample": "S02",
       "spanning_reads": 29,
@@ -263,6 +215,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 41,
       "sample": "S03",
       "spanning_reads": 38,
@@ -273,6 +226,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S01",
       "spanning_reads": 29,
@@ -283,6 +237,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 31,
       "sample": "S02",
       "spanning_reads": 29,
@@ -293,6 +248,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 39,
       "sample": "S03",
       "spanning_reads": 36,
@@ -303,6 +259,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S01",
       "spanning_reads": 27,
@@ -313,6 +270,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S02",
       "spanning_reads": 30,
@@ -323,6 +281,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 38,
       "sample": "S03",
       "spanning_reads": 38,
@@ -333,36 +292,18 @@
       "false_support": false,
       "junction_is_true": false,
       "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S01",
+      "observation_kind": "synthetic-source-end-control",
+      "remapped_reads": 2,
+      "sample": "synthetic-negative-control",
       "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "length_999",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S02",
-      "spanning_reads": 0,
-      "testable": false
-    },
-    {
-      "case_id": "length_999",
-      "false_support": false,
-      "junction_is_true": false,
-      "missed_support": false,
-      "remapped_reads": 0,
-      "sample": "S03",
-      "spanning_reads": 0,
-      "testable": false
+      "testable": true
     },
     {
       "case_id": "overlap_forward_r01",
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 31,
       "sample": "S01",
       "spanning_reads": 30,
@@ -373,6 +314,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 28,
       "sample": "S02",
       "spanning_reads": 26,
@@ -383,6 +325,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 41,
       "sample": "S03",
       "spanning_reads": 39,
@@ -393,6 +336,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 73,
       "sample": "S01",
       "spanning_reads": 37,
@@ -403,6 +347,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 54,
       "sample": "S02",
       "spanning_reads": 23,
@@ -413,6 +358,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 60,
       "sample": "S03",
       "spanning_reads": 28,
@@ -423,6 +369,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 23,
       "sample": "S01",
       "spanning_reads": 21,
@@ -433,6 +380,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 47,
       "sample": "S02",
       "spanning_reads": 43,
@@ -443,6 +391,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S03",
       "spanning_reads": 29,
@@ -453,6 +402,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S01",
       "spanning_reads": 32,
@@ -463,6 +413,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 38,
       "sample": "S02",
       "spanning_reads": 36,
@@ -473,6 +424,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S03",
       "spanning_reads": 30,
@@ -483,6 +435,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 29,
       "sample": "S01",
       "spanning_reads": 28,
@@ -493,6 +446,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 40,
       "sample": "S02",
       "spanning_reads": 37,
@@ -503,6 +457,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 31,
       "sample": "S03",
       "spanning_reads": 29,
@@ -513,6 +468,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 32,
       "sample": "S01",
       "spanning_reads": 27,
@@ -523,6 +479,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 35,
       "sample": "S02",
       "spanning_reads": 31,
@@ -533,6 +490,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 34,
       "sample": "S03",
       "spanning_reads": 30,
@@ -543,6 +501,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 41,
       "sample": "S01",
       "spanning_reads": 26,
@@ -553,6 +512,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 54,
       "sample": "S02",
       "spanning_reads": 45,
@@ -563,6 +523,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 41,
       "sample": "S03",
       "spanning_reads": 24,
@@ -573,6 +534,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 39,
       "sample": "S01",
       "spanning_reads": 38,
@@ -583,6 +545,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 30,
       "sample": "S02",
       "spanning_reads": 28,
@@ -593,6 +556,7 @@
       "false_support": false,
       "junction_is_true": true,
       "missed_support": false,
+      "observation_kind": "sample-targeted-reads",
       "remapped_reads": 31,
       "sample": "S03",
       "spanning_reads": 29,
@@ -603,10 +567,12 @@
   "dataset_truth_sha256": "4685a0eb5d572dd73144bed1ce5ca491d54deaf8a52162ea928da990f926f9f4",
   "dataset_version": "1.0.0",
   "minimap2_version": "2.31-r1302",
+  "minimum_mapping_quality": 0,
   "minimum_spanning_flank": 20,
   "observations": {
     "circular_origin": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
         "remapped_reads": 34,
         "sample": "S01",
@@ -615,6 +581,7 @@
         "spanning_reads": 9
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
         "remapped_reads": 39,
         "sample": "S02",
@@ -623,6 +590,7 @@
         "spanning_reads": 11
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
         "remapped_reads": 27,
         "sample": "S03",
@@ -633,6 +601,7 @@
     ],
     "end_tolerance_49": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
         "remapped_reads": 33,
         "sample": "S01",
@@ -641,6 +610,7 @@
         "spanning_reads": 0
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
         "remapped_reads": 35,
         "sample": "S02",
@@ -649,6 +619,7 @@
         "spanning_reads": 0
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
         "remapped_reads": 32,
         "sample": "S03",
@@ -659,6 +630,7 @@
     ],
     "end_tolerance_50": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
         "remapped_reads": 32,
         "sample": "S01",
@@ -667,6 +639,7 @@
         "spanning_reads": 0
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
         "remapped_reads": 32,
         "sample": "S02",
@@ -675,6 +648,7 @@
         "spanning_reads": 0
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
         "remapped_reads": 36,
         "sample": "S03",
@@ -685,84 +659,40 @@
     ],
     "end_tolerance_51": [
       {
+        "observation_kind": "synthetic-source-end-control",
         "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
-        "remapped_reads": 0,
-        "sample": "S01",
-        "selected_reads": 484,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
-        "remapped_reads": 0,
-        "sample": "S02",
-        "selected_reads": 517,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
-        "remapped_reads": 0,
-        "sample": "S03",
-        "selected_reads": 499,
+        "remapped_reads": 2,
+        "sample": "synthetic-negative-control",
+        "selected_reads": 2,
         "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "spanning_reads": 0
       }
     ],
     "high_identity_short": [
       {
+        "observation_kind": "synthetic-source-end-control",
         "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
-        "remapped_reads": 0,
-        "sample": "S01",
-        "selected_reads": 484,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
-        "remapped_reads": 0,
-        "sample": "S02",
-        "selected_reads": 517,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
-        "remapped_reads": 0,
-        "sample": "S03",
-        "selected_reads": 499,
+        "remapped_reads": 2,
+        "sample": "synthetic-negative-control",
+        "selected_reads": 2,
         "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "spanning_reads": 0
       }
     ],
     "identity_9799": [
       {
+        "observation_kind": "synthetic-source-end-control",
         "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
-        "remapped_reads": 0,
-        "sample": "S01",
-        "selected_reads": 484,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
-        "remapped_reads": 0,
-        "sample": "S02",
-        "selected_reads": 517,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
-        "remapped_reads": 0,
-        "sample": "S03",
-        "selected_reads": 499,
+        "remapped_reads": 2,
+        "sample": "synthetic-negative-control",
+        "selected_reads": 2,
         "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "spanning_reads": 0
       }
     ],
     "identity_9800": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
         "remapped_reads": 75,
         "sample": "S01",
@@ -771,6 +701,7 @@
         "spanning_reads": 35
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
         "remapped_reads": 56,
         "sample": "S02",
@@ -779,6 +710,7 @@
         "spanning_reads": 29
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
         "remapped_reads": 60,
         "sample": "S03",
@@ -789,6 +721,7 @@
     ],
     "identity_9801": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
         "remapped_reads": 30,
         "sample": "S01",
@@ -797,6 +730,7 @@
         "spanning_reads": 30
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
         "remapped_reads": 29,
         "sample": "S02",
@@ -805,6 +739,7 @@
         "spanning_reads": 29
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
         "remapped_reads": 41,
         "sample": "S03",
@@ -815,6 +750,7 @@
     ],
     "length_1000": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
         "remapped_reads": 30,
         "sample": "S01",
@@ -823,6 +759,7 @@
         "spanning_reads": 29
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
         "remapped_reads": 31,
         "sample": "S02",
@@ -831,6 +768,7 @@
         "spanning_reads": 29
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
         "remapped_reads": 39,
         "sample": "S03",
@@ -841,6 +779,7 @@
     ],
     "length_1001": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
         "remapped_reads": 30,
         "sample": "S01",
@@ -849,6 +788,7 @@
         "spanning_reads": 27
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
         "remapped_reads": 32,
         "sample": "S02",
@@ -857,6 +797,7 @@
         "spanning_reads": 30
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
         "remapped_reads": 38,
         "sample": "S03",
@@ -867,32 +808,18 @@
     ],
     "length_999": [
       {
+        "observation_kind": "synthetic-source-end-control",
         "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
-        "remapped_reads": 0,
-        "sample": "S01",
-        "selected_reads": 484,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
-        "remapped_reads": 0,
-        "sample": "S02",
-        "selected_reads": 517,
-        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-        "spanning_reads": 0
-      },
-      {
-        "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
-        "remapped_reads": 0,
-        "sample": "S03",
-        "selected_reads": 499,
+        "remapped_reads": 2,
+        "sample": "synthetic-negative-control",
+        "selected_reads": 2,
         "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "spanning_reads": 0
       }
     ],
     "overlap_forward_r01": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
         "remapped_reads": 31,
         "sample": "S01",
@@ -901,6 +828,7 @@
         "spanning_reads": 30
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
         "remapped_reads": 28,
         "sample": "S02",
@@ -909,6 +837,7 @@
         "spanning_reads": 26
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
         "remapped_reads": 41,
         "sample": "S03",
@@ -919,6 +848,7 @@
     ],
     "overlap_forward_r02": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
         "remapped_reads": 73,
         "sample": "S01",
@@ -927,6 +857,7 @@
         "spanning_reads": 37
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
         "remapped_reads": 54,
         "sample": "S02",
@@ -935,6 +866,7 @@
         "spanning_reads": 23
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
         "remapped_reads": 60,
         "sample": "S03",
@@ -945,6 +877,7 @@
     ],
     "overlap_forward_r03": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
         "remapped_reads": 23,
         "sample": "S01",
@@ -953,6 +886,7 @@
         "spanning_reads": 21
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
         "remapped_reads": 47,
         "sample": "S02",
@@ -961,6 +895,7 @@
         "spanning_reads": 43
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
         "remapped_reads": 30,
         "sample": "S03",
@@ -971,6 +906,7 @@
     ],
     "overlap_reverse_direction_r01": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
         "remapped_reads": 32,
         "sample": "S01",
@@ -979,6 +915,7 @@
         "spanning_reads": 32
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
         "remapped_reads": 38,
         "sample": "S02",
@@ -987,6 +924,7 @@
         "spanning_reads": 36
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
         "remapped_reads": 30,
         "sample": "S03",
@@ -997,6 +935,7 @@
     ],
     "overlap_reverse_direction_r02": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
         "remapped_reads": 29,
         "sample": "S01",
@@ -1005,6 +944,7 @@
         "spanning_reads": 28
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
         "remapped_reads": 40,
         "sample": "S02",
@@ -1013,6 +953,7 @@
         "spanning_reads": 37
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
         "remapped_reads": 31,
         "sample": "S03",
@@ -1023,6 +964,7 @@
     ],
     "overlap_reverse_direction_r03": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
         "remapped_reads": 32,
         "sample": "S01",
@@ -1031,6 +973,7 @@
         "spanning_reads": 27
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
         "remapped_reads": 35,
         "sample": "S02",
@@ -1039,6 +982,7 @@
         "spanning_reads": 31
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
         "remapped_reads": 34,
         "sample": "S03",
@@ -1049,6 +993,7 @@
     ],
     "small_deletion": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
         "remapped_reads": 41,
         "sample": "S01",
@@ -1057,6 +1002,7 @@
         "spanning_reads": 26
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
         "remapped_reads": 54,
         "sample": "S02",
@@ -1065,6 +1011,7 @@
         "spanning_reads": 45
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
         "remapped_reads": 41,
         "sample": "S03",
@@ -1075,6 +1022,7 @@
     ],
     "small_insertion": [
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
         "remapped_reads": 39,
         "sample": "S01",
@@ -1083,6 +1031,7 @@
         "spanning_reads": 38
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
         "remapped_reads": 30,
         "sample": "S02",
@@ -1091,6 +1040,7 @@
         "spanning_reads": 28
       },
       {
+        "observation_kind": "sample-targeted-reads",
         "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
         "remapped_reads": 31,
         "sample": "S03",
@@ -1102,13 +1052,13 @@
   },
   "preset": "map-ont",
   "summary": {
-    "artificial_sample_cases": 12,
+    "artificial_sample_cases": 4,
     "expected_junctions": 19,
-    "expected_sample_cases": 57,
-    "false_support_baseline_established": false,
+    "expected_sample_cases": 49,
+    "false_support_baseline_established": true,
     "false_support_sample_cases": 0,
     "missed_support_sample_cases": 6,
-    "testable_artificial_sample_cases": 0,
+    "testable_artificial_sample_cases": 4,
     "true_sample_cases": 45
   }
 }

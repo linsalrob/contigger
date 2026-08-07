@@ -174,6 +174,17 @@ def evaluate_junction_support(
             fraction,
             ("one or more observations used a shorter spanning flank than policy requires",),
         )
+    if evidence and any(
+        item.minimum_mapping_quality != policy.minimum_mapping_quality for item in evidence
+    ):
+        return JunctionSupportDecision(
+            JunctionSupportStatus.DEFERRED,
+            policy.technology,
+            spanning,
+            remapped,
+            fraction,
+            ("evidence mapping-quality threshold does not match the policy",),
+        )
     supported = (
         spanning >= policy.minimum_spanning_reads and fraction >= policy.minimum_spanning_fraction
     )

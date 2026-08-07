@@ -1,0 +1,13 @@
+{
+  "configurations": [
+    {"minimum_mapping_quality": 0, "minimum_spanning_flank": 20},
+    {"minimum_mapping_quality": 20, "minimum_spanning_flank": 20},
+    {"minimum_mapping_quality": 0, "minimum_spanning_flank": 100},
+    {"minimum_mapping_quality": 20, "minimum_spanning_flank": 100}
+  ],
+  "false_support_cases_each": 0,
+  "missed_true_sample_cases_each": 6,
+  "testable_artificial_controls_each": 4,
+  "control_kind": "exact synthetic source-end reads",
+  "policy_reviewed": false
+}

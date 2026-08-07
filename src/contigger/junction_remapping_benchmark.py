@@ -6,6 +6,7 @@ import hashlib
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, TextIO
 
 from contigger import __version__
@@ -33,6 +34,7 @@ class JunctionRemappingBenchmarkReport:
     dataset_truth_sha256: str
     preset: str
     minimum_spanning_flank: int
+    minimum_mapping_quality: int
     minimap2_version: str
     contigger_version: str
     summary: SampleScopedJunctionSummary
@@ -47,6 +49,7 @@ class SampleScopedJunctionCase:
 
     case_id: str
     sample: str
+    observation_kind: str
     junction_is_true: bool
     remapped_reads: int
     spanning_reads: int
@@ -76,6 +79,7 @@ def evaluate_junction_remapping_benchmark(
     preset: str = "map-ont",
     threads: int = 1,
     minimum_spanning_flank: int = 20,
+    minimum_mapping_quality: int = 0,
 ) -> JunctionRemappingBenchmarkReport:
     """Remap every checked-in sample FASTQ to every explicit benchmark junction."""
     required = (
@@ -98,47 +102,73 @@ def evaluate_junction_remapping_benchmark(
     remapper = FastqJunctionRemapper(minimap2=minimap2, preset=preset, threads=threads)
     evidence_by_case: dict[str, tuple[TargetedJunctionEvidence, ...]] = {}
     serialized: dict[str, tuple[dict[str, Any], ...]] = {}
-    for expected in truth:
-        reports = []
-        details = []
-        for sample in samples:
-            fastq = dataset / "reads" / f"{sample.sample}.targeted.fastq.gz"
-            if not fastq.is_file():
-                raise InputValidationError(f"junction benchmark FASTQ does not exist: {fastq}")
-            request = requests[expected.case_id]
-            request = JunctionRemappingRequest(
-                sample.sample,
-                request.left_contig_id,
-                request.left_end,
-                request.right_contig_id,
-                request.right_end,
-                request.provisional_reference,
-                request.junction_position,
-                minimum_spanning_flank=minimum_spanning_flank,
+    with TemporaryDirectory(prefix="contigger-negative-controls-") as directory:
+        controls = _write_artificial_negative_controls(dataset, Path(directory))
+        for expected in truth:
+            reports = []
+            details = []
+            inputs = (
+                tuple(
+                    (
+                        sample.sample,
+                        sample.technology or "unknown",
+                        dataset / "reads" / f"{sample.sample}.targeted.fastq.gz",
+                        "sample-targeted-reads",
+                    )
+                    for sample in samples
+                )
+                if expected.junction_is_true
+                else (
+                    (
+                        "synthetic-negative-control",
+                        "ont",
+                        controls[expected.case_id],
+                        "synthetic-source-end-control",
+                    ),
+                )
             )
-            report = remapper.evaluate(
-                request,
-                sample=sample.sample,
-                technology=sample.technology or "unknown",
-                fastq=fastq,
-            )
-            reports.append(report)
-            details.append(
-                {
-                    "sample": report.sample,
-                    "selected_reads": len(report.selected_read_names),
-                    "remapped_reads": len(report.remapped_read_names),
-                    "spanning_reads": report.spanning_reads,
-                    "spanning_read_names_sha256": _names_sha256(report.spanning_read_names),
-                    "provisional_reference_sha256": report.provisional_reference_sha256,
-                }
-            )
-        evidence_by_case[expected.case_id] = tuple(reports)
-        serialized[expected.case_id] = tuple(details)
+            for sample_id, technology, fastq, observation_kind in inputs:
+                if not fastq.is_file():
+                    raise InputValidationError(f"junction benchmark FASTQ does not exist: {fastq}")
+                request = requests[expected.case_id]
+                request = JunctionRemappingRequest(
+                    sample_id,
+                    request.left_contig_id,
+                    request.left_end,
+                    request.right_contig_id,
+                    request.right_end,
+                    request.provisional_reference,
+                    request.junction_position,
+                    minimum_spanning_flank=minimum_spanning_flank,
+                    minimum_mapping_quality=minimum_mapping_quality,
+                )
+                report = remapper.evaluate(
+                    request,
+                    sample=sample_id,
+                    technology=technology,
+                    fastq=fastq,
+                )
+                reports.append(report)
+                details.append(
+                    {
+                        "sample": report.sample,
+                        "observation_kind": observation_kind,
+                        "selected_reads": len(report.selected_read_names),
+                        "remapped_reads": len(report.remapped_read_names),
+                        "spanning_reads": report.spanning_reads,
+                        "spanning_read_names_sha256": _names_sha256(report.spanning_read_names),
+                        "provisional_reference_sha256": report.provisional_reference_sha256,
+                    }
+                )
+            evidence_by_case[expected.case_id] = tuple(reports)
+            serialized[expected.case_id] = tuple(details)
     cases = tuple(
         SampleScopedJunctionCase(
             expected.case_id,
             report.sample,
+            "sample-targeted-reads"
+            if expected.junction_is_true
+            else "synthetic-source-end-control",
             expected.junction_is_true,
             len(report.remapped_read_names),
             report.spanning_reads,
@@ -195,6 +225,7 @@ def evaluate_junction_remapping_benchmark(
         hashlib.sha256(truth_path.read_bytes()).hexdigest(),
         preset,
         minimum_spanning_flank,
+        minimum_mapping_quality,
         minimap_version,
         __version__,
         summary,
@@ -215,15 +246,16 @@ def format_junction_remapping_summary(report: JunctionRemappingBenchmarkReport) 
     summary = report.summary
     return "\n".join(
         (
-            f"false spanning-support sample cases: {summary.false_support_sample_cases}",
-            f"missed spanning-support sample cases: {summary.missed_support_sample_cases}",
+            f"false spanning-support observation cases: {summary.false_support_sample_cases}",
+            f"missed spanning-support observation cases: {summary.missed_support_sample_cases}",
             "false-support baseline established: "
             + ("yes" if summary.false_support_baseline_established else "no"),
-            "testable artificial sample cases: "
+            "testable artificial controls: "
             f"{summary.testable_artificial_sample_cases}/{summary.artificial_sample_cases}",
             f"dataset version: {report.dataset_version}",
             f"preset: {report.preset}",
             f"minimum spanning flank: {report.minimum_spanning_flank}",
+            f"minimum mapping quality: {report.minimum_mapping_quality}",
             f"expected junctions: {summary.expected_junctions}",
             "result: remapping evidence only; no merge was authorized",
         )
@@ -301,6 +333,57 @@ def _build_requests(dataset: Path, flank: int) -> dict[str, JunctionRemappingReq
             minimum_spanning_flank=flank,
         )
     return requests
+
+
+def _write_artificial_negative_controls(dataset: Path, directory: Path) -> dict[str, Path]:
+    """Create exact, non-spanning source-end reads for each artificial adjacency."""
+    sequences: dict[str, str] = {}
+    for sample in parse_manifest(dataset / "manifest.tsv").samples:
+        for record in read_fasta(sample.contigs):
+            if record.identifier in sequences:
+                raise InputValidationError(
+                    f"duplicate source contig identifier {record.identifier!r} in benchmark"
+                )
+            sequences[record.identifier] = record.sequence
+    relationships = {
+        item.case_id: item
+        for item in load_truth(dataset / "expected" / "expected_relationships.tsv")
+        if item.relationship_type is RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX
+        and item.orientation is Orientation.FORWARD
+    }
+    controls: dict[str, Path] = {}
+    for expected in load_junction_truth(dataset / "expected" / "expected_junctions.tsv"):
+        if expected.junction_is_true:
+            continue
+        try:
+            relationship = relationships[expected.case_id]
+            left = sequences[expected.left_contig_id]
+            right = sequences[expected.right_contig_id]
+        except KeyError as error:
+            raise InputValidationError(
+                f"artificial junction {expected.case_id!r} lacks source-end control inputs"
+            ) from error
+        read_length = min(1000, len(left), len(right) - relationship.target_end)
+        if read_length < 100:
+            raise InputValidationError(
+                f"artificial junction {expected.case_id!r} cannot supply 100 bp controls"
+            )
+        records = (
+            (f"{expected.case_id}:left-end", left[-read_length:]),
+            (
+                f"{expected.case_id}:right-after-overlap",
+                right[relationship.target_end : relationship.target_end + read_length],
+            ),
+        )
+        path = directory / f"{expected.case_id}.fastq"
+        path.write_text(
+            "".join(
+                f"@{name}\n{sequence}\n+\n{'I' * len(sequence)}\n" for name, sequence in records
+            ),
+            encoding="ascii",
+        )
+        controls[expected.case_id] = path
+    return controls
 
 
 def _names_sha256(names: tuple[str, ...]) -> str:
