@@ -664,6 +664,8 @@ class JunctionSupportPolicy:
     reviewed: bool = False
     minimum_mapping_quality: int = 0
     review: JunctionPolicyReview | None = None
+    truth_metadata: JunctionTruthSetMetadata | None = None
+    candidate_baseline_sha256: str | None = None
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -679,6 +681,12 @@ class JunctionSupportPolicy:
         if self.reviewed and (self.review is None or self.review.decision != "approved"):
             raise InputValidationError(
                 "reviewed junction policy requires an approved review artifact"
+            )
+        if self.reviewed and (
+            self.truth_metadata is None or self.candidate_baseline_sha256 is None
+        ):
+            raise InputValidationError(
+                "reviewed junction policy requires paired truth metadata and candidate baseline"
             )
         if self.reviewed and self.review is not None:
             configuration = (
@@ -700,6 +708,32 @@ class JunctionSupportPolicy:
             if configuration != reviewed_configuration:
                 raise InputValidationError(
                     "reviewed junction policy does not match its approved review artifact"
+                )
+        if self.reviewed and self.review is not None and self.truth_metadata is not None:
+            if (
+                not self.truth_metadata.reviewed
+                or not self.truth_metadata.false_support_baseline_established
+            ):
+                raise InputValidationError(
+                    "reviewed junction policy requires reviewed truth metadata and "
+                    "false-support baseline"
+                )
+            if self.review.truth_dataset_sha256 != self.truth_metadata.truth_sha256:
+                raise InputValidationError(
+                    "reviewed junction policy truth digest does not match metadata"
+                )
+            if (
+                self.review.technology != self.truth_metadata.technology
+                or self.review.remapping_preset != self.truth_metadata.remapping_preset
+            ):
+                raise InputValidationError(
+                    "reviewed junction policy review technology or preset does not "
+                    "match truth metadata"
+                )
+            if self.review.candidate_baseline_sha256 != self.candidate_baseline_sha256:
+                raise InputValidationError(
+                    "reviewed junction policy candidate baseline digest does not "
+                    "match supplied baseline"
                 )
 
 

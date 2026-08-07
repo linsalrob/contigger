@@ -40,6 +40,19 @@ REVIEW = JunctionPolicyReview(
     20,
     0,
 )
+METADATA = JunctionTruthSetMetadata(
+    "dataset",
+    "1",
+    "ont",
+    "map-ont",
+    "synthetic reviewed truth",
+    "a" * 64,
+    19,
+    15,
+    4,
+    True,
+    True,
+)
 
 
 def review_for(policy: JunctionSupportPolicy) -> JunctionPolicyReview:
@@ -115,14 +128,31 @@ def test_unreviewed_policy_is_always_deferred() -> None:
     assert decision.status is JunctionSupportStatus.DEFERRED
     assert "not been reviewed" in decision.reasons[0]
     absent = evaluate_junction_support(
-        (), replace(policy, reviewed=True, review=review_for(policy))
+        (),
+        replace(
+            policy,
+            reviewed=True,
+            review=review_for(policy),
+            truth_metadata=METADATA,
+            candidate_baseline_sha256="b" * 64,
+        ),
     )
     assert absent.status is JunctionSupportStatus.DEFERRED
     assert "no targeted-remapping" in absent.reasons[0]
 
 
 def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
-    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.3, 20, reviewed=True, review=REVIEW)
+    policy = JunctionSupportPolicy(
+        "ont",
+        "map-ont",
+        3,
+        0.3,
+        20,
+        reviewed=True,
+        review=REVIEW,
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
+    )
     assert (
         evaluate_junction_support((evidence("case", 3),), policy).status
         is JunctionSupportStatus.SUPPORTED
@@ -180,6 +210,8 @@ def test_evidence_groups_reject_duplicate_samples_and_inconsistent_references() 
         20,
         reviewed=True,
         review=review_for(JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20)),
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
     )
     first = evidence("case", 1)
     with pytest.raises(InputValidationError, match="duplicate sample"):
@@ -198,6 +230,8 @@ def test_policy_never_pools_samples_and_requires_matching_configuration() -> Non
         20,
         reviewed=True,
         review=review_for(JunctionSupportPolicy("ont", "map-ont", 2, 0.0, 20)),
+        truth_metadata=METADATA,
+        candidate_baseline_sha256="b" * 64,
     )
     first = replace(evidence("case", 1), remapped_read_names=("read-0",))
     second = replace(
@@ -237,7 +271,17 @@ def test_reviewed_policy_requires_approved_review_artifact() -> None:
 
 def test_reviewed_policy_matches_artifact_configuration_and_timestamp() -> None:
     with pytest.raises(InputValidationError, match="does not match"):
-        JunctionSupportPolicy("ont", "map-ont", 4, 0.3, 20, reviewed=True, review=REVIEW)
+        JunctionSupportPolicy(
+            "ont",
+            "map-ont",
+            4,
+            0.3,
+            20,
+            reviewed=True,
+            review=REVIEW,
+            truth_metadata=METADATA,
+            candidate_baseline_sha256="b" * 64,
+        )
     with pytest.raises(InputValidationError, match="RFC 3339"):
         replace(REVIEW, reviewed_at="t")
 
