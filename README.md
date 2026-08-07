@@ -156,6 +156,10 @@ contigger validate-alignments --manifest samples.tsv
 
 This report is evidence, not merge authorization. It does not infer trimming, construct joined sequence, call consensus, pool samples, or automatically supply graph decision-policy support. Minimum read counts, mapping-quality rules, technology-specific presets, duplicate handling, and adequate flank lengths require reviewed benchmarks before junction observations can affect a biological decision.
 
+The checked-in ONT dataset also supplies 19 construction-derived junction truth rows: 15 native adjacencies and four artificial threshold-negative adjacencies. `load_junction_truth()` validates these records independently from relationship truth, while `score_junction_observations()` scores supplied targeted-remapping reports for false or missed spanning-read detection. `JunctionSupportPolicy` is explicitly technology-scoped and defaults to unreviewed; an unreviewed policy always returns `DEFERRED`, regardless of read count. The deterministic truth-only baseline is recorded in `benchmarks/pseudomonas_junction_truth_baseline.json`.
+
+The source-coordinate counts in `expected_junctions.tsv` describe reads selected while constructing the dataset; they are not targeted-remapping results and are never substituted for observations. A checked-in remapping baseline and reviewed ONT support thresholds remain future work. Consensus and variation policies also remain unimplemented.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
@@ -167,6 +171,6 @@ This report is evidence, not merge authorization. It does not infer trimming, co
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
 8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
 9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions.
+10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (junction truth and conservative policy boundary complete; remapping baseline and reviewed thresholds pending)
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

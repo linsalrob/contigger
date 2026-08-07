@@ -64,3 +64,5 @@ jobs:
         run: pytest tests/test_bam_evidence.py
       - name: Validate targeted junction-remapping evidence boundary
         run: pytest tests/test_junction_evidence.py
+      - name: Validate junction truth and support-policy boundary
+        run: pytest tests/test_junction_benchmark.py

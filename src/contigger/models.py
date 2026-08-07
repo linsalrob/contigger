@@ -44,6 +44,14 @@ class GraphDecisionStatus(StrEnum):
     DEFERRED = "deferred"
 
 
+class JunctionSupportStatus(StrEnum):
+    """Technology-scoped interpretation of targeted remapping evidence."""
+
+    SUPPORTED = "supported"
+    UNSUPPORTED = "unsupported"
+    DEFERRED = "deferred"
+
+
 class AlignmentType(StrEnum):
     """PAF alignment role reported by an aligner, when available."""
 
@@ -494,10 +502,64 @@ class TargetedJunctionEvidence:
     commands: tuple[tuple[str, ...], ...]
     diagnostics: tuple[str, ...] = ()
 
+    def __post_init__(self) -> None:
+        if self.provisional_reference_length < 1:
+            raise InputValidationError("provisional reference length must be positive")
+        if len(self.provisional_reference_sha256) != 64 or any(
+            symbol not in "0123456789abcdef" for symbol in self.provisional_reference_sha256
+        ):
+            raise InputValidationError(
+                "provisional reference SHA-256 must be lowercase hexadecimal"
+            )
+        if not 0 < self.junction_position < self.provisional_reference_length:
+            raise InputValidationError("junction position must be inside the provisional reference")
+        for label, names in (
+            ("selected", self.selected_read_names),
+            ("remapped", self.remapped_read_names),
+            ("spanning", self.spanning_read_names),
+        ):
+            if len(names) != len(set(names)):
+                raise InputValidationError(f"{label} junction read names must be unique")
+        if not set(self.remapped_read_names) <= set(self.selected_read_names):
+            raise InputValidationError("remapped reads must be a subset of selected reads")
+        if not set(self.spanning_read_names) <= set(self.remapped_read_names):
+            raise InputValidationError("spanning reads must be a subset of remapped reads")
+
     @property
     def spanning_reads(self) -> int:
         """Return the number of distinct reads spanning the provisional junction."""
         return len(self.spanning_read_names)
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionSupportPolicy:
+    """Explicit technology-specific criteria requiring external benchmark review."""
+
+    technology: str
+    minimum_spanning_reads: int
+    minimum_spanning_fraction: float
+    minimum_spanning_flank: int
+    reviewed: bool = False
+
+    def __post_init__(self) -> None:
+        if not self.technology:
+            raise InputValidationError("junction support policy requires a technology")
+        if self.minimum_spanning_reads < 1 or self.minimum_spanning_flank < 1:
+            raise InputValidationError("junction support counts and flank must be positive")
+        if not 0.0 <= self.minimum_spanning_fraction <= 1.0:
+            raise InputValidationError("minimum spanning fraction must be between zero and one")
+
+
+@dataclass(frozen=True, slots=True)
+class JunctionSupportDecision:
+    """Evidence interpretation kept separate from graph eligibility and merging."""
+
+    status: JunctionSupportStatus
+    technology: str
+    spanning_reads: int
+    remapped_reads: int
+    spanning_fraction: float
+    reasons: tuple[str, ...]
 
 
 @dataclass(frozen=True, slots=True)
