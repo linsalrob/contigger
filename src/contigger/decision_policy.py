@@ -24,24 +24,34 @@ def evaluate_graph_decisions(
     graph: RelationshipGraph,
     *,
     junction_supported_edge_ids: Iterable[str] = (),
+    intrinsically_safe_edge_ids: Iterable[str] = (),
 ) -> GraphDecisionPlan:
     """Evaluate conservative containment and overlap eligibility.
 
     Eligibility is only a typed input to later provenance-complete planning. It
     never removes a node, selects sequence, or authorizes a biological merge.
-    Every overlap edge requires explicit junction support; graph structure and
-    alignment identity alone are insufficient.
+    Every overlap edge requires either explicit reviewed junction support or an
+    independently verified intrinsic-safety authorization supplied by the merge
+    constructor; graph structure and alignment identity alone are insufficient.
     """
     validate_relationship_graph(graph)
     components, component_by_node = _component_lookups(graph)
     overlap_ids = {edge.edge_id for edge in graph.overlap_edges}
     supported = tuple(sorted(junction_supported_edge_ids))
+    intrinsic = tuple(sorted(intrinsically_safe_edge_ids))
     if len(set(supported)) != len(supported):
         raise InputValidationError("junction-supported graph edge identifiers must be unique")
+    if len(set(intrinsic)) != len(intrinsic):
+        raise InputValidationError("intrinsically safe graph edge identifiers must be unique")
     unknown = sorted(set(supported) - overlap_ids)
     if unknown:
         raise InputValidationError(
             f"junction support references unknown overlap edge identifier: {unknown[0]}"
+        )
+    unknown_intrinsic = sorted(set(intrinsic) - overlap_ids)
+    if unknown_intrinsic:
+        raise InputValidationError(
+            f"intrinsic safety references unknown overlap edge identifier: {unknown_intrinsic[0]}"
         )
 
     containment_by_child: dict[str, list[GraphEdge]] = defaultdict(list)
@@ -57,7 +67,7 @@ def evaluate_graph_decisions(
         )
         for edge in sorted(graph.containment_edges, key=lambda item: item.edge_id)
     )
-    supported_set = set(supported)
+    supported_set = set(supported) | set(intrinsic)
     overlap_decisions = tuple(
         decision
         for component in sorted(graph.components, key=lambda item: item.sequence_ids)

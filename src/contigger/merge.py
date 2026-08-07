@@ -22,6 +22,7 @@ from contigger.models import (
     CandidatePair,
     CatalogueMember,
     CatalogueSequence,
+    ContainmentDecision,
     GraphDecisionPlan,
     GraphDecisionStatus,
     GraphEdge,
@@ -46,6 +47,10 @@ from contigger.utilities.sequences import reverse_complement
 def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[Path, ...]:
     """Run the conservative production pipeline and write deterministic outputs."""
     started = time.monotonic()
+    if config.evidence.value == "reads":
+        raise InputValidationError(
+            "evidence mode 'reads' is not implemented for merge; use 'none' or 'alignments'"
+        )
     stages: dict[str, float] = {}
 
     stage_start = time.monotonic()
@@ -86,11 +91,11 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         for edge in graph.overlap_edges
         if _edge_has_exact_reconcilable_overlap(edge, catalogue, config.end_tolerance)
     )
-    decisions = evaluate_graph_decisions(graph, junction_supported_edge_ids=safe_edges)
+    decisions = evaluate_graph_decisions(graph, intrinsically_safe_edge_ids=safe_edges)
     paths = plan_linear_paths(
         catalogue,
         graph,
-        junction_supported_edge_ids=safe_edges,
+        intrinsically_safe_edge_ids=safe_edges,
     )
     stages["graph"] = time.monotonic() - stage_start
 
@@ -274,7 +279,9 @@ def _construct_outputs(
                 )
             )
     for contained_id, decision in containment.items():
-        container = decision.container_sequence_id
+        container, output_start, output_end = _containment_root(
+            contained_id, containment, edge_lookup, lookup
+        )
         if container not in constructed:
             ambiguous.append((contained_id, "eligible containment container was not emitted"))
             continue
@@ -283,10 +290,12 @@ def _construct_outputs(
                 _catalogue_record(
                     member,
                     container,
-                    lookup[container].length,
+                    lookup[contained_id].length,
                     "contained_removed",
                     "; ".join(decision.reasons),
                     config.evidence.value,
+                    output_start=output_start,
+                    output_end=output_end,
                 )
             )
     deferred_ids = {component_id for component_id in paths.deferred_component_ids}
@@ -370,12 +379,17 @@ def _construct_path(
         )
         if current_start is None:
             raise InputValidationError(f"edge {edge_id} lacks current coordinates")
-        if _interval(
-            sequences[current.sequence_id].sequence,
-            current_start,
-            current_start + len(current_part),
-            current.orientation,
-        ) != current_part or not next_sequence.startswith(next_part):
+        if (
+            not sequence.endswith(current_part)
+            or _interval(
+                sequences[current.sequence_id].sequence,
+                current_start,
+                current_start + len(current_part),
+                current.orientation,
+            )
+            != current_part
+            or not next_sequence.startswith(next_part)
+        ):
             raise InputValidationError(f"edge {edge_id} is not terminal in the planned orientation")
         start = len(sequence) - overlap
         sequence += next_sequence[overlap:]
@@ -398,6 +412,63 @@ def _members(catalogue: SequenceCatalogue, identifier: str) -> tuple[CatalogueMe
     return tuple(item for item in catalogue.members if item.catalogue_id == identifier)
 
 
+def _containment_root(
+    contained_id: str,
+    containment: dict[str, ContainmentDecision],
+    edges: dict[str, GraphEdge],
+    sequences: dict[str, CatalogueSequence],
+) -> tuple[str, int, int]:
+    """Resolve an eligible containment chain to its emitted ancestor coordinates."""
+    current = contained_id
+    start = 0
+    end = sequences[contained_id].length
+    visited: set[str] = set()
+    while current in containment:
+        if current in visited:
+            raise InputValidationError(f"containment cycle prevents disposition: {current}")
+        visited.add(current)
+        decision = containment[current]
+        edge = edges[decision.edge_id]
+        child, parent, child_start, child_end, parent_start, parent_end = _containment_intervals(
+            edge
+        )
+        if child != current:
+            raise InputValidationError(f"containment decision does not match child {current}")
+        parent_length = sequences[parent].length
+        parent_span = parent_end - parent_start
+        start = parent_start + (start * parent_span) // parent_length
+        end = parent_start + (end * parent_span) // parent_length
+        current = parent
+    return current, start, end
+
+
+def _containment_intervals(edge: GraphEdge) -> tuple[str, str, int, int, int, int]:
+    """Return child/parent identifiers and aligned intervals for a containment edge."""
+    if edge.query_start is None or edge.query_end is None:
+        raise InputValidationError(f"containment edge lacks query coordinates: {edge.edge_id}")
+    if edge.target_start is None or edge.target_end is None:
+        raise InputValidationError(f"containment edge lacks target coordinates: {edge.edge_id}")
+    if edge.relationship_type is RelationshipType.QUERY_CONTAINED_IN_TARGET:
+        return (
+            edge.query_id,
+            edge.target_id,
+            edge.query_start,
+            edge.query_end,
+            edge.target_start,
+            edge.target_end,
+        )
+    if edge.relationship_type is RelationshipType.TARGET_CONTAINED_IN_QUERY:
+        return (
+            edge.target_id,
+            edge.query_id,
+            edge.target_start,
+            edge.target_end,
+            edge.query_start,
+            edge.query_end,
+        )
+    raise InputValidationError(f"edge is not a containment relationship: {edge.edge_id}")
+
+
 def _catalogue_record(
     member: CatalogueMember,
     output_id: str,
@@ -405,7 +476,12 @@ def _catalogue_record(
     disposition: str,
     reason: str,
     evidence_mode: str,
+    *,
+    output_start: int = 0,
+    output_end: int | None = None,
 ) -> ProvenanceRecord:
+    if output_end is None:
+        output_end = length
     return ProvenanceRecord(
         output_id,
         member.source_sample,
@@ -414,8 +490,8 @@ def _catalogue_record(
         member.orientation,
         0,
         length,
-        0,
-        length,
+        output_start,
+        output_end,
         1.0,
         disposition,
         reason,
@@ -566,9 +642,17 @@ def _write_gfa(
     graph: RelationshipGraph,
     paths_result: PathPlanningResult,
 ) -> None:
+    ordered_sequences = tuple(sequences)
+    emitted = {sequence.identifier for sequence in ordered_sequences}
     with path.open("w", encoding="ascii", newline="") as handle:
         handle.write("H\tVN:Z:1.0\n")
-        for sequence in sequences:
+        for sequence in ordered_sequences:
             handle.write(f"S\t{sequence.identifier}\t{sequence.sequence}\n")
         for edge in graph.overlap_edges:
-            handle.write(f"L\t{edge.query_id}\t+\t{edge.target_id}\t+\t{edge.aligned_length}M\n")
+            if edge.query_id not in emitted or edge.target_id not in emitted:
+                continue
+            target_orientation = "+" if edge.orientation is Orientation.FORWARD else "-"
+            handle.write(
+                f"L\t{edge.query_id}\t+\t{edge.target_id}\t{target_orientation}\t"
+                f"{edge.aligned_length}M\n"
+            )

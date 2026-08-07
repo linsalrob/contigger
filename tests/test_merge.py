@@ -123,6 +123,34 @@ def test_imperfect_overlap_is_rejected_without_consensus() -> None:
         )
 
 
+def test_terminal_overhang_is_deferred_instead_of_overwriting_the_junction() -> None:
+    edge = GraphEdge(
+        "edge_overhang",
+        GraphEdgeKind.OVERLAP,
+        RelationshipType.QUERY_SUFFIX_TO_TARGET_PREFIX,
+        "a",
+        "b",
+        Orientation.FORWARD,
+        4,
+        8,
+        0,
+        4,
+        1.0,
+        4,
+        1,
+        0,
+    )
+    with pytest.raises(InputValidationError, match="terminal"):
+        _construct_path(
+            _path(edge),
+            {edge.edge_id: edge},
+            {
+                "a": CatalogueSequence("a", "AAAACCCCX", 9, "a", "S:a"),
+                "b": CatalogueSequence("b", "CCCCGGGG", 8, "b", "S:b"),
+            },
+        )
+
+
 def test_endpoint_beyond_tolerance_cannot_become_a_known_false_join() -> None:
     edge = GraphEdge(
         "forbidden",

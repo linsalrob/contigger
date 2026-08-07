@@ -29,6 +29,7 @@ def plan_linear_paths(
     graph: RelationshipGraph,
     *,
     junction_supported_edge_ids: Iterable[str] = (),
+    intrinsically_safe_edge_ids: Iterable[str] = (),
 ) -> PathPlanningResult:
     """Plan canonical oriented paths without constructing or merging sequence."""
     members = _validate_catalogue(catalogue)
@@ -44,6 +45,7 @@ def plan_linear_paths(
     decisions = evaluate_graph_decisions(
         graph,
         junction_supported_edge_ids=junction_supported_edge_ids,
+        intrinsically_safe_edge_ids=intrinsically_safe_edge_ids,
     )
     edges = {edge.edge_id: edge for edge in graph.overlap_edges}
     paths = tuple(
