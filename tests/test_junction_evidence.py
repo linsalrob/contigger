@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from contigger.evidence.bam import BamEvidenceProvider
-from contigger.evidence.junctions import TargetedJunctionRemapper, _score_sam
+from contigger.evidence.junctions import (
+    FastqJunctionRemapper,
+    TargetedJunctionRemapper,
+    _score_paf_junction,
+    _score_sam,
+)
 from contigger.exceptions import InputValidationError
 from contigger.models import (
     ContigEnd,
@@ -176,3 +181,48 @@ def test_deletion_across_junction_is_not_spanning_support() -> None:
     remapped, spanning = _score_sam(sam, "p", 100, 50, 5, ("gapped",))
     assert remapped == ("gapped",)
     assert spanning == ()
+
+
+def test_paf_junction_scoring_requires_one_continuous_spanning_block() -> None:
+    paf = "\n".join(
+        (
+            "span\t100\t0\t100\t+\tjunction\t100\t0\t100\t100\t100\t60\ttp:A:P\tcg:Z:100M",
+            "gap\t100\t0\t100\t+\tjunction\t100\t0\t100\t90\t100\t60\ttp:A:P\tcg:Z:45M10D45M",
+        )
+    )
+
+    remapped, spanning = _score_paf_junction(paf, "junction", 100, 50, 10, ("span", "gap"))
+
+    assert remapped == ("gap", "span")
+    assert spanning == ("span",)
+
+
+def test_fastq_remapper_reports_sample_scoped_evidence(tmp_path: Path) -> None:
+    executable = tmp_path / "minimap2"
+    executable.touch()
+    fastq = tmp_path / "reads.fastq"
+    fastq.write_text("@read-1 note\n" + "A" * 100 + "\n+\n" + "I" * 100 + "\n")
+    outputs = iter(
+        (
+            CommandResult((str(executable), "--version"), "2.31-r1302\n", "", 0),
+            CommandResult(
+                (),
+                "read-1\t100\t0\t100\t+\tjunction\t100\t0\t100\t100\t100\t60\ttp:A:P\tcg:Z:100M\n",
+                "",
+                0,
+            ),
+        )
+    )
+    record = SequenceRecord("junction", "", "junction", "", "A" * 100, 100)
+    request = JunctionRemappingRequest(
+        "S01", "left", ContigEnd.SUFFIX, "right", ContigEnd.PREFIX, record, 50
+    )
+
+    evidence = FastqJunctionRemapper(
+        minimap2=executable, runner=lambda _arguments: next(outputs)
+    ).evaluate(request, sample="S01", technology="ont", fastq=fastq)
+
+    assert evidence.selected_read_names == ("read-1",)
+    assert evidence.remapped_read_names == ("read-1",)
+    assert evidence.spanning_read_names == ("read-1",)
+    assert evidence.samtools_version == "not used"

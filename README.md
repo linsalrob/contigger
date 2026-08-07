@@ -158,7 +158,9 @@ This report is evidence, not merge authorization. It does not infer trimming, co
 
 The checked-in ONT dataset also supplies 19 construction-derived junction truth rows: 15 native adjacencies and four artificial threshold-negative adjacencies. `load_junction_truth()` validates these records independently from relationship truth, while `score_junction_observations()` scores supplied targeted-remapping reports for false or missed spanning-read detection. `JunctionSupportPolicy` is bound to an exact technology and remapping preset and defaults to unreviewed; an unreviewed policy always returns `DEFERRED`, regardless of read count. Cross-sample aggregation is also deferred rather than pooling counts. The deterministic truth-only baseline is recorded in `benchmarks/pseudomonas_junction_truth_baseline.json`.
 
-The source-coordinate counts in `expected_junctions.tsv` describe reads selected while constructing the dataset; they are not targeted-remapping results and are never substituted for observations. A checked-in remapping baseline and reviewed ONT support thresholds remain future work. Consensus and variation policies also remain unimplemented.
+The source-coordinate counts in `expected_junctions.tsv` describe reads selected while constructing the dataset; they are not targeted-remapping results and are never substituted for observations. `contigger benchmark-junction-remapping --dataset test_data --preset map-ont` instead remaps each sample's checked-in targeted FASTQ independently to an explicit benchmark-only provisional reference for all 19 truth cases. It never pools samples or authorizes a graph edge.
+
+The deterministic `map-ont` baseline at a 20 bp continuous spanning flank has zero false spanning-support cases and two missed true-junction cases (`end_tolerance_49` and `end_tolerance_50`). All four artificial junctions remain unsupported. The baseline retains per-sample counts, spanning-name digests, provisional-reference checksums, dataset/tool versions, and truth checksums without volatile temporary paths. These results do not establish a reviewed ONT support threshold: mapping-quality, duplicate, flank, and minimum-read policies still require broader truth sets. Consensus and variation policies also remain unimplemented.
 
 ## Roadmap
 
@@ -171,6 +173,6 @@ The source-coordinate counts in `expected_junctions.tsv` describe reads selected
 7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
 8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
 9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (junction truth and conservative policy boundary complete; remapping baseline and reviewed thresholds pending)
+10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping baseline complete; reviewed thresholds and broader truth sets pending)
 
 See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.

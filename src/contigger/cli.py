@@ -22,6 +22,11 @@ from contigger.catalogue import (
 from contigger.config import build_run_config
 from contigger.evidence.bam import BamEvidenceProvider
 from contigger.exceptions import ContiggerError, InputValidationError
+from contigger.junction_remapping_benchmark import (
+    evaluate_junction_remapping_benchmark,
+    format_junction_remapping_summary,
+    write_junction_remapping_json,
+)
 from contigger.manifest import ManifestValidation, parse_manifest
 from contigger.merge import merge_samples
 from contigger.minimisers import generate_candidates, write_candidates_tsv
@@ -150,6 +155,25 @@ def build_parser() -> argparse.ArgumentParser:
     pipeline_benchmark.add_argument("--terminal-band", type=int, default=1000)
     pipeline_benchmark.add_argument("--fail-on-false-merge", action="store_true")
     pipeline_benchmark.set_defaults(handler=_run_pipeline_benchmark)
+
+    junction_benchmark = commands.add_parser(
+        "benchmark-junction-remapping",
+        help="remap checked-in targeted FASTQs and score junction-spanning observations",
+        description=(
+            "Score sample-specific remapping evidence against junction truth. This command "
+            "does not authorize graph edges, construct consensus, or merge contigs."
+        ),
+    )
+    junction_benchmark.add_argument("--dataset", required=True, type=Path)
+    junction_benchmark.add_argument("--minimap2", default="minimap2")
+    junction_benchmark.add_argument(
+        "--preset", choices=("sr", "map-ont", "map-hifi"), default="map-ont"
+    )
+    junction_benchmark.add_argument("--threads", type=int, default=1)
+    junction_benchmark.add_argument("--minimum-spanning-flank", type=int, default=20)
+    junction_benchmark.add_argument("--output-json", type=Path)
+    junction_benchmark.add_argument("--fail-on-false-support", action="store_true")
+    junction_benchmark.set_defaults(handler=_run_junction_remapping_benchmark)
 
     catalogue = commands.add_parser(
         "catalogue",
@@ -342,6 +366,27 @@ def _run_pipeline_benchmark(arguments: argparse.Namespace) -> int:
                 f"cannot write pipeline benchmark JSON {arguments.output_json}: {error}"
             ) from error
     return int(arguments.fail_on_false_merge and report.summary.relationship_stage_false_merges > 0)
+
+
+def _run_junction_remapping_benchmark(arguments: argparse.Namespace) -> int:
+    report = evaluate_junction_remapping_benchmark(
+        arguments.dataset,
+        minimap2=arguments.minimap2,
+        preset=arguments.preset,
+        threads=arguments.threads,
+        minimum_spanning_flank=arguments.minimum_spanning_flank,
+    )
+    print(format_junction_remapping_summary(report))
+    if arguments.output_json is not None:
+        try:
+            arguments.output_json.parent.mkdir(parents=True, exist_ok=True)
+            with arguments.output_json.open("w", encoding="utf-8", newline="") as output:
+                write_junction_remapping_json(report, output)
+        except OSError as error:
+            raise InputValidationError(
+                f"cannot write junction-remapping benchmark JSON {arguments.output_json}: {error}"
+            ) from error
+    return int(arguments.fail_on_false_support and report.benchmark.summary.false_support_cases > 0)
 
 
 def _run_catalogue(arguments: argparse.Namespace) -> int:

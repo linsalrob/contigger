@@ -121,6 +121,8 @@ Secondary and supplementary records are excluded from selection and spanning cou
 
 The checked-in ONT truth contains 19 proposed junctions: 15 native and four artificial threshold-negative adjacencies. Junction truth parsing is separate from relationship truth and validates construction coordinates, circular wrapping, selected source-read counts, reasons, and unique case/pair identities. Those source-read counts describe dataset construction, not targeted remapping, and cannot be used as observed support. Observational scoring accepts only sample-unique reports for one identical provisional-reference digest, pair, and junction coordinate. It reports false spanning support and missed spanning support without calling either a merge decision.
 
+The checked-in remapping baseline constructs benchmark-only provisional references from the construction-derived forward suffix-to-prefix coordinates and verifies every true reference against `expected_merged_sequences.fasta.gz`. Artificial cases are constructed only for negative testing and must be absent from that expected-sequence file. Each of the three targeted ONT FASTQs is remapped separately with `map-ont`; exact read identities remain in live evidence, while the deterministic baseline stores counts and identity digests. At a 20 bp continuous flank the baseline has zero false support and misses two of 15 true cases (`end_tolerance_49` and `end_tolerance_50`). This observation does not calibrate a support policy and is not connected to graph eligibility.
+
 A `JunctionSupportPolicy` declares an exact technology/remapping-preset pair plus spanning-read, spanning-fraction, and flank thresholds. Policies default to unreviewed and therefore `DEFERRED` even when reads span. Evidence from a different technology or preset is deferred. Thresholds are applied to one sample at a time; multiple samples are never pooled and remain deferred until an explicit aggregation policy is reviewed. A reviewed single-sample policy can label evidence supported or unsupported, but its result remains disconnected from graph eligibility. No ONT threshold is designated reviewed in the current baseline; checked-in remapping observations and wider technology truth are required first.
 
 ## 20. Provenance model
@@ -188,7 +190,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (junction truth and conservative policy boundary complete; remapping baseline and reviewed thresholds pending)
+10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping baseline complete; reviewed thresholds and broader truth sets pending)
 
 ## 27. Open design questions
 

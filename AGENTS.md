@@ -74,6 +74,7 @@ pytest && ruff check . && ruff format --check . && mypy src
 - Path-planning changes must retain every catalogue source member with explicit orientation, preserve deferred components, and run the checked-in path-planning regression without emitting sequence.
 - BAM/CRAM evidence must remain sample-scoped, validate exact source reference names and lengths, use zero-based half-open intervals, and never treat source alignments as junction support.
 - Targeted junction evidence must use an explicit provisional reference and junction coordinate, retain selected/remapped/spanning read identities and exact commands, and must not become graph authorization without reviewed benchmark criteria.
+- Changes to targeted remapping or junction scoring must reproduce the checked-in ONT remapping baseline; baseline changes require an explicit biological explanation and must never silently relax false-support detection.
 - Junction benchmark changes must distinguish construction-time source-read counts from targeted-remapping observations, keep technology policies unreviewed by default, and never silently update the checked-in truth baseline.
 - Use fixed seeds in randomised tests and pytest temporary directories for temporary files.
 

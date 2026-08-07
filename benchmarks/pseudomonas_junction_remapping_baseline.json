@@ -1,0 +1,784 @@
+{
+  "benchmark": {
+    "cases": [
+      {
+        "absent_observation": false,
+        "case_id": "circular_origin",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "native circular adjacency"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 27
+      },
+      {
+        "absent_observation": false,
+        "case_id": "end_tolerance_49",
+        "correct_detection": false,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": true,
+        "reasons": [
+          "alignment endpoint is 49 bp from query end"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "end_tolerance_50",
+        "correct_detection": false,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": true,
+        "reasons": [
+          "alignment endpoint is 50 bp from query end"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "end_tolerance_51",
+        "correct_detection": true,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": false,
+        "missed_support": false,
+        "reasons": [
+          "alignment endpoint is 51 bp from query end"
+        ],
+        "remapped_reads": 0,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "high_identity_short",
+        "correct_detection": true,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": false,
+        "missed_support": false,
+        "reasons": [
+          "high identity overlap is only 900 bp"
+        ],
+        "remapped_reads": 0,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "identity_9799",
+        "correct_detection": true,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": false,
+        "missed_support": false,
+        "reasons": [
+          "10 kb substitution-only boundary: 201 substitutions"
+        ],
+        "remapped_reads": 0,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "identity_9800",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "10 kb substitution-only boundary: 200 substitutions"
+        ],
+        "remapped_reads": 191,
+        "spanning_reads": 96
+      },
+      {
+        "absent_observation": false,
+        "case_id": "identity_9801",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "10 kb substitution-only boundary: 199 substitutions"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 97
+      },
+      {
+        "absent_observation": false,
+        "case_id": "length_1000",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "minimum-overlap boundary at 1000 bp"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 94
+      },
+      {
+        "absent_observation": false,
+        "case_id": "length_1001",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "minimum-overlap boundary at 1001 bp"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 95
+      },
+      {
+        "absent_observation": false,
+        "case_id": "length_999",
+        "correct_detection": true,
+        "detected": false,
+        "false_support": false,
+        "junction_is_true": false,
+        "missed_support": false,
+        "reasons": [
+          "minimum-overlap boundary at 999 bp"
+        ],
+        "remapped_reads": 0,
+        "spanning_reads": 0
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_forward_r01",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 95
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_forward_r02",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 187,
+        "spanning_reads": 88
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_forward_r03",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 93
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_reverse_direction_r01",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 98
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_reverse_direction_r02",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 94
+      },
+      {
+        "absent_observation": false,
+        "case_id": "overlap_reverse_direction_r03",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "constructed native suffix-prefix overlap"
+        ],
+        "remapped_reads": 101,
+        "spanning_reads": 88
+      },
+      {
+        "absent_observation": false,
+        "case_id": "small_deletion",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "3 bp deletion inside terminal overlap; source reads support reference allele"
+        ],
+        "remapped_reads": 136,
+        "spanning_reads": 95
+      },
+      {
+        "absent_observation": false,
+        "case_id": "small_insertion",
+        "correct_detection": true,
+        "detected": true,
+        "false_support": false,
+        "junction_is_true": true,
+        "missed_support": false,
+        "reasons": [
+          "3 bp insertion inside terminal overlap; source reads support reference allele"
+        ],
+        "remapped_reads": 100,
+        "spanning_reads": 95
+      }
+    ],
+    "summary": {
+      "absent_observations": 0,
+      "artificial_junctions": 4,
+      "correct_detections": 17,
+      "expected_cases": 19,
+      "false_support_cases": 0,
+      "missed_support_cases": 2,
+      "observed_cases": 19,
+      "true_junctions": 15
+    }
+  },
+  "contigger_version": "0.1.0.dev0",
+  "dataset_truth_sha256": "4685a0eb5d572dd73144bed1ce5ca491d54deaf8a52162ea928da990f926f9f4",
+  "dataset_version": "1.0.0",
+  "minimap2_version": "2.31-r1302",
+  "minimum_spanning_flank": 20,
+  "observations": {
+    "circular_origin": [
+      {
+        "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
+        "remapped_reads": 34,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "74b9321292f25f70ef65ba17a992725507a7974b6400b35d19f2bf04c2fd61ac",
+        "spanning_reads": 9
+      },
+      {
+        "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
+        "remapped_reads": 39,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "f3245003364af7164655371dc29bdd1d4a84b0378689185bbda94f24023d6db0",
+        "spanning_reads": 11
+      },
+      {
+        "provisional_reference_sha256": "f3dc932e37ff86cae7df5dfb514cb7da4f490107c9c3b4f381f1259fd1afc090",
+        "remapped_reads": 27,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "d541481fc51aefd6d18881d6bee79263402988d373857770e5e44f5be12428dc",
+        "spanning_reads": 7
+      }
+    ],
+    "end_tolerance_49": [
+      {
+        "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
+        "remapped_reads": 33,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
+        "remapped_reads": 35,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "c4a28b043039caba0143ca830ed233cfec973b78515d7a0091e1703de03b4aad",
+        "remapped_reads": 32,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "end_tolerance_50": [
+      {
+        "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
+        "remapped_reads": 32,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
+        "remapped_reads": 32,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "b7e1cbac1289ec8660cafee17468d8713cc2be154bba3cafa0be438c4e9f4230",
+        "remapped_reads": 36,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "end_tolerance_51": [
+      {
+        "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
+        "remapped_reads": 0,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
+        "remapped_reads": 0,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "658d83c7092856e0f88ac051244a743218527175a82da3953fff9abda0d4a77a",
+        "remapped_reads": 0,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "high_identity_short": [
+      {
+        "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
+        "remapped_reads": 0,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
+        "remapped_reads": 0,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "378d08657b962408372246ccda06338fbb4afc4701c4434d390c8f5e94bd839f",
+        "remapped_reads": 0,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "identity_9799": [
+      {
+        "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
+        "remapped_reads": 0,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
+        "remapped_reads": 0,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "5dfdf4e0f95aebc5fc921fdb3e11175cb63038fa9fecad79ce91aba767631644",
+        "remapped_reads": 0,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "identity_9800": [
+      {
+        "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
+        "remapped_reads": 75,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "b1c8f2847438cece220f30a183c62bd6360151a5e7684d2247ac055461c89271",
+        "spanning_reads": 35
+      },
+      {
+        "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
+        "remapped_reads": 56,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e9056f064a3fe37b4482e495bb5c7065c012ce09d1cde6aab02daeb060e45fb3",
+        "spanning_reads": 29
+      },
+      {
+        "provisional_reference_sha256": "5e3bef9ebc1b9183d379db93ad415a23643cf068b189672f2b5a7016a2344622",
+        "remapped_reads": 60,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "c483ec378877d39ca94a9843a1199d601a684db0333e806e4c5fe0faa822295c",
+        "spanning_reads": 32
+      }
+    ],
+    "identity_9801": [
+      {
+        "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
+        "remapped_reads": 30,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "1db75693286f563f290eb211b17b1f8f1a7c4d9ee21ff50b2d589f57a7f9f628",
+        "spanning_reads": 30
+      },
+      {
+        "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
+        "remapped_reads": 29,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "fbeb7a704a0fa1bdf47881e38197c3e2b7ebd06c6c4ec976de089aebf930c4a4",
+        "spanning_reads": 29
+      },
+      {
+        "provisional_reference_sha256": "b3e2ffb64f28fecf1556ad598da94443ccade8cbae88195b40807c4e7f55704f",
+        "remapped_reads": 41,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "5a76100b615743ae17f81a3bdc974276a1e6c6414ddc9b6bf57cb5625901c0b0",
+        "spanning_reads": 38
+      }
+    ],
+    "length_1000": [
+      {
+        "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
+        "remapped_reads": 30,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "032018030244fd4a53f5778184da07f46b26c3d5ba17cc45fd498b5c09eb28bd",
+        "spanning_reads": 29
+      },
+      {
+        "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
+        "remapped_reads": 31,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "c8be000792ecf32fbc38f85c49329977000821eeb30bfbf757966315237261d3",
+        "spanning_reads": 29
+      },
+      {
+        "provisional_reference_sha256": "7a0c9b4f5d2177b13a77eb0d9fd4993a4fe82ff597bbac4cbbfa2c8d658a3bca",
+        "remapped_reads": 39,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "dc71144b3f56eaf46b60bd6a377d1f589f49f33ca349e7035d818d4411f5c329",
+        "spanning_reads": 36
+      }
+    ],
+    "length_1001": [
+      {
+        "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
+        "remapped_reads": 30,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "b89ae8f999ab7dba6b192a60ca7bdaf0ba66d4dbf50d4d1e94f1b5ed6b9c4bf5",
+        "spanning_reads": 27
+      },
+      {
+        "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
+        "remapped_reads": 32,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "82949802c6ab001ed2d2969b343649e1f359f465461d31d6b040a5cff31177a4",
+        "spanning_reads": 30
+      },
+      {
+        "provisional_reference_sha256": "84dedc030804df37aa89275f87bd8fa1e3b3d218b30029821bc10632e6db7054",
+        "remapped_reads": 38,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "730ac2aa89dc4d5f47ed47fb5cc78ba29f615fd1a31773b53ab4e1c873605d9d",
+        "spanning_reads": 38
+      }
+    ],
+    "length_999": [
+      {
+        "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
+        "remapped_reads": 0,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
+        "remapped_reads": 0,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      },
+      {
+        "provisional_reference_sha256": "20f6c6bb33863bb0a4c76fc3a13413af0a923f89af42e268ab8a6b06f9dc25f3",
+        "remapped_reads": 0,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "spanning_reads": 0
+      }
+    ],
+    "overlap_forward_r01": [
+      {
+        "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
+        "remapped_reads": 31,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "1805fabdf0e4e1cc72143c14ab8b138d1c1f013112db6cdb0bbba5f2ecdfae26",
+        "spanning_reads": 30
+      },
+      {
+        "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
+        "remapped_reads": 28,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "3f193c8362a684b33a066511b7dd9d04284f835d308a1f5fb0d39c0ecdbc3b02",
+        "spanning_reads": 26
+      },
+      {
+        "provisional_reference_sha256": "8d782223e5417b5ad6113604a68200724d58e51f51bf1c4a75d56511184b1b92",
+        "remapped_reads": 41,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "d056927e13a865b754f1d4cc7f0e660d667783d44bd15c27340fd0ce3dd95e04",
+        "spanning_reads": 39
+      }
+    ],
+    "overlap_forward_r02": [
+      {
+        "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
+        "remapped_reads": 73,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "a818e5dfb1d20d068e4db878625e09e69e9944b18b994c22fcc82d9d83c77569",
+        "spanning_reads": 37
+      },
+      {
+        "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
+        "remapped_reads": 54,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "0d3f596c2c083208385f6087ddd9ae85a41419ed3067fb2bdb14bd7d3ffd5c24",
+        "spanning_reads": 23
+      },
+      {
+        "provisional_reference_sha256": "deb5cd0ba4640499a6084d06bbcddbf7a4e50a5ee104126295198e4fafe33377",
+        "remapped_reads": 60,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "a2d7f3d3508068e10b5e59b8976cc5c57fc268d697ad2e8fb62c3256268cf9c8",
+        "spanning_reads": 28
+      }
+    ],
+    "overlap_forward_r03": [
+      {
+        "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
+        "remapped_reads": 23,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "6c2b6bd034f16c1af7bd4644a20bc25485155b04451efe2532478ca0da452bd1",
+        "spanning_reads": 21
+      },
+      {
+        "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
+        "remapped_reads": 47,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "e3ad505884eba7e3a3ac05c5b0049d0c83ac869a46d9ec667089597b475f4309",
+        "spanning_reads": 43
+      },
+      {
+        "provisional_reference_sha256": "3829ccdf0abf91ff95baf3d106f7dce7645f4d7a78a001d0ca08616976d2ee38",
+        "remapped_reads": 30,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e7a70d614a3f9757692d59a5a1f6022d68e0bc227b14158fbf7ae637b188cbda",
+        "spanning_reads": 29
+      }
+    ],
+    "overlap_reverse_direction_r01": [
+      {
+        "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
+        "remapped_reads": 32,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "c4ae471d7ae25ae9b0e2aa924041f94707cc16fc7a962c3b0c5a3096a4fb99bb",
+        "spanning_reads": 32
+      },
+      {
+        "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
+        "remapped_reads": 38,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "be8ddc1f3d7043c3273681ae2f5a0a73e71d4ce0fe6da0930a2c76409fa6973a",
+        "spanning_reads": 36
+      },
+      {
+        "provisional_reference_sha256": "e9c2d0a6d5f117c95860467987b63fd979e8f1665d2f42cd5b5717cadaa48c72",
+        "remapped_reads": 30,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "029f4293ca8c1fce7c7799f67721077a75b94f554a35783716bf05f5a96cd23f",
+        "spanning_reads": 30
+      }
+    ],
+    "overlap_reverse_direction_r02": [
+      {
+        "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
+        "remapped_reads": 29,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "74e9a8caa6c7fd7de14dea9ab7279ae85de95b2a7755313b2c02a4414873a917",
+        "spanning_reads": 28
+      },
+      {
+        "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
+        "remapped_reads": 40,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "5a0c58247bae02b7100a48963244ce70acb99700b9b8f0a5aef26a342fd575ac",
+        "spanning_reads": 37
+      },
+      {
+        "provisional_reference_sha256": "8a95532f7de1cee4620566c4fc79e881c17142b1a77218588fa3b647efa20c2d",
+        "remapped_reads": 31,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "e5b1d3a7e044cc0e170d26dd30d1b29034c9100ce454cfd048104c271496c37e",
+        "spanning_reads": 29
+      }
+    ],
+    "overlap_reverse_direction_r03": [
+      {
+        "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
+        "remapped_reads": 32,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "65bc652813c177fc2d2ac734cd8b4099de1c0ca9553cccc337e86916d2df1e26",
+        "spanning_reads": 27
+      },
+      {
+        "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
+        "remapped_reads": 35,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "067ddc7c7ab068dbe29116b01e84f41c2096c98b02d37c16c5a0127343676811",
+        "spanning_reads": 31
+      },
+      {
+        "provisional_reference_sha256": "e55c48375c1a90b2f2550437a89b723b65044053da87fbde5d2e23bbba33671e",
+        "remapped_reads": 34,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "af17de47926de95dfb8027d65562eb4762b496e8605bb3319caf9e3dcf9ae95d",
+        "spanning_reads": 30
+      }
+    ],
+    "small_deletion": [
+      {
+        "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
+        "remapped_reads": 41,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "cec4bcc275132eb3582a48b7b72a693b143d117c0495aec23b773b286f6d5235",
+        "spanning_reads": 26
+      },
+      {
+        "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
+        "remapped_reads": 54,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "d90d4799d896827cdf42467657661561ee8f5d85d965804aa58ab00b796d7827",
+        "spanning_reads": 45
+      },
+      {
+        "provisional_reference_sha256": "81cbe8292a62fbaef4d96e61afd3dd66b34216cea685df3dd7f5d539dbf0a3a5",
+        "remapped_reads": 41,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "5d150467ff8caa5fc77c211c0292b6d51a2532c23de5a06510e0215121e89f55",
+        "spanning_reads": 24
+      }
+    ],
+    "small_insertion": [
+      {
+        "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
+        "remapped_reads": 39,
+        "sample": "S01",
+        "selected_reads": 484,
+        "spanning_read_names_sha256": "a17e91a2694d1e5ab7258927ce14a7c4c519f0e1270702c732bf7ef0ac50b947",
+        "spanning_reads": 38
+      },
+      {
+        "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
+        "remapped_reads": 30,
+        "sample": "S02",
+        "selected_reads": 517,
+        "spanning_read_names_sha256": "c33e51bc5e722aadc1bfdef06a5fe89712abed626f83562e9cae9b6acf8f6ed0",
+        "spanning_reads": 28
+      },
+      {
+        "provisional_reference_sha256": "be48ddd1556039d12d4d701d4389f97bc8636c2bb14f399ca05a1305d22c12ef",
+        "remapped_reads": 31,
+        "sample": "S03",
+        "selected_reads": 499,
+        "spanning_read_names_sha256": "fb33c2930f8fded36321b657e775578ef9ea4debe05c5bd9e5462d8df5fd3fc4",
+        "spanning_reads": 29
+      }
+    ]
+  },
+  "preset": "map-ont"
+}
