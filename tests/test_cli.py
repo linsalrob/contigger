@@ -79,18 +79,22 @@ def test_successful_merge_dry_run(capsys: pytest.CaptureFixture[str], tmp_path: 
     assert not prefix.parent.exists()
 
 
-def test_real_merge_fails_clearly(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path: Path) -> None:
+    prefix = tmp_path / "contigger"
     status = main(
         [
             "merge",
             "--manifest",
             str(FIXTURES / "samples.tsv"),
             "--output-prefix",
-            str(tmp_path / "contigger"),
+            str(prefix),
         ]
     )
-    assert status != 0
-    assert "sequence merging is not implemented" in capsys.readouterr().err
+    assert status == 0
+    assert prefix.with_suffix(".fasta").is_file()
+    assert prefix.with_suffix(".provenance.tsv").is_file()
+    assert prefix.with_suffix(".stats.json").is_file()
+    assert "wrote" in capsys.readouterr().out
 
 
 def test_catalogue_writes_canonical_fasta_and_complete_provenance(

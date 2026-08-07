@@ -63,7 +63,7 @@ def build_parser() -> argparse.ArgumentParser:
     validate_alignments.add_argument("--samtools", default="samtools")
     validate_alignments.set_defaults(handler=_run_validate_alignments)
 
-    merge = commands.add_parser("merge", help="plan a merge (execution is not implemented)")
+    merge = commands.add_parser("merge", help="construct conservative merged contig sequences")
     merge.add_argument("--manifest", required=True, type=Path)
     merge.add_argument("--output-prefix", required=True, type=Path)
     merge.add_argument(
@@ -281,7 +281,8 @@ def _run_merge(arguments: argparse.Namespace) -> int:
             if detected_path is None:
                 print(f"warning: optional external tool not found: {tool}", file=sys.stderr)
         return 0
-    merge_samples(validation.samples, config)
+    outputs = merge_samples(validation.samples, config)
+    print("wrote " + ", ".join(str(path) for path in outputs))
     return 0
 
 
