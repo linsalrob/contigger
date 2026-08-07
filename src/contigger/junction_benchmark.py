@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -184,8 +185,8 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
     return result
 
 
-def load_junction_truth_set_metadata(path: Path) -> JunctionTruthSetMetadata:
-    """Load strict technology-specific truth-set metadata without reviewing it."""
+def load_junction_truth_set_metadata(path: Path, *, truth_path: Path) -> JunctionTruthSetMetadata:
+    """Load metadata and verify its digest and counts against the paired truth TSV."""
     try:
         payload = json.loads(
             path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
@@ -219,9 +220,29 @@ def load_junction_truth_set_metadata(path: Path) -> JunctionTruthSetMetadata:
         if type(payload[field]) is not bool:
             raise InputValidationError(f"{path}: truth metadata field {field!r} must be Boolean")
     try:
-        return JunctionTruthSetMetadata(**payload)
+        metadata = JunctionTruthSetMetadata(**payload)
     except (TypeError, ValueError) as error:
         raise InputValidationError(f"{path}: invalid truth metadata value: {error}") from error
+    try:
+        truth_bytes = truth_path.read_bytes()
+    except OSError as error:
+        raise InputValidationError(
+            f"cannot read paired junction truth {truth_path}: {error}"
+        ) from error
+    digest = hashlib.sha256(truth_bytes).hexdigest()
+    if digest != metadata.truth_sha256:
+        raise InputValidationError(
+            f"{path}: truth digest does not match paired truth file {truth_path}"
+        )
+    truth = load_junction_truth(truth_path)
+    true_cases = sum(item.junction_is_true for item in truth)
+    if (
+        len(truth) != metadata.case_count
+        or true_cases != metadata.true_case_count
+        or len(truth) - true_cases != metadata.artificial_case_count
+    ):
+        raise InputValidationError(f"{path}: truth case counts do not match paired truth file")
+    return metadata
 
 
 def load_junction_truth(path: Path) -> tuple[ExpectedJunction, ...]:

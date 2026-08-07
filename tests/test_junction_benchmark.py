@@ -291,7 +291,8 @@ def test_policy_review_loader_is_strict_and_typed(tmp_path: Path) -> None:
 
 def test_truth_set_metadata_is_typed_and_unreviewed() -> None:
     metadata = load_junction_truth_set_metadata(
-        Path(__file__).parents[1] / "benchmarks" / "pseudomonas_junction_truth_metadata.json"
+        Path(__file__).parents[1] / "benchmarks" / "pseudomonas_junction_truth_metadata.json",
+        truth_path=DATASET / "expected" / "expected_junctions.tsv",
     )
     assert metadata.case_count == metadata.true_case_count + metadata.artificial_case_count
     assert metadata.false_support_baseline_established

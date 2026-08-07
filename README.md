@@ -170,7 +170,7 @@ Reviewed policies now require a `JunctionPolicyReview` artifact containing the e
 
 `load_junction_policy_review()` strictly parses these JSON artifacts, validates their fields and RFC 3339 timestamp, and preserves notes. Parsing alone never reviews a policy or authorizes a graph edge.
 
-`load_junction_truth_set_metadata()` provides the same auditable boundary for technology-specific truth sets: exact digest, version, preset, case balance, negative-control status, and review status. The checked-in Pseudomonas metadata remains unreviewed.
+`load_junction_truth_set_metadata(..., truth_path=...)` provides the same auditable boundary for technology-specific truth sets: it verifies the exact digest and derives case balance from the paired TSV before returning version, preset, negative-control status, and review status. The checked-in Pseudomonas metadata remains unreviewed.
 
 ## Roadmap
 
