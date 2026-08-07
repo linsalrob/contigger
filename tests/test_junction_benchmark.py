@@ -104,6 +104,15 @@ def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
     assert (
         evaluate_junction_support((short_flank,), policy).status is JunctionSupportStatus.DEFERRED
     )
+    filtered = replace(evidence("case", 10), minimum_mapping_quality=20)
+    mapping_quality_mismatch = evaluate_junction_support((filtered,), policy)
+    assert mapping_quality_mismatch.status is JunctionSupportStatus.DEFERRED
+    assert "mapping-quality" in mapping_quality_mismatch.reasons[0]
+    matching_policy = replace(policy, minimum_mapping_quality=20)
+    assert (
+        evaluate_junction_support((filtered,), matching_policy).status
+        is JunctionSupportStatus.SUPPORTED
+    )
 
 
 def test_observational_scoring_separates_false_and_missed_support() -> None:

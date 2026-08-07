@@ -19,6 +19,7 @@ from contigger.models import (
     JunctionRemappingRequest,
     SampleInput,
     SequenceRecord,
+    TargetedJunctionEvidence,
 )
 from contigger.utilities.subprocesses import CommandResult
 
@@ -180,6 +181,41 @@ def test_sam_scoring_rejects_unselected_names_and_reference_mismatch() -> None:
         )
     with pytest.raises(InputValidationError, match="exact provisional reference"):
         _score_sam("@SQ\tSN:p\tLN:99\n", "p", 100, 50, 10, 0, ())
+    with pytest.raises(InputValidationError, match="mapping quality must be between"):
+        _score_sam(
+            header + "chosen\t4\t*\t0\t256\t*\t*\t0\t0\t*\t*\n",
+            "p",
+            100,
+            50,
+            10,
+            0,
+            ("chosen",),
+        )
+
+
+def test_evidence_preserves_diagnostics_positional_slot() -> None:
+    report = TargetedJunctionEvidence(
+        "S01",
+        "ont",
+        "map-ont",
+        "left",
+        "right",
+        "reference",
+        100,
+        "a" * 64,
+        50,
+        (),
+        (),
+        (),
+        20,
+        "samtools test",
+        "minimap2 test",
+        (),
+        ("legacy positional diagnostics",),
+    )
+
+    assert report.diagnostics == ("legacy positional diagnostics",)
+    assert report.minimum_mapping_quality == 0
 
 
 def test_deletion_across_junction_is_not_spanning_support() -> None:

@@ -505,8 +505,8 @@ class TargetedJunctionEvidence:
     samtools_version: str
     minimap2_version: str
     commands: tuple[tuple[str, ...], ...]
-    minimum_mapping_quality: int = 0
     diagnostics: tuple[str, ...] = ()
+    minimum_mapping_quality: int = 0
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -559,6 +559,7 @@ class JunctionSupportPolicy:
     minimum_spanning_fraction: float
     minimum_spanning_flank: int
     reviewed: bool = False
+    minimum_mapping_quality: int = 0
 
     def __post_init__(self) -> None:
         if not self.technology or not self.remapping_preset:
@@ -569,6 +570,8 @@ class JunctionSupportPolicy:
             raise InputValidationError("junction support counts and flank must be positive")
         if not 0.0 <= self.minimum_spanning_fraction <= 1.0:
             raise InputValidationError("minimum spanning fraction must be between zero and one")
+        if not 0 <= self.minimum_mapping_quality <= 255:
+            raise InputValidationError("minimum mapping quality must be between 0 and 255")
 
 
 @dataclass(frozen=True, slots=True)

@@ -430,12 +430,12 @@ def _score_sam(
             raise InputValidationError(
                 f"minimap2 SAM line {line_number}: invalid numeric field"
             ) from error
-        if flag & 0x4 or flag & 0x900 or target == "*":
-            continue
         if not 0 <= mapping_quality <= 255:
             raise InputValidationError(
                 f"minimap2 SAM line {line_number}: mapping quality must be between 0 and 255"
             )
+        if flag & 0x4 or flag & 0x900 or target == "*":
+            continue
         if minimum_mapping_quality and (
             mapping_quality == 255 or mapping_quality < minimum_mapping_quality
         ):
