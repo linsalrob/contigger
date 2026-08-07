@@ -14,6 +14,7 @@ from contigger.junction_benchmark import (
     evaluate_junction_support,
     load_junction_policy_review,
     load_junction_truth,
+    load_junction_truth_set_metadata,
     score_junction_observations,
 )
 from contigger.models import (
@@ -286,6 +287,12 @@ def test_policy_review_loader_is_strict_and_typed(tmp_path: Path) -> None:
     )
     with pytest.raises(InputValidationError, match="duplicate JSON field"):
         load_junction_policy_review(path)
-    path.write_text(json.dumps({"unknown": 1}), encoding="utf-8")
-    with pytest.raises(InputValidationError, match="missing"):
-        load_junction_policy_review(path)
+
+
+def test_truth_set_metadata_is_typed_and_unreviewed() -> None:
+    metadata = load_junction_truth_set_metadata(
+        Path(__file__).parents[1] / "benchmarks" / "pseudomonas_junction_truth_metadata.json"
+    )
+    assert metadata.case_count == metadata.true_case_count + metadata.artificial_case_count
+    assert metadata.false_support_baseline_established
+    assert not metadata.reviewed

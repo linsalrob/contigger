@@ -13,6 +13,7 @@ from contigger.models import (
     JunctionSupportDecision,
     JunctionSupportPolicy,
     JunctionSupportStatus,
+    JunctionTruthSetMetadata,
     TargetedJunctionEvidence,
 )
 from contigger.textio import open_text
@@ -43,6 +44,22 @@ JUNCTION_POLICY_REVIEW_FIELDS = frozenset(
         "minimum_spanning_fraction",
         "minimum_spanning_flank",
         "minimum_mapping_quality",
+    }
+)
+
+JUNCTION_TRUTH_METADATA_FIELDS = frozenset(
+    {
+        "dataset_id",
+        "dataset_version",
+        "technology",
+        "remapping_preset",
+        "source_description",
+        "truth_sha256",
+        "case_count",
+        "true_case_count",
+        "artificial_case_count",
+        "false_support_baseline_established",
+        "reviewed",
     }
 )
 
@@ -165,6 +182,46 @@ def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]
             raise ValueError(f"duplicate JSON field {key!r}")
         result[key] = value
     return result
+
+
+def load_junction_truth_set_metadata(path: Path) -> JunctionTruthSetMetadata:
+    """Load strict technology-specific truth-set metadata without reviewing it."""
+    try:
+        payload = json.loads(
+            path.read_text(encoding="utf-8"), object_pairs_hook=_reject_duplicate_keys
+        )
+    except (OSError, UnicodeError, ValueError) as error:
+        raise InputValidationError(
+            f"cannot read junction truth metadata {path}: {error}"
+        ) from error
+    if not isinstance(payload, dict):
+        raise InputValidationError(f"{path}: truth metadata must be a JSON object")
+    missing = sorted(JUNCTION_TRUTH_METADATA_FIELDS - set(payload))
+    unknown = sorted(set(payload) - JUNCTION_TRUTH_METADATA_FIELDS)
+    if missing:
+        raise InputValidationError(f"{path}: truth metadata is missing {missing[0]}")
+    if unknown:
+        raise InputValidationError(f"{path}: truth metadata has unknown field {unknown[0]!r}")
+    for field in (
+        "dataset_id",
+        "dataset_version",
+        "technology",
+        "remapping_preset",
+        "source_description",
+        "truth_sha256",
+    ):
+        if not isinstance(payload[field], str):
+            raise InputValidationError(f"{path}: truth metadata field {field!r} must be a string")
+    for field in ("case_count", "true_case_count", "artificial_case_count"):
+        if type(payload[field]) is not int:
+            raise InputValidationError(f"{path}: truth metadata field {field!r} must be an integer")
+    for field in ("false_support_baseline_established", "reviewed"):
+        if type(payload[field]) is not bool:
+            raise InputValidationError(f"{path}: truth metadata field {field!r} must be Boolean")
+    try:
+        return JunctionTruthSetMetadata(**payload)
+    except (TypeError, ValueError) as error:
+        raise InputValidationError(f"{path}: invalid truth metadata value: {error}") from error
 
 
 def load_junction_truth(path: Path) -> tuple[ExpectedJunction, ...]:
