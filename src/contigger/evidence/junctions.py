@@ -150,6 +150,8 @@ class TargetedJunctionRemapper:
         assert self.source.version is not None
         return TargetedJunctionEvidence(
             sample=request.sample,
+            technology=self.source.sample.technology or "unknown",
+            remapping_preset=self.preset,
             left_contig_id=request.left_contig_id,
             right_contig_id=request.right_contig_id,
             provisional_reference_id=request.provisional_reference.identifier,

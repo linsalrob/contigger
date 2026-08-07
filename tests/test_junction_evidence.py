@@ -71,7 +71,9 @@ def setup_provider(tmp_path: Path, tools: FakeTools) -> BamEvidenceProvider:
     executable = tmp_path / "samtools"
     executable.touch()
     return BamEvidenceProvider(
-        SampleInput("sample-a", fasta, bam=bam), executable=executable, runner=tools.samtools
+        SampleInput("sample-a", fasta, bam=bam, technology="ont"),
+        executable=executable,
+        runner=tools.samtools,
     )
 
 
@@ -99,6 +101,8 @@ def test_targeted_remapping_counts_distinct_flank_spanners(tmp_path: Path) -> No
         setup_provider(tmp_path, tools), minimap2=minimap, runner=tools.minimap2
     ).evaluate(request())
     assert evidence.selected_read_names == ("left-read", "right-read", "shared")
+    assert evidence.technology == "ont"
+    assert evidence.remapping_preset == "sr"
     assert evidence.remapped_read_names == ("left-read", "right-read")
     assert evidence.spanning_read_names == ("left-read",)
     assert evidence.spanning_reads == 1

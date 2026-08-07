@@ -119,6 +119,10 @@ The merged sequence did not exist when the original BAM was produced, so that BA
 
 Secondary and supplementary records are excluded from selection and spanning counts to prevent one molecule from inflating support, while distinct read names are counted once. Exact provisional-reference name and length are checked in the SAM header. A deletion or reference skip crossing the junction breaks the aligned block and cannot create support. Unmapped records and alignments not crossing both flanks remain visible through selected/remapped counts but are not spanning support. Mapping-quality, duplicate, clipping, paired-fragment, and technology-specific sufficiency policies remain deliberately unresolved pending reviewed truth sets. Targeted evidence is not automatically converted to a graph-supported edge.
 
+The checked-in ONT truth contains 19 proposed junctions: 15 native and four artificial threshold-negative adjacencies. Junction truth parsing is separate from relationship truth and validates construction coordinates, circular wrapping, selected source-read counts, reasons, and unique case/pair identities. Those source-read counts describe dataset construction, not targeted remapping, and cannot be used as observed support. Observational scoring accepts only sample-unique reports for one identical provisional-reference digest, pair, and junction coordinate. It reports false spanning support and missed spanning support without calling either a merge decision.
+
+A `JunctionSupportPolicy` declares an exact technology/remapping-preset pair plus spanning-read, spanning-fraction, and flank thresholds. Policies default to unreviewed and therefore `DEFERRED` even when reads span. Evidence from a different technology or preset is deferred. Thresholds are applied to one sample at a time; multiple samples are never pooled and remain deferred until an explicit aggregation policy is reviewed. A reviewed single-sample policy can label evidence supported or unsupported, but its result remains disconnected from graph eligibility. No ONT threshold is designated reviewed in the current baseline; checked-in remapping observations and wider technology truth are required first.
+
 ## 20. Provenance model
 
 Every retained, contained, merged, ambiguous, or rejected source contig remains represented. Rows record output ID, sample, source ID, relationship, explicit orientation, zero-based half-open source and output intervals, identity where applicable, disposition, and reason. Stable output IDs must not depend on traversal timing. Writers use fixed columns and sorted rows.
@@ -184,7 +188,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions.
+10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (junction truth and conservative policy boundary complete; remapping baseline and reviewed thresholds pending)
 
 ## 27. Open design questions
 

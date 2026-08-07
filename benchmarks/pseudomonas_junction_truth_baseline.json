@@ -1,0 +1,10 @@
+{
+  "artificial_junctions": 4,
+  "benchmark_version": "1.0.0",
+  "expected_junctions_checksum": "4685a0eb5d572dd73144bed1ce5ca491d54deaf8a52162ea928da990f926f9f4",
+  "junction_cases": 19,
+  "observational_baseline": "deferred until targeted remapping outputs are checked in",
+  "selected_native_spanning_reads": 1500,
+  "technology": "ont",
+  "true_junctions": 15
+}
