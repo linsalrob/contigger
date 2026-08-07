@@ -24,6 +24,8 @@ Contigger conservatively reconciles assembled contigs across samples while retai
 12. Coordinates must use one documented convention internally.
 13. No command may silently ignore malformed input, missing references, identifier collisions, or inconsistent sequence lengths.
 14. No placeholder implementation may report successful biological results.
+15. No source contig may disappear from representative output without a provenance record explaining its disposition.
+16. Any future change that increases merge eligibility must add a regression proving it does not increase known false joins.
 
 ## Coordinate convention
 

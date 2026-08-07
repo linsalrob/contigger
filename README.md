@@ -2,13 +2,13 @@
 
 Contigger is a conservative, provenance-aware tool for reconciling assembled metagenomic, microbial, viral, and phage contigs across samples.
 
-> **Experimental:** Contigger is an early scaffold. It does not yet perform sequence merging or produce biological result files.
+> **Experimental:** Contigger performs conservative exact deduplication, unique containment disposition, and conflict-free terminal-overlap construction. Imperfect overlaps remain deferred unless an approved evidence policy can resolve them.
 
 The governing principle is simple: **a missed merge is preferable to a false merge.** Identity alone never establishes that a join is valid.
 
 ## Current status
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe indexed alignment batching, conservative complete-pair relationship classification, deterministic benchmark evaluation, typed ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, targeted provisional-junction read extraction/remapping, a minimap2 adapter with validated persistent target indexes, and a functional dry run. Graph simplification, sequence construction, consensus, and merging remain planned.
+The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe alignment batching, conservative relationship classification, ambiguity-preserving graph decisions, provenance-complete path planning, sample-scoped BAM/CRAM validation, targeted remapping evidence, and a real experimental merge command.
 
 ## Development installation
 
@@ -26,10 +26,15 @@ contigger validate --manifest samples.tsv
 contigger merge --manifest samples.tsv --output-prefix results/contigger --dry-run
 ```
 
-A real merge fails clearly because biological merging is not implemented:
+Run a conservative merge without BAM/CRAM inputs:
 
 ```bash
-contigger merge --manifest samples.tsv --output-prefix results/contigger
+contigger merge \
+  --manifest samples.tsv \
+  --output-prefix results/contigger \
+  --identity 98 \
+  --evidence none \
+  --threads 32
 ```
 
 ## Experimental PAF diagnostics
@@ -60,7 +65,9 @@ Unknown columns are retained as sample metadata. Optional paths, when supplied, 
 
 ## Planned outputs
 
-The first implemented outputs will be `contigger.fasta`, `contigger.provenance.tsv`, `contigger.relationships.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`. Later milestones plan `contigger.variants.tsv`, `contigger.join_support.tsv`, `contigger.consensus.vcf`, and `contigger.low_confidence.bed`. A dry run writes none of these.
+The merge writes `contigger.fasta`, complete `contigger.provenance.tsv`, classified `contigger.relationships.tsv`, deferred/ambiguous diagnostics in `contigger.ambiguous.tsv`, optional `contigger.gfa`, and deterministic stage counts in `contigger.stats.json`. A dry run validates and reports the plan but writes no biological outputs.
+
+With `--evidence none`, only exact/RC representatives, uniquely eligible containments, and unambiguous terminal overlaps whose aligned nucleotides are identical can be emitted. Branches, cycles, conflicts, unsupported imperfect overlaps, and known-forbidden relationships remain separate. `--evidence alignments` enables the same conservative sequence path and records the mode; it does not invent an unreviewed consensus policy, so imperfect overlaps without an approved policy remain deferred.
 
 ## External tools and synthetic benchmark
 

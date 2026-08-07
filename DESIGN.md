@@ -10,11 +10,11 @@ A **contig** is an input assembled sequence. A **candidate** is a pair selected 
 
 ## 3. Scope of the current implementation
 
-The current milestone supplies typed models, transparent plain/gzip FASTA and PAF input, manifest validation, stable exact strand-aware sequence cataloguing, canonical positional-minimiser candidates, selective per-pair alignment requests, strict streaming PAF parsing, conservative classification of complete ordered query-target hit groups, deterministic evaluation against checked-in Pseudomonas truth, unsimplified ambiguity-preserving relationship graph construction, conservative graph decision eligibility, provenance-complete metadata-only linear-path planning, sample-scoped source BAM/CRAM validation and pileups, and targeted remapping reports for caller-supplied provisional junction references. No current command simplifies a graph, constructs a joined sequence, or merges contigs.
+The current milestone supplies typed models, stable exact/RC cataloguing, positional-minimiser candidates, selective minimap2 alignment, conservative relationship and graph decisions, provenance-complete path planning, and real conservative sequence construction. `contigger merge` emits FASTA, provenance, relationship, ambiguity, GFA, and stats artifacts; graph branches and unsupported conflicts remain deferred.
 
 ## 4. Explicit non-goals
 
-This scaffold does not implement graph simplification, containment removal, merge-path authorization, path merging, consensus construction, variant calling, calibrated junction-support thresholds, confidence scoring, parallel or distributed execution, or Rust bindings. It must never imply that these operations succeeded.
+This scaffold does not implement graph simplification, consensus construction for imperfect overlaps, variant calling, calibrated junction-support thresholds, confidence scoring, distributed execution, or Rust bindings. It must never imply that these operations succeeded.
 
 ## 5. Input model
 
@@ -203,6 +203,14 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
 10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, review-artifact gate, strict artifact loading, and truth-set metadata complete; reviewed thresholds and broader truth sets pending)
+
+11. Construct conservative biological outputs from exact identities, unique containments, and unambiguous conflict-free terminal paths. (experimental implementation; imperfect overlaps remain deferred without an approved evidence policy)
+
+## 26.1 Conservative sequence construction
+
+`contigger merge` reuses the catalogue, candidate, selective-alignment, relationship, graph, decision, and path-planning stages. Exact and reverse-complement aliases collapse before alignment. A unique eligible containment removes only the contained catalogue representative from the FASTA; every source member remains in provenance. A linear path is constructed incrementally using its classified coordinates and explicit node orientations. The aligned intervals must have equal length and identical bases after orientation. The unique suffix of each next node is appended, and any failed junction defers the whole path rather than emitting a partial biological result.
+
+`--evidence none` permits only those intrinsically conflict-free operations. Substitutions, insertions, deletions, ambiguous branches, cycles, competing terminals, and known-forbidden edges remain separate and are listed in the ambiguity TSV. `--evidence alignments` is an optional evidence mode for future reviewed policies; this milestone does not invent a consensus rule, so imperfect overlaps still defer when no approved policy can choose a deterministic sequence. Source coordinates are zero-based and half-open internally, and every source contig has a provenance disposition and evidence mode.
 
 ## 27. Open design questions
 

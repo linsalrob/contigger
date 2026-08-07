@@ -22,6 +22,7 @@ PROVENANCE_COLUMNS = (
     "identity",
     "disposition",
     "decision_reason",
+    "evidence_mode",
 )
 
 
@@ -41,6 +42,7 @@ class ProvenanceRecord:
     identity: float | None
     disposition: str
     decision_reason: str
+    evidence_mode: str = "none"
 
 
 def write_provenance(path: Path, records: Iterable[ProvenanceRecord]) -> None:
@@ -72,5 +74,6 @@ def write_provenance(path: Path, records: Iterable[ProvenanceRecord]) -> None:
                     "" if record.identity is None else f"{record.identity:.6f}",
                     record.disposition,
                     record.decision_reason,
+                    record.evidence_mode,
                 )
             )
