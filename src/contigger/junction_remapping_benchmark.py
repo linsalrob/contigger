@@ -85,6 +85,125 @@ class JunctionPolicyCandidateBenchmark:
     reviewed: bool = False
 
 
+@dataclass(frozen=True, slots=True)
+class JunctionPolicyCandidateBaselineArtifact:
+    """Strictly parsed candidate benchmark provenance, without policy authorization."""
+
+    candidates: tuple[JunctionPolicyCandidateBenchmark, ...]
+    negative_controls: int
+    reviewed: bool
+    result: str
+
+
+def load_junction_policy_candidate_baseline(
+    path: Path, *, expected_sha256: str | None = None
+) -> JunctionPolicyCandidateBaselineArtifact:
+    """Load a candidate baseline and optionally verify its exact file digest."""
+    try:
+        raw = path.read_bytes()
+        payload = json.loads(raw.decode("utf-8"), object_pairs_hook=_reject_duplicate_keys)
+    except (OSError, UnicodeError, ValueError) as error:
+        raise InputValidationError(
+            f"cannot read junction policy candidate baseline {path}: {error}"
+        ) from error
+    if expected_sha256 is not None and hashlib.sha256(raw).hexdigest() != expected_sha256:
+        raise InputValidationError(
+            f"{path}: candidate baseline digest does not match expected value"
+        )
+    if not isinstance(payload, dict):
+        raise InputValidationError(f"{path}: candidate baseline must be a JSON object")
+    required = {"candidates", "negative_controls", "reviewed", "result"}
+    missing = sorted(required - set(payload))
+    unknown = sorted(set(payload) - required)
+    if missing:
+        raise InputValidationError(f"{path}: candidate baseline is missing {missing[0]}")
+    if unknown:
+        raise InputValidationError(f"{path}: candidate baseline has unknown field {unknown[0]!r}")
+    if type(payload["negative_controls"]) is not int or payload["negative_controls"] < 0:
+        raise InputValidationError(f"{path}: negative_controls must be a non-negative integer")
+    if type(payload["reviewed"]) is not bool or not isinstance(payload["result"], str):
+        raise InputValidationError(f"{path}: invalid candidate baseline metadata")
+    if payload["reviewed"]:
+        raise InputValidationError(
+            f"{path}: candidate baseline reviewed status requires an external policy review"
+        )
+    candidates = payload["candidates"]
+    if not isinstance(candidates, list) or not candidates:
+        raise InputValidationError(f"{path}: candidates must be a non-empty array")
+    candidate_fields = {
+        "minimum_spanning_fraction",
+        "minimum_spanning_reads",
+        "false_support_cases",
+        "missed_true_cases",
+        "supported_true_cases",
+    }
+    parsed: list[JunctionPolicyCandidateBenchmark] = []
+    seen: set[tuple[int, float]] = set()
+    true_case_total: int | None = None
+    for index, candidate in enumerate(candidates):
+        if not isinstance(candidate, dict) or set(candidate) != candidate_fields:
+            raise InputValidationError(f"{path}: candidate {index} has invalid fields")
+        if (
+            type(candidate["minimum_spanning_reads"]) is not int
+            or candidate["minimum_spanning_reads"] < 1
+        ):
+            raise InputValidationError(
+                f"{path}: candidate {index} has invalid minimum_spanning_reads"
+            )
+        if (
+            type(candidate["minimum_spanning_fraction"]) not in {int, float}
+            or not 0.0 <= candidate["minimum_spanning_fraction"] <= 1.0
+        ):
+            raise InputValidationError(
+                f"{path}: candidate {index} has invalid minimum_spanning_fraction"
+            )
+        counts = tuple(
+            candidate[field]
+            for field in ("false_support_cases", "missed_true_cases", "supported_true_cases")
+        )
+        if any(type(value) is not int or value < 0 for value in counts):
+            raise InputValidationError(f"{path}: candidate {index} has invalid result counts")
+        if counts[0] > payload["negative_controls"]:
+            raise InputValidationError(
+                f"{path}: candidate {index} false support exceeds negative controls"
+            )
+        candidate_true_total = counts[1] + counts[2]
+        if true_case_total is None:
+            true_case_total = candidate_true_total
+        elif candidate_true_total != true_case_total:
+            raise InputValidationError(
+                f"{path}: candidate {index} true-case totals are inconsistent"
+            )
+        key = (candidate["minimum_spanning_reads"], float(candidate["minimum_spanning_fraction"]))
+        if key in seen:
+            raise InputValidationError(f"{path}: duplicate candidate threshold at index {index}")
+        seen.add(key)
+        parsed.append(
+            JunctionPolicyCandidateBenchmark(
+                minimum_spanning_reads=key[0],
+                minimum_spanning_fraction=key[1],
+                false_support_cases=counts[0],
+                missed_true_cases=counts[1],
+                supported_true_cases=counts[2],
+                testable_negative_cases=payload["negative_controls"],
+                reviewed=payload["reviewed"],
+            )
+        )
+    return JunctionPolicyCandidateBaselineArtifact(
+        tuple(parsed), payload["negative_controls"], payload["reviewed"], payload["result"]
+    )
+
+
+def _reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    """Reject duplicate JSON object members instead of silently choosing one."""
+    result: dict[str, object] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON field {key!r}")
+        result[key] = value
+    return result
+
+
 def benchmark_junction_policy_candidates(
     report: JunctionRemappingBenchmarkReport,
     candidates: tuple[tuple[int, float], ...],

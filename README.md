@@ -174,6 +174,8 @@ Reviewed policies now require a `JunctionPolicyReview` artifact containing the e
 
 `validate_junction_policy_review()` additionally requires an approved review to match reviewed truth metadata and the exact candidate-baseline digest. This remains a provenance gate only; no current artifact authorizes graph decisions.
 
+`load_junction_policy_candidate_baseline()` strictly loads the candidate-threshold artifact and can verify its exact SHA-256 before that digest is paired with a review. It remains evidence-only and cannot authorize a graph edge.
+
 ## Roadmap
 
 1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
