@@ -487,6 +487,8 @@ class TargetedJunctionEvidence:
     """Deterministic remapping observations that do not themselves authorize a merge."""
 
     sample: str
+    technology: str
+    remapping_preset: str
     left_contig_id: str
     right_contig_id: str
     provisional_reference_id: str
@@ -503,6 +505,8 @@ class TargetedJunctionEvidence:
     diagnostics: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
+        if not self.technology or not self.remapping_preset:
+            raise InputValidationError("junction evidence requires technology and remapping preset")
         if self.provisional_reference_length < 1:
             raise InputValidationError("provisional reference length must be positive")
         if len(self.provisional_reference_sha256) != 64 or any(
@@ -513,6 +517,14 @@ class TargetedJunctionEvidence:
             )
         if not 0 < self.junction_position < self.provisional_reference_length:
             raise InputValidationError("junction position must be inside the provisional reference")
+        if self.minimum_spanning_flank < 1 or (
+            self.minimum_spanning_flank > self.junction_position
+            or self.minimum_spanning_flank
+            > self.provisional_reference_length - self.junction_position
+        ):
+            raise InputValidationError(
+                "minimum spanning flank must fit on both sides of the junction"
+            )
         for label, names in (
             ("selected", self.selected_read_names),
             ("remapped", self.remapped_read_names),
@@ -536,14 +548,17 @@ class JunctionSupportPolicy:
     """Explicit technology-specific criteria requiring external benchmark review."""
 
     technology: str
+    remapping_preset: str
     minimum_spanning_reads: int
     minimum_spanning_fraction: float
     minimum_spanning_flank: int
     reviewed: bool = False
 
     def __post_init__(self) -> None:
-        if not self.technology:
-            raise InputValidationError("junction support policy requires a technology")
+        if not self.technology or not self.remapping_preset:
+            raise InputValidationError(
+                "junction support policy requires a technology and remapping preset"
+            )
         if self.minimum_spanning_reads < 1 or self.minimum_spanning_flank < 1:
             raise InputValidationError("junction support counts and flank must be positive")
         if not 0.0 <= self.minimum_spanning_fraction <= 1.0:

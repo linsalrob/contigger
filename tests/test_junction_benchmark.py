@@ -28,6 +28,8 @@ def evidence(case: str, spanning: int, remapped: int = 10) -> TargetedJunctionEv
     """Build deterministic evidence with distinct sample-scoped read identities."""
     return TargetedJunctionEvidence(
         sample="S01",
+        technology="ont",
+        remapping_preset="map-ont",
         left_contig_id=f"{case}_left",
         right_contig_id=f"{case}_right",
         provisional_reference_id=case,
@@ -78,7 +80,7 @@ def test_truth_errors_include_physical_line(tmp_path: Path) -> None:
 
 
 def test_unreviewed_policy_is_always_deferred() -> None:
-    policy = JunctionSupportPolicy("ont", 3, 0.5, 20)
+    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.5, 20)
     decision = evaluate_junction_support((evidence("case", 10),), policy)
     assert decision.status is JunctionSupportStatus.DEFERRED
     assert "not been reviewed" in decision.reasons[0]
@@ -88,7 +90,7 @@ def test_unreviewed_policy_is_always_deferred() -> None:
 
 
 def test_reviewed_policy_applies_inclusive_thresholds_and_flank_guard() -> None:
-    policy = JunctionSupportPolicy("ont", 3, 0.3, 20, reviewed=True)
+    policy = JunctionSupportPolicy("ont", "map-ont", 3, 0.3, 20, reviewed=True)
     assert (
         evaluate_junction_support((evidence("case", 3),), policy).status
         is JunctionSupportStatus.SUPPORTED
@@ -125,10 +127,33 @@ def test_observations_reject_unknown_cases() -> None:
 
 
 def test_evidence_groups_reject_duplicate_samples_and_inconsistent_references() -> None:
-    policy = JunctionSupportPolicy("ont", 1, 0.0, 20, reviewed=True)
+    policy = JunctionSupportPolicy("ont", "map-ont", 1, 0.0, 20, reviewed=True)
     first = evidence("case", 1)
     with pytest.raises(InputValidationError, match="duplicate sample"):
         evaluate_junction_support((first, first), policy)
     second = replace(first, sample="S02", provisional_reference_sha256="b" * 64)
     with pytest.raises(InputValidationError, match="identical provisional junction"):
         evaluate_junction_support((first, second), policy)
+
+
+def test_policy_never_pools_samples_and_requires_matching_configuration() -> None:
+    policy = JunctionSupportPolicy("ont", "map-ont", 2, 0.0, 20, reviewed=True)
+    first = replace(evidence("case", 1), remapped_read_names=("read-0",))
+    second = replace(
+        first,
+        sample="S02",
+        selected_read_names=("other",),
+        remapped_read_names=("other",),
+        spanning_read_names=("other",),
+    )
+    pooled = evaluate_junction_support((first, second), policy)
+    assert pooled.status is JunctionSupportStatus.DEFERRED
+    assert "cross-sample" in pooled.reasons[0]
+    mismatch = evaluate_junction_support((replace(first, remapping_preset="sr"),), policy)
+    assert mismatch.status is JunctionSupportStatus.DEFERRED
+    assert "does not match" in mismatch.reasons[0]
+
+
+def test_evidence_rejects_impossible_spanning_flank() -> None:
+    with pytest.raises(InputValidationError, match="fit on both sides"):
+        replace(evidence("case", 1), minimum_spanning_flank=51)

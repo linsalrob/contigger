@@ -133,6 +133,27 @@ def evaluate_junction_support(
             fraction,
             ("no targeted-remapping evidence supplied",),
         )
+    if any(
+        item.technology != policy.technology or item.remapping_preset != policy.remapping_preset
+        for item in evidence
+    ):
+        return JunctionSupportDecision(
+            JunctionSupportStatus.DEFERRED,
+            policy.technology,
+            spanning,
+            remapped,
+            fraction,
+            ("evidence technology or remapping preset does not match the policy",),
+        )
+    if len(evidence) > 1:
+        return JunctionSupportDecision(
+            JunctionSupportStatus.DEFERRED,
+            policy.technology,
+            spanning,
+            remapped,
+            fraction,
+            ("cross-sample junction evidence aggregation has not been reviewed",),
+        )
     if not policy.reviewed:
         return JunctionSupportDecision(
             JunctionSupportStatus.DEFERRED,
