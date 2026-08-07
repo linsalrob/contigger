@@ -125,6 +125,8 @@ The checked-in remapping baseline constructs benchmark-only provisional referenc
 
 Mapping quality is parsed and validated at both SAM and PAF evidence boundaries and filtered before a read is counted as remapped or spanning. The checked-in configuration matrix covers 20 bp and 100 bp continuous flanks at minimum mapping qualities 0 and 20; all four configurations retain four testable negative controls, zero false support, and the same six missed true sample-cases. Exact synthetic controls establish mapping-geometry testability only. They do not model ONT errors, repeats, chimeric reads, or sample variation, so this observation does not calibrate a support policy and is not connected to graph eligibility.
 
+`benchmark_junction_policy_candidates()` scores minimum-spanning-read and spanning-fraction candidates independently for every sample observation and synthetic negative control. The checked-in candidate baseline compares `(1, 0.0)`, `(3, 0.3)`, and `(5, 0.5)`: all retain zero false support, while stricter candidates increase missed true observations from six to twelve. Candidate results are explicitly unreviewed and evidence-only; they do not select a threshold or authorize a graph edge.
+
 A `JunctionSupportPolicy` declares an exact technology/remapping-preset pair plus spanning-read, spanning-fraction, and flank thresholds. Policies default to unreviewed and therefore `DEFERRED` even when reads span. Evidence from a different technology or preset is deferred. Thresholds are applied to one sample at a time; multiple samples are never pooled and remain deferred until an explicit aggregation policy is reviewed. A reviewed single-sample policy can label evidence supported or unsupported, but its result remains disconnected from graph eligibility. No ONT threshold is designated reviewed in the current baseline; checked-in remapping observations and wider technology truth are required first.
 
 ## 20. Provenance model
@@ -192,7 +194,7 @@ Unit tests use synthetic FASTA and manually built alignment records and require 
 7. Implement provenance-complete unambiguous linear-path planning before any sequence merging. (complete; metadata only)
 8. Validate source BAM/CRAM references and expose sample-aware pileups. (complete; source contigs only)
 9. Add targeted read extraction/remapping and junction-support reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping and synthetic negative-control configuration baselines complete; reviewed thresholds and broader truth sets pending)
+10. Benchmark technology-specific junction-support, consensus, and variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, and unreviewed policy-candidate baselines complete; reviewed thresholds and broader truth sets pending)
 
 ## 27. Open design questions
 

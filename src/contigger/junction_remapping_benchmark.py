@@ -72,6 +72,57 @@ class SampleScopedJunctionSummary:
     false_support_baseline_established: bool
 
 
+@dataclass(frozen=True, slots=True)
+class JunctionPolicyCandidateBenchmark:
+    """Score one unreviewed support-threshold candidate against observations."""
+
+    minimum_spanning_reads: int
+    minimum_spanning_fraction: float
+    false_support_cases: int
+    missed_true_cases: int
+    supported_true_cases: int
+    testable_negative_cases: int
+    reviewed: bool = False
+
+
+def benchmark_junction_policy_candidates(
+    report: JunctionRemappingBenchmarkReport,
+    candidates: tuple[tuple[int, float], ...],
+) -> tuple[JunctionPolicyCandidateBenchmark, ...]:
+    """Evaluate threshold candidates without authorizing evidence or graph edges."""
+    results: list[JunctionPolicyCandidateBenchmark] = []
+    for minimum_reads, minimum_fraction in candidates:
+        if minimum_reads < 1:
+            raise InputValidationError("candidate minimum spanning reads must be positive")
+        if not 0.0 <= minimum_fraction <= 1.0:
+            raise InputValidationError("candidate spanning fraction must be between zero and one")
+        false_support = 0
+        missed_true = 0
+        supported_true = 0
+        testable_negative = 0
+        for case in report.cases:
+            fraction = case.spanning_reads / case.remapped_reads if case.remapped_reads else 0.0
+            supported = case.spanning_reads >= minimum_reads and fraction >= minimum_fraction
+            if not case.junction_is_true:
+                testable_negative += case.testable
+                false_support += supported
+            elif supported:
+                supported_true += 1
+            else:
+                missed_true += 1
+        results.append(
+            JunctionPolicyCandidateBenchmark(
+                minimum_reads,
+                minimum_fraction,
+                false_support,
+                missed_true,
+                supported_true,
+                testable_negative,
+            )
+        )
+    return tuple(results)
+
+
 def evaluate_junction_remapping_benchmark(
     dataset: Path,
     *,
