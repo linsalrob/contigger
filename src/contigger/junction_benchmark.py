@@ -245,6 +245,27 @@ def load_junction_truth_set_metadata(path: Path, *, truth_path: Path) -> Junctio
     return metadata
 
 
+def validate_junction_policy_review(
+    review: JunctionPolicyReview,
+    metadata: JunctionTruthSetMetadata,
+    *,
+    candidate_baseline_sha256: str,
+) -> None:
+    """Require an approved review to match a reviewed truth set and baseline digest."""
+    if review.decision != "approved":
+        raise InputValidationError("junction policy review is not approved")
+    if not metadata.reviewed or not metadata.false_support_baseline_established:
+        raise InputValidationError(
+            "junction policy review requires reviewed truth metadata and false-support baseline"
+        )
+    if review.truth_dataset_sha256 != metadata.truth_sha256:
+        raise InputValidationError("junction policy review truth digest does not match metadata")
+    if review.candidate_baseline_sha256 != candidate_baseline_sha256:
+        raise InputValidationError(
+            "junction policy review candidate baseline digest does not match supplied baseline"
+        )
+
+
 def load_junction_truth(path: Path) -> tuple[ExpectedJunction, ...]:
     """Parse strict line-aware construction truth for proposed junctions."""
     with open_text(path, newline="") as handle:

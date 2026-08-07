@@ -16,11 +16,13 @@ from contigger.junction_benchmark import (
     load_junction_truth,
     load_junction_truth_set_metadata,
     score_junction_observations,
+    validate_junction_policy_review,
 )
 from contigger.models import (
     JunctionPolicyReview,
     JunctionSupportPolicy,
     JunctionSupportStatus,
+    JunctionTruthSetMetadata,
     TargetedJunctionEvidence,
 )
 
@@ -297,3 +299,31 @@ def test_truth_set_metadata_is_typed_and_unreviewed() -> None:
     assert metadata.case_count == metadata.true_case_count + metadata.artificial_case_count
     assert metadata.false_support_baseline_established
     assert not metadata.reviewed
+
+
+def test_policy_review_must_match_reviewed_truth_metadata() -> None:
+    metadata = JunctionTruthSetMetadata(
+        "dataset",
+        "1",
+        "ont",
+        "map-ont",
+        "reviewed truth",
+        "a" * 64,
+        19,
+        15,
+        4,
+        True,
+        reviewed=True,
+    )
+    review = replace(REVIEW, truth_dataset_sha256="a" * 64, candidate_baseline_sha256="b" * 64)
+    validate_junction_policy_review(review, metadata, candidate_baseline_sha256="b" * 64)
+    with pytest.raises(InputValidationError, match="truth digest"):
+        validate_junction_policy_review(
+            replace(review, truth_dataset_sha256="c" * 64),
+            metadata,
+            candidate_baseline_sha256="b" * 64,
+        )
+    with pytest.raises(InputValidationError, match="reviewed truth metadata"):
+        validate_junction_policy_review(
+            review, replace(metadata, reviewed=False), candidate_baseline_sha256="b" * 64
+        )
