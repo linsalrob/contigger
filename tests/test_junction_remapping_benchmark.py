@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 
+import pytest
+
+from contigger.exceptions import InputValidationError
 from contigger.junction_remapping_benchmark import (
     JunctionRemappingBenchmarkReport,
     SampleScopedJunctionCase,
     _build_requests,
     benchmark_junction_policy_candidates,
+    load_junction_policy_candidate_baseline,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -111,3 +116,22 @@ def test_policy_candidate_benchmark_preserves_negative_controls() -> None:
     ] == policy_baseline["candidates"]
     assert policy_baseline["negative_controls"] == 4
     assert policy_baseline["reviewed"] is False
+
+
+def test_policy_candidate_baseline_loader_is_strict_and_digest_bound(tmp_path: Path) -> None:
+    artifact = load_junction_policy_candidate_baseline(POLICY_BASELINE)
+    assert len(artifact.candidates) == 3
+    assert artifact.negative_controls == 4
+    assert not artifact.reviewed
+    digest = hashlib.sha256(POLICY_BASELINE.read_bytes()).hexdigest()
+    assert (
+        load_junction_policy_candidate_baseline(POLICY_BASELINE, expected_sha256=digest) == artifact
+    )
+    with pytest.raises(InputValidationError, match="digest"):
+        load_junction_policy_candidate_baseline(POLICY_BASELINE, expected_sha256="0" * 64)
+    malformed = tmp_path / "candidate.json"
+    malformed.write_text(
+        '{"candidates": [], "negative_controls": 0, "reviewed": false, "result": "x"}'
+    )
+    with pytest.raises(InputValidationError, match="non-empty"):
+        load_junction_policy_candidate_baseline(malformed)
