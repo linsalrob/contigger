@@ -6,7 +6,7 @@ Each sample must provide a readable FASTA. Contig identifiers must be unique wit
 
 ## BAM/CRAM
 
-An optional BAM or CRAM must have an adjacent BAI/CSI/CRAI index. For `validate-alignments` and `--evidence alignments`, it must be coordinate-readable and its reference names and lengths must exactly match the corresponding source FASTA. A source BAM supports sample-scoped observations on source contigs; it cannot, by itself, prove a newly constructed junction.
+An optional BAM or CRAM must have an adjacent BAI index for BAM or CRAI index for CRAM. For `validate-alignments` and `--evidence alignments`, it must be coordinate-readable and its reference names and lengths must exactly match the corresponding source FASTA. A source BAM supports sample-scoped observations on source contigs; it cannot, by itself, prove a newly constructed junction.
 
 ## Assembly graphs and raw reads
 
