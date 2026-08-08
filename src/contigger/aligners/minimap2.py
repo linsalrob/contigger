@@ -32,6 +32,7 @@ class Minimap2Aligner:
         self.index_builds = 0
         self.index_reuses = 0
         self.alignment_batches = 0
+        self._built_indexes: set[Path] = set()
 
     @property
     def tool_name(self) -> str:
@@ -79,7 +80,8 @@ class Minimap2Aligner:
                 raise InputValidationError(
                     f"minimap2 index metadata does not match requested targets: {index_path}"
                 )
-            self.index_reuses += 1
+            if index_path not in self._built_indexes:
+                self.index_reuses += 1
             return index_path
         expected = self._index_metadata(target_records)
         if self.executable is None:
@@ -112,6 +114,7 @@ class Minimap2Aligner:
                 temporary_index.replace(index_path)
                 temporary_metadata.replace(metadata_path)
                 self.index_builds += 1
+                self._built_indexes.add(index_path)
         except OSError as error:
             raise InputValidationError(
                 f"cannot create minimap2 index {index_path}: {error}"

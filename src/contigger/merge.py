@@ -62,8 +62,16 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
                 "evidence mode 'alignments' requires a BAM/CRAM for every sample; "
                 f"missing: {', '.join(missing)}"
             )
+        samtools_versions: dict[str, str | None] = {}
+        samtools_commands: dict[str, tuple[tuple[str, ...], ...]] = {}
         for sample in samples:
-            BamEvidenceProvider(sample).validate_source()
+            provider = BamEvidenceProvider(sample)
+            provider.validate_source()
+            samtools_versions[sample.sample] = provider.version
+            samtools_commands[sample.sample] = provider.commands
+    else:
+        samtools_versions = {}
+        samtools_commands = {}
     stages: dict[str, float] = {}
 
     stage_start = time.monotonic()
@@ -152,6 +160,8 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         tool_versions,
         stages,
         aligner_metrics,
+        samtools_versions,
+        samtools_commands,
     )
     _write_outputs_atomic(
         paths_out,
@@ -546,6 +556,8 @@ def _stats(
     tool_versions: dict[str, str | None],
     stages: dict[str, float],
     aligner_metrics: dict[str, int],
+    samtools_versions: dict[str, str | None],
+    samtools_commands: dict[str, tuple[tuple[str, ...], ...]],
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
@@ -577,6 +589,13 @@ def _stats(
         "output_contigs": len(constructed),
         "output_bases": sum(item.length for item in constructed),
         "tool_versions": tool_versions,
+        "samtools_versions": samtools_versions,
+        "tool_commands": {
+            "samtools": {
+                sample: [list(command) for command in commands]
+                for sample, commands in sorted(samtools_commands.items())
+            }
+        },
         "alignment_metrics": aligner_metrics,
         "minimap2_preset": config.minimap2_preset,
         "configuration": config.as_dict(),
@@ -691,6 +710,7 @@ def _join_support_rows(
                 edge.query_id,
                 edge.target_id,
                 "",
+                "0",
                 "0",
                 "0",
                 "0",
