@@ -38,7 +38,8 @@ def _stem(path: Path, suffixes: tuple[str, ...]) -> str | None:
     lowered = path.name.casefold()
     for suffix in suffixes:
         if lowered.endswith(suffix):
-            return path.name[: -len(suffix)]
+            stem = path.name[: -len(suffix)].strip()
+            return stem or None
     return None
 
 
@@ -106,6 +107,11 @@ def discover(directory: Path, *, recursive: bool = True) -> tuple[ManifestRow, .
 
 def write_manifest(rows: tuple[ManifestRow, ...], output: Path) -> tuple[str, ...]:
     """Write a tab-separated manifest and return non-fatal warnings."""
+    output = output.resolve()
+    for row in rows:
+        inputs = (row.contigs, row.bam, row.assembly_graph, row.index)
+        if any(path is not None and path.resolve() == output for path in inputs):
+            raise ValueError(f"manifest output aliases a discovered input: {output}")
     output.parent.mkdir(parents=True, exist_ok=True)
     warnings: list[str] = []
 
@@ -141,4 +147,4 @@ def create_manifest(
 ) -> tuple[tuple[ManifestRow, ...], tuple[str, ...]]:
     """Discover inputs and write a manifest."""
     rows = discover(directory.resolve(), recursive=recursive)
-    return rows, write_manifest(rows, output.resolve())
+    return rows, write_manifest(rows, output)

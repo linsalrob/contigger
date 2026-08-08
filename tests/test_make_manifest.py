@@ -44,3 +44,29 @@ def test_make_manifest_rejects_colliding_sample_names(tmp_path: Path) -> None:
     )
     assert result.returncode == 2
     assert "multiple FASTA files produce sample name" in result.stderr
+
+
+def test_make_manifest_rejects_output_alias_and_normalizes_stems(tmp_path: Path) -> None:
+    assembly = tmp_path / "sample.fa"
+    assembly.write_text(">a\nACGT\n", encoding="ascii")
+    alias = tmp_path / "manifest.tsv"
+    alias.symlink_to(assembly)
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(tmp_path), "--output", str(alias)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 2
+    assert "aliases a discovered input" in result.stderr
+
+    assembly.unlink()
+    alias.unlink()
+    (tmp_path / "sample .fa").write_text(">a\nACGT\n", encoding="ascii")
+    output = tmp_path / "samples.tsv"
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), str(tmp_path), "--output", str(output)],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0
+    assert "sample\t" in output.read_text(encoding="utf-8")
