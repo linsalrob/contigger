@@ -28,6 +28,7 @@ from contigger.junction_remapping_benchmark import (
     write_junction_remapping_json,
 )
 from contigger.manifest import ManifestValidation, parse_manifest
+from contigger.manifest_generator import create_manifest
 from contigger.merge import merge_samples
 from contigger.minimisers import generate_candidates, write_candidates_tsv
 from contigger.models import PairRelationship
@@ -62,6 +63,14 @@ def build_parser() -> argparse.ArgumentParser:
     validate_alignments.add_argument("--manifest", required=True, type=Path)
     validate_alignments.add_argument("--samtools", default="samtools")
     validate_alignments.set_defaults(handler=_run_validate_alignments)
+
+    make_manifest = commands.add_parser(
+        "make-manifest", help="discover FASTA files and matching evidence sidecars"
+    )
+    make_manifest.add_argument("directory", type=Path)
+    make_manifest.add_argument("-o", "--output", type=Path, default=Path("samples.tsv"))
+    make_manifest.add_argument("--no-recursive", action="store_true")
+    make_manifest.set_defaults(handler=_run_make_manifest)
 
     merge = commands.add_parser("merge", help="construct conservative merged contig sequences")
     merge.add_argument("--manifest", required=True, type=Path)
@@ -236,6 +245,22 @@ def _run_validate_alignments(arguments: argparse.Namespace) -> int:
         references = BamEvidenceProvider(sample, executable=arguments.samtools).validate_source()
         print(f"sample {sample.sample}: validated {len(references)} source reference(s)")
     print(f"validated BAM/CRAM inputs for {len(supplied)} sample(s)")
+    return 0
+
+
+def _run_make_manifest(arguments: argparse.Namespace) -> int:
+    """Discover assemblies and write a valid manifest."""
+    try:
+        rows, warnings = create_manifest(
+            arguments.directory,
+            arguments.output,
+            recursive=not arguments.no_recursive,
+        )
+    except (OSError, ValueError) as error:
+        raise InputValidationError(str(error)) from error
+    for warning in warnings:
+        print(f"warning: {warning}", file=sys.stderr)
+    print(f"wrote {len(rows)} sample(s) to {arguments.output}")
     return 0
 
 

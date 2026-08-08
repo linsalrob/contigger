@@ -26,6 +26,7 @@ nav:
   - Inputs:
       - Input files: inputs.md
       - Manifest: manifest.md
+      - Make a manifest: usage/make-manifest.md
   - Usage:
       - Merge: usage/merge.md
       - Validate inputs: usage/validate.md
