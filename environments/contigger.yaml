@@ -1,0 +1,19 @@
+name: contigger
+
+# Channel order follows Bioconda's recommendation: conda-forge has the
+# highest priority, followed by bioconda. nodefaults prevents accidental
+# mixing with packages from the defaults channel.
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+
+dependencies:
+  # Runtime and environment tooling
+  - python=3.12
+  - pip
+  
+
+  # Sequence and alignment tools
+  - minimap2=2.31
+  - samtools=1.24
