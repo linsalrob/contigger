@@ -1,199 +1,123 @@
 # Contigger
 
-Contigger is a conservative, provenance-aware tool for reconciling assembled metagenomic, microbial, viral, and phage contigs across samples.
+Contigger conservatively combines overlapping and redundant contigs across multiple assemblies while preserving ambiguous or conflicting sequences instead of forcing unsafe joins.
 
-> **Experimental:** Contigger performs conservative exact deduplication, unique containment disposition, and conflict-free terminal-overlap construction. Imperfect overlaps remain deferred unless an approved evidence policy can resolve them.
+It is designed for collections from metagenomes, microbial genomes, viromes, bacteriophages, and repeated or closely related assemblies. The governing rule is simple:
 
-The governing principle is simple: **a missed merge is preferable to a false merge.** Identity alone never establishes that a join is valid.
+> **A missed merge is preferable to a false merge.**
 
-## Current status
+Contigger is experimental but usable. Keep the original assemblies and inspect the provenance and ambiguity reports before using results for an important analysis.
 
-The Python 3.11+ package currently provides typed public models, transparent plain/gzip FASTA and PAF input, strict manifest validation, exact strand-aware sequence cataloguing with complete provenance, canonical positional-minimiser candidate generation, pair-safe alignment batching, conservative relationship classification, ambiguity-preserving graph decisions, provenance-complete path planning, sample-scoped BAM/CRAM validation, targeted remapping evidence, and a real experimental merge command.
+## Why use Contigger?
 
-## Development installation
+Imagine three assemblies:
+
+```text
+sample_1.fasta → contigs A B C
+sample_2.fasta → contigs D E F
+sample_3.fasta → contigs G H I
+```
+
+Across samples, some sequences may be exact duplicates, reverse-complement duplicates, contained within longer contigs, or connected by a conflict-free terminal overlap. Others may be genuinely different, repeat-driven, strain-specific, or too ambiguous to reconcile safely. Contigger reduces redundancy when the sequence geometry supports it and leaves uncertain relationships visible for review.
+
+It does not treat a high identity score as permission to concatenate sequences. Internal similarity is not a terminal overlap, and a BAM mapped to the original contigs cannot by itself prove a newly created junction.
+
+## Installation
+
+Contigger is installed from this repository; it is not currently advertised as a PyPI or Bioconda package.
 
 ```bash
+git clone https://github.com/linsalrob/contigger.git
+cd contigger
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e '.[dev]'
+python -m pip install .
 ```
 
-Validate inputs:
+For ordinary merges, install `minimap2` in your environment. For BAM/CRAM validation or `--evidence alignments`, install `samtools` too. A convenient Mamba environment is:
 
 ```bash
-contigger --help
+mamba create -n contigger -c conda-forge -c bioconda \
+  python=3.12 minimap2 samtools pip
+mamba activate contigger
+python -m pip install .
+```
+
+Check the installation with `contigger --version`, `contigger --help`, and, when relevant, `minimap2 --version` and `samtools --version`.
+
+## Five-minute quick start
+
+Put your assemblies in a directory:
+
+```text
+assemblies/
+├── sample01.fasta
+├── sample02.fasta
+└── sample03.fasta
+```
+
+Create a tab-separated manifest named `samples.tsv`:
+
+```text
+sample	contigs
+sample01	assemblies/sample01.fasta
+sample02	assemblies/sample02.fasta
+sample03	assemblies/sample03.fasta
+```
+
+Validate it, then run the conservative sequence-only merge:
+
+```bash
 contigger validate --manifest samples.tsv
-contigger merge --manifest samples.tsv --output-prefix results/contigger --dry-run
-```
-
-Run a conservative merge without BAM/CRAM inputs:
-
-```bash
 contigger merge \
   --manifest samples.tsv \
   --output-prefix results/contigger \
   --identity 98 \
-  --evidence none \
-  --threads 32
+  --threads 16
 ```
 
-## Experimental PAF diagnostics
+The output prefix creates:
 
-Classify all ordered query-target groups in a minimap2 PAF file:
+- `results/contigger.fasta` — representatives and safely constructed sequences;
+- `results/contigger.provenance.tsv` — a trace for every source contig;
+- `results/contigger.relationships.tsv` — classified pair relationships;
+- `results/contigger.ambiguous.tsv` — deferred components and reasons;
+- `results/contigger.gfa` — graph links when `--emit-gfa` is requested;
+- `results/contigger.stats.json` — configuration, counts, tools, and timings;
+- `results/contigger.join_support.tsv` and `results/contigger.variants.tsv` — explicit evidence diagnostics.
 
-```bash
-contigger classify-paf --paf alignments.paf --output relationships.tsv \
-  --identity 98 --min-overlap 1000 --min-containment 500 \
-  --containment-coverage 98 --end-tolerance 50
-```
+Use `--dry-run` to validate inputs and print the normalized plan without writing biological outputs.
 
-PAF and TSV coordinates are zero-based and half-open. Blank PAF lines are ignored; malformed fields, coordinates, orientations, or tags fail with the physical source line. Mapping quality 255 is retained as valid PAF data. The TSV is diagnostic and experimental and never claims that contigs were merged.
+## Three levels of use
 
-Every distinct primary, secondary, supplementary/inversion-labelled alignment is classified geometrically. Exact duplicate records are ignored. Equivalent hits can collapse only when topology, orientation, and coordinates agree within end tolerance. Conflicting accepted hits—including repeat placements—become `AMBIGUOUS_OVERLAP`; alignment score and primary status do not elect a winner. Rejected hits and reasons remain counted.
+| Level | You have | Recommended mode |
+| --- | --- | --- |
+| Beginner | FASTA assemblies | `--evidence none` (the default) |
+| Intermediate | FASTA plus BAM/CRAM mapped to each source assembly | `validate-alignments`, then `--evidence alignments` |
+| Advanced | Multiple assemblies, indexed BAM/CRAM, technology metadata, graphs or raw reads | Use the supported manifest/evidence validation and inspect the separate diagnostic workflows |
 
-## Manifest
+`--evidence alignments` validates sample-scoped BAM/CRAM inputs and records evidence diagnostics. It does not currently authorize an unreviewed SNP/indel consensus, so imperfect overlaps remain deferred. `assembly_graph` and `technology` are accepted manifest fields for validation and provenance, but they do not independently authorize a merge. Raw FASTQ files are not direct inputs to `contigger merge`; targeted-remapping benchmark commands use checked-in datasets rather than an arbitrary raw-read manifest.
 
-The manifest is tab-separated. Only `sample` and `contigs` are currently required; relative paths are resolved from the manifest directory.
+Read the [beginner workflow](docs/workflows/beginner.md), [intermediate workflow](docs/workflows/intermediate.md), or [full documentation](https://contigger.readthedocs.io/).
 
-```text
-sample	contigs	bam	technology	assembly_graph
-S01	S01.contigs.fasta	S01.sorted.bam	illumina	S01.gfa
-S02	S02.contigs.fasta	S02.sorted.bam	ont	S02.gfa
-```
+## What is safe to expect?
 
-Unknown columns are retained as sample metadata. Optional paths, when supplied, must exist.
+With `--evidence none`, Contigger can emit exact and reverse-complement representatives, uniquely eligible containments, and unambiguous terminal overlaps whose aligned bases are identical after orientation. It will retain both sequences when there is a SNP or indel disagreement, branch, repeat ambiguity, cycle, orientation conflict, or known-forbidden edge. A 98% identity threshold does not mean that every 98%-identical pair will merge.
 
-## Planned outputs
+Every source contig remains recoverable through provenance. Treat a deferred relationship as useful scientific information, not as a failed run.
 
-The merge writes `contigger.fasta`, complete `contigger.provenance.tsv`, classified `contigger.relationships.tsv`, deferred/ambiguous diagnostics in `contigger.ambiguous.tsv`, optional `contigger.gfa`, and deterministic stage counts in `contigger.stats.json`. A dry run validates and reports the plan but writes no biological outputs.
+## A practical review loop
 
-With `--evidence none`, only exact/RC representatives, uniquely eligible containments, and unambiguous terminal overlaps whose aligned nucleotides are identical can be emitted. Branches, cycles, conflicts, unsupported imperfect overlaps, and known-forbidden relationships remain separate. `--evidence alignments` evaluates imperfect junctions for evidence diagnostics but does not invent an unreviewed consensus policy, so imperfect overlaps without an approved policy remain deferred. Use `--minimap2-preset asm5|asm10|asm20` and `--index-dir PATH` to control and reuse validated target indexes on large runs. A 98% identity threshold alone never authorizes a merge.
+Start with the default settings and a small representative collection. Use `--dry-run` to catch path and tool problems before creating results. After a real run, compare the FASTA count with the input count, read the top-level counts in `stats.json`, and inspect `ambiguous.tsv` before deciding whether any threshold should change. The candidate report from `contigger candidates` is useful when runtime is unexpectedly high; it tells you which pairs reached alignment, not which pairs are biologically related.
 
-## External tools and synthetic benchmark
+For every sequence that was removed from the representative FASTA, locate its row in `provenance.tsv`. Exact duplicates should be labeled as catalogue identities, containments should identify their surviving container, and deferred or ambiguous sequences should still have an output representative. For a constructed path, check the ordered source members, orientations, overlap coordinates, and decision reason. If a relationship matters to a biological conclusion, retain the original contigs and independently inspect the source assemblies and reads.
 
-The experimental minimap2 adapter supports configurable threads and `asm5`, `asm10`, or `asm20` assembly presets while recording the version and exact command. Persistent target indexes are built with the selected preset and carry deterministic metadata containing that preset, the minimap2 version, target identifiers, lengths, and a sequence checksum; incomplete or mismatched indexes are rejected. Selective batches contain multiple approved queries but exactly one target, preventing accidental all-v-all expansion. Ordinary tests and checked-in PAF classification do not require minimap2. The small fixed-seed synthetic external-tool benchmark remains available:
+## Choosing an evidence mode
 
-When minimap2 is installed, compare `asm5` and `asm20` against fixed-seed synthetic truth:
+Use `--evidence none` when you want a reproducible sequence-only reduction or do not have mapped reads. It requires no BAM/CRAM and is the simplest starting point. Use `--evidence alignments` only when each sample has a coordinate-sorted, indexed BAM/CRAM mapped to its own source FASTA. This mode validates those references and records samtools provenance, but it remains conservative about imperfect overlaps. It is not a read-polishing command and does not pool samples into a majority consensus.
 
-```bash
-python benchmarks/evaluate_minimap2.py
-python benchmarks/evaluate_minimap2.py --json benchmark.json
-pytest -m integration
-```
+The `--minimap2-preset` option (`asm5`, `asm10`, or `asm20`) is an alignment sensitivity choice, not a biological policy. The default `asm20` is retained for current benchmark compatibility. On large collections, set `--index-dir` to a fast scratch location and monitor candidate counts, index reuse, and stage timings in `stats.json`. Do not delete the index until the run has been archived and reviewed.
 
-The report puts false merges first, then correct, missed, ambiguous, candidate-record, and timing counts. The fixtures cover orientation, containment, terminal overlaps, substitutions, an indel, internal similarity, repeats, incompatible placements, low complexity, unrelated sequence, and classifier boundaries. This small benchmark is experimental and does not establish production sensitivity.
+## Citation, contribution, and license
 
-## Checked-in Pseudomonas benchmark
-
-`test_data` version 1.0.0 contains 90 derived contigs across three samples and 74 construction-derived ordered-pair truth rows. It includes checked-in `asm5` and `asm20` PAFs, but not the full source reads, assembly FASTA, or GFA. Evaluate either PAF without minimap2:
-
-```bash
-contigger benchmark --dataset test_data \
-  --paf test_data/alignments/all_vs_all.asm20.paf.gz \
-  --output-json benchmark.json --output-tsv benchmark.tsv
-```
-
-A **false merge** is a merge-like pair result where pairwise truth forbids merging. A **missed relationship** is an absent or `NO_RELATIONSHIP` result for an unambiguous valid truth pair. Unexpected PAF pairs are separate because the construction table is sparse. Multiple incompatible hits within one ordered pair are pair-level ambiguity; ambiguity across different targets requires graph/component context and is explicitly deferred.
-
-At the default thresholds, `asm5` has 58 correct classifications, 2 false merges, and 4 missed relationships; `asm20` has 60 correct, 2 false merges, and 2 missed relationships. Both false merges are the two ordered directions of the 51 bp end-tolerance case: minimap2 extends through identical flanking sequence, so the PAF geometry looks terminal. `asm20` is more sensitive on this dataset, but the production default remains configurable and unchanged. Broader microbial, viral, and phage truth sets are required before changing it. The deterministic baseline is in `benchmarks/pseudomonas_baseline.json`.
-
-This command scores classifier output only. It does not construct a graph or claim that any contigs were merged.
-
-## Exact catalogue and candidate planning
-
-Create deterministic canonical sequences while retaining every source contig and explicit strand in provenance:
-
-```bash
-contigger catalogue --manifest samples.tsv \
-  --output-fasta catalogue.fasta \
-  --output-provenance catalogue.provenance.tsv
-```
-
-Only byte-exact forward or reverse-complement sequences collapse. Catalogue identifiers are derived from the SHA-256 digest of the lexicographically canonical strand; this is exact deduplication, not biological merging.
-
-Generate typed positional-minimiser evidence for selective alignment:
-
-```bash
-contigger candidates --manifest samples.tsv --output candidates.tsv \
-  --kmer-size 21 --window-size 10 --min-shared-minimisers 5 \
-  --max-minimiser-frequency 100 --terminal-band 1000
-```
-
-Ambiguous-base k-mers and globally frequent minimisers are excluded. Shared minimisers alone are not emitted as candidates: retained pairs must have positional evidence at compatible sequence ends or across both ends of a possible contained sequence. Multiple orientation/topology signals remain explicit. Candidate rows request further alignment; they are not relationships and cannot authorize a merge.
-
-On Pseudomonas benchmark 1.0.0, exact/RC deduplication reduces 90 sources to 84 canonical sequences. The documented candidate settings retain all 23 valid non-exact truth case groups in 61 candidates out of 3,486 possible canonical pairs. This is a recall/integration baseline, not evidence that all 61 pairs are mergeable; forbidden boundary and ambiguous repeat pairs deliberately proceed to alignment and conservative classification.
-
-Evaluate the complete deterministic pathway using the checked-in PAF as alignment observations (minimap2 is not invoked):
-
-```bash
-contigger benchmark-pipeline --dataset test_data \
-  --paf test_data/alignments/all_vs_all.asm20.paf.gz \
-  --output-json pipeline-benchmark.json
-```
-
-Both presets recover all 12 exact/RC truth rows and all 23 valid non-exact case groups (40 ordered truth rows); candidate generation adds zero misses. At relationship classification, both retain the two known 51 bp end-tolerance false merges, while `asm5` misses four relationships and `asm20` misses two. The pair-stage report defers four graph-level ambiguity groups. The checked-in result is `benchmarks/pseudomonas_pipeline_baseline.json`. This is a staged recall and safety benchmark, not a graph result or evidence that any contigs were merged.
-
-## Ambiguity-preserving relationship graphs
-
-`build_relationship_graph()` consumes complete `PairRelationship` decisions and returns stable nodes, structurally separate containment and terminal-overlap edges, explicit ambiguous edges, and deterministically ordered components. Consistent reciprocal PAF decisions collapse to one edge; inconsistent reciprocals remain ambiguous. Components are marked ambiguous for competing use of one oriented terminal, multiple possible containers, pair-level ambiguity, cycles, or contradictory orientations. A degree-two linear path is retained without being declared merged.
-
-Exact matches are rejected at this boundary because exact and reverse-complement deduplication belongs in the catalogue stage. `NO_RELATIONSHIP` decisions do not create edges, although supplied isolated nodes remain in the graph. Graph construction performs no containment removal, edge selection, path simplification, sequence joining, or merge authorization.
-
-The source-identifier diagnostic regression in `benchmarks/pseudomonas_graph_baseline.json` has 90 nodes and three containment edges for both PAFs. `asm5` has 50 overlap edges in 58 components; `asm20` has 51 in 57. In both, the four deferred repeat/branch truth groups occur in one preserved ambiguous component. The known forbidden 51 bp end-tolerance pair also remains an ordinary edge, demonstrating why graph presence alone cannot authorize merging.
-
-`evaluate_graph_decisions()` is the next conservative boundary. It marks a unique containment in an unambiguous component eligible for later provenance-aware disposition, but does not remove the contained node. An overlap-only component is eligible for later path planning only when it is unambiguous and every proposed junction edge has explicit support supplied by a future evidence stage. Containment-mixed or ambiguous components stay deferred. Eligibility is not merge authorization and produces no biological output.
-
-With no junction evidence supplied, `benchmarks/pseudomonas_decision_policy_baseline.json` records three eligible containment dispositions for each preset and zero eligible overlap components. All 50 `asm5` and 51 `asm20` overlap edges remain deferred, including both the repeat-connected ambiguous component and the known forbidden 51 bp boundary edge.
-
-`plan_linear_paths()` accepts a complete catalogue and matching relationship graph, invokes the conservative decision policy, and returns canonical path metadata only for eligible overlap components. Each node carries explicit path orientation and every exact/RC catalogue source member with its path-relative orientation. Reverse-complement-equivalent traversals collapse to one deterministic representation. The planner rejects graph/catalogue mismatches and never trims, joins, or writes sequence.
-
-The checked-in source-ID diagnostic path baseline supplies no junction evidence, so both PAF presets produce zero paths. All 19 `asm5` and 20 `asm20` overlap components remain deferred.
-
-## Source alignment evidence
-
-Validate supplied BAM/CRAM files against their sample FASTA references using installed `samtools`:
-
-```bash
-contigger validate-alignments --manifest samples.tsv
-```
-
-`BamEvidenceProvider` requires an adjacent BAI/CRAI, checks file integrity and index readability, and requires exact `@SQ` reference names and lengths. Pileups accept zero-based half-open source intervals and return sample-labelled allele counts, depth, and mean base/mapping qualities. These observations describe existing source contigs only; they cannot validate a newly constructed junction.
-
-`TargetedJunctionRemapper` tests an explicitly supplied provisional reference rather than constructing one. It uses `samtools view` to nominate primary read names near two named source-contig ends, recovers all primary records (including mates) sharing those names, name-collates and converts the bounded subset to FASTQ, and remaps it with minimap2. A distinct read counts as spanning only when its primary alignment crosses the supplied zero-based junction coordinate by the configured number of reference bases on both sides. Results retain sample identity, exact tool versions and commands, selected/remapped/spanning read names, and diagnostics.
-
-This report is evidence, not merge authorization. It does not infer trimming, construct joined sequence, call consensus, pool samples, or automatically supply graph decision-policy support. Minimum read counts, mapping-quality rules, technology-specific presets, duplicate handling, and adequate flank lengths require reviewed benchmarks before junction observations can affect a biological decision.
-
-The checked-in ONT dataset also supplies 19 construction-derived junction truth rows: 15 native adjacencies and four artificial threshold-negative adjacencies. `load_junction_truth()` validates these records independently from relationship truth, while `score_junction_observations()` scores supplied targeted-remapping reports for false or missed spanning-read detection. `JunctionSupportPolicy` is bound to an exact technology and remapping preset and defaults to unreviewed; an unreviewed policy always returns `DEFERRED`, regardless of read count. Cross-sample aggregation is also deferred rather than pooling counts. The deterministic truth-only baseline is recorded in `benchmarks/pseudomonas_junction_truth_baseline.json`.
-
-The source-coordinate counts in `expected_junctions.tsv` describe reads selected while constructing the dataset; they are not targeted-remapping results and are never substituted for observations. `contigger benchmark-junction-remapping --dataset test_data --preset map-ont` remaps each sample's checked-in targeted FASTQ independently to every true benchmark junction and uses separately labelled synthetic source-end controls for artificial cases. It never pools samples or authorizes a graph edge.
-
-The deterministic `map-ont` baseline at a 20 bp continuous spanning flank detects 13 of 15 true junctions in every sample and misses `end_tolerance_49` and `end_tolerance_50` in every sample. Quantitative true-junction results remain sample-scoped: six of 45 true sample-cases are missed. Each artificial junction is now tested separately with exact synthetic reads that terminate at the left source end or start after the right overlap. All four controls remap, none spans the artificial boundary, and no control is attributed to a biological sample.
-
-`--minimum-mapping-quality` filters validated PAF/SAM mapping qualities before remapped or spanning counts. The checked-in configuration baseline evaluates 20 bp and 100 bp continuous flanks at mapping qualities 0 and 20; all four configurations retain zero false support and the same six misses. These exact source-end controls test mapping geometry, not realistic ONT error, repeat, chimera, or population behaviour, so no ONT support policy is marked reviewed and no evidence is connected to graph eligibility. Broader microbial, viral, and phage truth remains required.
-
-`benchmark_junction_policy_candidates()` evaluates read-count and spanning-fraction candidates independently per observation. The checked-in baseline compares `(1, 0.0)`, `(3, 0.3)`, and `(5, 0.5)`; each retains zero false support, while stricter candidates miss six additional true observations. These candidates remain unreviewed and cannot authorize graph edges.
-
-Reviewed policies now require a `JunctionPolicyReview` artifact containing the exact truth and candidate-baseline digests, reviewer, timestamp, and an approved decision. The checked-in review template remains pending; no current policy is reviewed or connected to graph eligibility.
-
-`load_junction_policy_review()` strictly parses these JSON artifacts, validates their fields and RFC 3339 timestamp, and preserves notes. Parsing alone never reviews a policy or authorizes a graph edge.
-
-`load_junction_truth_set_metadata(..., truth_path=...)` provides the same auditable boundary for technology-specific truth sets: it verifies the exact digest and derives case balance from the paired TSV before returning version, preset, negative-control status, and review status. The checked-in Pseudomonas metadata remains unreviewed.
-
-`validate_junction_policy_review()` additionally requires an approved review to match reviewed truth metadata and the exact candidate-baseline digest. This remains a provenance gate only; no current artifact authorizes graph decisions.
-
-`load_junction_policy_candidate_baseline()` strictly loads the candidate-threshold artifact and can verify its exact SHA-256 before that digest is paired with a review. It remains evidence-only and cannot authorize a graph edge.
-
-## Roadmap
-
-1. Integrate and baseline PAF relationship classification on checked-in Pseudomonas truth. (complete)
-2. Implement a stable sequence catalogue with exact and reverse-complement deduplication and complete provenance. (complete)
-3. Implement canonical positional-minimiser candidates and selective-alignment planning. (complete, experimental baseline)
-4. Benchmark candidate-to-alignment-to-relationship recall and add persistent minimap2 indexing/safe batching. (complete, experimental baseline)
-5. Build typed, ambiguity-preserving containment/overlap graphs without simplifying or merging them. (complete, unsimplified experimental baseline)
-6. Define and benchmark conservative graph decision policies for containment disposition and merge-path eligibility. (complete; no biological output)
-7. Implement provenance-complete unambiguous linear-path planning without sequence merging. (complete; metadata only)
-8. Validate sample-aware source BAM/CRAM references and expose source-contig evidence without junction claims. (complete)
-9. Add targeted junction read extraction, remapping, and evidence reporting. (complete; evidence only)
-10. Benchmark technology-specific junction-support and consensus/variation policies before connecting evidence to graph decisions. (ONT remapping, synthetic negative-control configuration, unreviewed policy-candidate baseline, review-artifact gate, strict artifact loading, and truth-set metadata complete; reviewed thresholds and broader truth sets pending)
-
-See [DESIGN.md](DESIGN.md) for assumptions, boundaries, and open questions. Contigger does **not** yet replace read-aware assembly polishing or strain-resolved assembly.
+A formal citation will be added when available. Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md); developer architecture and benchmark notes are in [the development documentation](docs/development/). The repository is distributed under the license in [LICENSE](LICENSE).

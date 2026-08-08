@@ -1,0 +1,51 @@
+site_name: Contigger
+site_description: Conservative, provenance-aware reconciliation of assembled contigs
+site_url: https://contigger.readthedocs.io/
+repo_url: https://github.com/linsalrob/contigger
+repo_name: linsalrob/contigger
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.expand
+    - content.code.copy
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+nav:
+  - Home: index.md
+  - Installation: installation.md
+  - Quick start: quickstart.md
+  - Concepts: concepts.md
+  - Workflows:
+      - Beginner — FASTA only: workflows/beginner.md
+      - Intermediate — FASTA + BAM/CRAM: workflows/intermediate.md
+      - Advanced — full evidence: workflows/advanced.md
+  - Inputs:
+      - Input files: inputs.md
+      - Manifest: manifest.md
+  - Usage:
+      - Merge: usage/merge.md
+      - Validate inputs: usage/validate.md
+      - Catalogue: usage/catalogue.md
+      - Candidate pairs: usage/candidates.md
+      - Alignment evidence: usage/alignments.md
+      - Diagnostics: usage/diagnostics.md
+  - Outputs: outputs.md
+  - Parameters: parameters.md
+  - Read evidence: evidence.md
+  - Performance and HPC: performance.md
+  - Interpreting results: interpretation.md
+  - Reproducibility: reproducibility.md
+  - Troubleshooting: troubleshooting.md
+  - FAQ: faq.md
+  - Development:
+      - Overview: development/index.md
+      - Architecture: development/architecture.md
+      - Design principles: development/design-principles.md
+      - Benchmarks: development/benchmarks.md
+      - Evidence policies: development/evidence-policies.md
+      - Testing: development/testing.md
+      - Contributing: development/contributing.md

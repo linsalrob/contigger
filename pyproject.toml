@@ -25,6 +25,16 @@ dev = [
   "pytest>=8.0",
   "ruff>=0.5",
 ]
+docs = [
+  "mkdocs>=1.6",
+  "mkdocs-material>=9.5",
+]
+
+[project.urls]
+Homepage = "https://github.com/linsalrob/contigger"
+Documentation = "https://contigger.readthedocs.io/"
+Repository = "https://github.com/linsalrob/contigger"
+Issues = "https://github.com/linsalrob/contigger/issues"
 
 [project.scripts]
 contigger = "contigger.cli:main"
