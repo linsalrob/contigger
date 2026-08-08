@@ -67,7 +67,7 @@ Unknown columns are retained as sample metadata. Optional paths, when supplied, 
 
 The merge writes `contigger.fasta`, complete `contigger.provenance.tsv`, classified `contigger.relationships.tsv`, deferred/ambiguous diagnostics in `contigger.ambiguous.tsv`, optional `contigger.gfa`, and deterministic stage counts in `contigger.stats.json`. A dry run validates and reports the plan but writes no biological outputs.
 
-With `--evidence none`, only exact/RC representatives, uniquely eligible containments, and unambiguous terminal overlaps whose aligned nucleotides are identical can be emitted. Branches, cycles, conflicts, unsupported imperfect overlaps, and known-forbidden relationships remain separate. `--evidence alignments` enables the same conservative sequence path and records the mode; it does not invent an unreviewed consensus policy, so imperfect overlaps without an approved policy remain deferred.
+With `--evidence none`, only exact/RC representatives, uniquely eligible containments, and unambiguous terminal overlaps whose aligned nucleotides are identical can be emitted. Branches, cycles, conflicts, unsupported imperfect overlaps, and known-forbidden relationships remain separate. `--evidence alignments` evaluates imperfect junctions for evidence diagnostics but does not invent an unreviewed consensus policy, so imperfect overlaps without an approved policy remain deferred. Use `--minimap2-preset asm5|asm10|asm20` and `--index-dir PATH` to control and reuse validated target indexes on large runs. A 98% identity threshold alone never authorizes a merge.
 
 ## External tools and synthetic benchmark
 

@@ -9,11 +9,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import resource
 import time
 from pathlib import Path
 
 from contigger.catalogue import build_catalogue
-from contigger.minimisers import generate_candidates
+from contigger.minimisers import generate_candidates, sequence_minimisers
 from contigger.models import SequenceRecord
 
 
@@ -50,12 +51,22 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
         terminal_band=1000,
     )
     minimiser_seconds = time.perf_counter() - started
+    observations = sum(
+        len(sequence_minimisers(item, kmer_size=21, window_size=10)) for item in catalogue.sequences
+    )
+    lengths = sorted(item.length for item in catalogue.sequences)
+    peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
     return {
         "input_contigs": contig_count,
         "total_bases": contig_count * sequence_length,
+        "mean_contig_length": sum(lengths) / len(lengths),
+        "median_contig_length": lengths[len(lengths) // 2],
         "canonical_sequences": len(catalogue.sequences),
         "catalogue_seconds": catalogue_seconds,
         "minimiser_seconds": minimiser_seconds,
+        "minimiser_observations": observations,
+        "retained_minimisers": observations,
+        "peak_rss_bytes": peak_rss,
         "candidate_count": len(candidates),
         "candidate_reduction_factor": (
             (contig_count * (contig_count - 1) / 2) / len(candidates) if candidates else None

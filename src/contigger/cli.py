@@ -78,6 +78,8 @@ def build_parser() -> argparse.ArgumentParser:
     merge.add_argument("--min-shared-minimisers", type=int, default=5)
     merge.add_argument("--max-minimiser-frequency", type=int, default=100)
     merge.add_argument("--threads", type=int, default=1)
+    merge.add_argument("--minimap2-preset", choices=("asm5", "asm10", "asm20"), default="asm20")
+    merge.add_argument("--index-dir", type=Path)
     merge.add_argument("--evidence", choices=("none", "alignments", "reads"), default="none")
     merge.add_argument(
         "--conflict-policy",
@@ -255,6 +257,8 @@ def _run_merge(arguments: argparse.Namespace) -> int:
         conflict_policy=arguments.conflict_policy,
         output_prefix=arguments.output_prefix,
         emit_gfa=arguments.emit_gfa,
+        minimap2_preset=arguments.minimap2_preset,
+        index_dir=arguments.index_dir,
     )
     if arguments.dry_run:
         external_tools: dict[str, str | None] = {}

@@ -143,7 +143,7 @@ Every retained, contained, merged, ambiguous, or rejected source contig remains 
 
 ## 21. Output formats
 
-The experimental `classify-paf` command emits a deterministic diagnostic relationships TSV with zero-based half-open coordinates, accepted/rejected counts, and reasons. It is not a merge result or a stable production schema. Planned biological outputs remain `contigger.fasta`, `contigger.provenance.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, and `contigger.stats.json`; they are not emitted by the current implementation. A dry run writes no biological outputs.
+The experimental `classify-paf` command emits a deterministic diagnostic relationships TSV with zero-based half-open coordinates, accepted/rejected counts, and reasons. The merge command emits `contigger.fasta`, `contigger.provenance.tsv`, `contigger.relationships.tsv`, `contigger.ambiguous.tsv`, `contigger.gfa`, `contigger.stats.json`, and explicit `contigger.join_support.tsv`/`contigger.variants.tsv` evidence diagnostics. A dry run writes no biological outputs.
 
 ## 22. Determinism and reproducibility
 
@@ -181,7 +181,7 @@ The source-ID diagnostic graph is paired with one synthetic provenance member pe
 
 ## 23. Performance and scalability
 
-Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Index reuse, batching, and bounded candidate sets precede parallelism. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
+Streaming FASTA parsing limits parser overhead, while positional minimisers and frequency filtering should avoid all-v-all alignment. Production merge groups approved queries by one target and reuses content/preset/version-validated minimap2 indexes under the run cache (or `--index-dir`). Stage timings and index/batch counters are emitted in stats. The deterministic scale harness reports minimiser observations, candidate reduction, and peak RSS; current 10k/100k smoke runs identify Python candidate expansion as the first scaling pressure. `--evidence alignments` validates sample-scoped BAM/CRAM inputs and emits deferred join-support/variant diagnostics for imperfect edges; no current checked-in policy authorizes a consensus allele, so contradictory samples are never pooled. Profiling and representative benchmarks must justify optimisation. Stable typed boundaries allow hot paths to move to Rust without changing public records or the CLI.
 
 ## 24. Error handling
 
