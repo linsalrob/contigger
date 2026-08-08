@@ -65,6 +65,14 @@ sample02	assemblies/sample02.fasta
 sample03	assemblies/sample03.fasta
 ```
 
+For a directory of assemblies, Contigger can generate this manifest and discover matching GFA/BAM/CRAM sidecars:
+
+```bash
+contigger make-manifest assemblies --output samples.tsv
+```
+
+Review the generated file, then validate it before merging.
+
 Validate it, then run the conservative sequence-only merge:
 
 ```bash

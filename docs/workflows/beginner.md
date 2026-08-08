@@ -3,7 +3,13 @@
 This workflow assumes only `sample1.fasta`, `sample2.fasta`, and similar assemblies.
 
 1. Install Python, Contigger, and minimap2 as described in [installation](../installation.md).
-2. Put FASTA files under one directory and create a tab-separated manifest:
+2. Put FASTA files under one directory and create a tab-separated manifest automatically:
+
+```bash
+contigger make-manifest assemblies --output samples.tsv
+```
+
+The command is recursive by default and recognizes common FASTA suffixes. Review the result. If you prefer to create it manually, use:
 
 ```bash
 printf 'sample\tcontigs\n' > samples.tsv

@@ -20,3 +20,5 @@ S02	assemblies/S02.fasta	alignments/S02.bam	illumina	graphs/S02.gfa
 ```
 
 Validate the manifest with `contigger validate --manifest samples.tsv`. Missing required columns, duplicate samples, missing files, and malformed FASTA fail before a merge starts. A missing BAM index is reported as a warning during manifest validation and becomes an error when alignment evidence is actually validated.
+
+The [manifest generator](usage/make-manifest.md) can discover these columns from a directory, but always review its filename-based sample-name guesses.
