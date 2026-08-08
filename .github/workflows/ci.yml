@@ -66,3 +66,16 @@ jobs:
         run: pytest tests/test_junction_evidence.py
       - name: Validate junction truth and support-policy boundary
         run: pytest tests/test_junction_benchmark.py
+
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install documentation dependencies
+        run: python -m pip install -e '.[docs]'
+      - name: Build documentation
+        run: mkdocs build --strict
