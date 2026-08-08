@@ -30,6 +30,8 @@ def build_run_config(
     output_prefix: Path | str = Path("contigger"),
     deterministic_seed: int | None = None,
     emit_gfa: bool = False,
+    minimap2_preset: str = "asm20",
+    index_dir: Path | str | None = None,
 ) -> RunConfig:
     """Validate raw CLI-style values and construct a normalised configuration."""
     try:
@@ -56,4 +58,6 @@ def build_run_config(
         output_prefix=Path(output_prefix),
         deterministic_seed=deterministic_seed,
         emit_gfa=emit_gfa,
+        minimap2_preset=minimap2_preset,
+        index_dir=Path(index_dir) if index_dir is not None else None,
     )

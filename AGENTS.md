@@ -97,3 +97,8 @@ A feature is complete only when its implementation is typed; tests cover expecte
 - State uncertainties instead of inventing biological rules.
 - Leave explicit TODOs when a decision requires benchmarking or domain review.
 - Never replace conservative logic with a more aggressive heuristic without documentation and regression tests.
+
+Additional milestone invariants:
+
+- Any optimization must preserve deterministic candidate recall and final merge decisions on checked-in benchmarks.
+- Read-supported consensus must not pool contradictory sample-specific evidence without an explicitly reviewed policy.

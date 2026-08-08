@@ -94,6 +94,8 @@ def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path:
     assert prefix.with_suffix(".fasta").is_file()
     assert prefix.with_suffix(".provenance.tsv").is_file()
     assert prefix.with_suffix(".stats.json").is_file()
+    assert prefix.with_suffix(".join_support.tsv").is_file()
+    assert prefix.with_suffix(".variants.tsv").is_file()
     assert "wrote" in capsys.readouterr().out
 
 

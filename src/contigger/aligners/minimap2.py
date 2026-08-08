@@ -29,6 +29,9 @@ class Minimap2Aligner:
         self.preset = preset
         self._last_command: tuple[str, ...] | None = None
         self._version: str | None = None
+        self.index_builds = 0
+        self.index_reuses = 0
+        self.alignment_batches = 0
 
     @property
     def tool_name(self) -> str:
@@ -76,6 +79,7 @@ class Minimap2Aligner:
                 raise InputValidationError(
                     f"minimap2 index metadata does not match requested targets: {index_path}"
                 )
+            self.index_reuses += 1
             return index_path
         expected = self._index_metadata(target_records)
         if self.executable is None:
@@ -107,6 +111,7 @@ class Minimap2Aligner:
                 )
                 temporary_index.replace(index_path)
                 temporary_metadata.replace(metadata_path)
+                self.index_builds += 1
         except OSError as error:
             raise InputValidationError(
                 f"cannot create minimap2 index {index_path}: {error}"
@@ -126,6 +131,7 @@ class Minimap2Aligner:
             raise InputValidationError("indexed minimap2 alignment requires queries")
         _validate_unique_identifiers(query_records, "indexed queries")
         self.build_index(target_records, index_path)
+        self.alignment_batches += 1
         allowed_queries = {record.identifier for record in query_records}
         allowed_targets = {record.identifier for record in target_records}
         with TemporaryDirectory(prefix="contigger-align-") as directory:

@@ -14,6 +14,14 @@ def test_defaults_and_percentage_normalisation() -> None:
     assert config.kmer_size == 21
     assert config.evidence is EvidenceMode.NONE
     assert config.conflict_policy is ConflictPolicy.REJECT
+    assert config.minimap2_preset == "asm20"
+    assert config.index_dir is None
+
+
+def test_index_and_preset_configuration() -> None:
+    config = build_run_config(minimap2_preset="asm5", index_dir="cache")
+    assert config.minimap2_preset == "asm5"
+    assert config.index_dir.name == "cache"
 
 
 @pytest.mark.parametrize("identity", [-1.0, 100.1])

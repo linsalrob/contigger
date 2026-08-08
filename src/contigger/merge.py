@@ -10,9 +10,13 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from contigger.aligners.minimap2 import Minimap2Aligner
-from contigger.alignment_planning import execute_selective_alignments, plan_selective_alignments
+from contigger.alignment_planning import (
+    execute_indexed_selective_alignments,
+    plan_selective_alignments,
+)
 from contigger.catalogue import build_catalogue, load_source_sequences
 from contigger.decision_policy import evaluate_graph_decisions
+from contigger.evidence.bam import BamEvidenceProvider
 from contigger.exceptions import InputValidationError
 from contigger.graph import build_relationship_graph
 from contigger.minimisers import generate_candidates
@@ -51,12 +55,24 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         raise InputValidationError(
             "evidence mode 'reads' is not implemented for merge; use 'none' or 'alignments'"
         )
+    if config.evidence.value == "alignments":
+        missing = tuple(sample.sample for sample in samples if sample.bam is None)
+        if missing:
+            raise InputValidationError(
+                "evidence mode 'alignments' requires a BAM/CRAM for every sample; "
+                f"missing: {', '.join(missing)}"
+            )
+        for sample in samples:
+            BamEvidenceProvider(sample).validate_source()
     stages: dict[str, float] = {}
 
     stage_start = time.monotonic()
     records = load_source_sequences(samples)
     catalogue = build_catalogue(records)
     stages["catalogue"] = time.monotonic() - stage_start
+    print(
+        f"Loaded {len(records)} contigs; canonical catalogue {len(catalogue.sequences)} sequences"
+    )
 
     stage_start = time.monotonic()
     candidates = generate_candidates(
@@ -69,17 +85,25 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     )
     requests = plan_selective_alignments(catalogue.sequences, candidates)
     stages["candidates"] = time.monotonic() - stage_start
+    print(f"Generated {len(candidates)} candidate pairs")
 
     stage_start = time.monotonic()
     hits: tuple[AlignmentHit, ...]
     tool_versions: dict[str, str | None] = {"minimap2": None}
+    aligner_metrics: dict[str, int] = {"index_builds": 0, "index_reuses": 0, "alignment_batches": 0}
     if requests:
-        aligner = Minimap2Aligner(threads=config.threads, preset="asm20")
-        hits = execute_selective_alignments(requests, aligner)
+        index_dir = config.index_dir or config.output_prefix.parent / (
+            f".{config.output_prefix.name}-indexes"
+        )
+        aligner = Minimap2Aligner(threads=config.threads, preset=config.minimap2_preset)
+        hits = execute_indexed_selective_alignments(requests, aligner, index_dir)
         tool_versions = {"minimap2": aligner.tool_version}
+        for name in aligner_metrics:
+            aligner_metrics[name] = int(getattr(aligner, name, 0))
     else:
         hits = ()
     stages["alignment"] = time.monotonic() - stage_start
+    print(f"Classified alignment input from {len(hits)} alignment observations")
 
     stage_start = time.monotonic()
     relationships = tuple(classify_pair(group, config) for group in group_ordered_pairs(hits))
@@ -105,6 +129,10 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     )
     stages["construction"] = time.monotonic() - stage_start
     stages["total"] = time.monotonic() - started
+    print(
+        f"Merged {merge_stats['merged_linear_paths']} safe paths; "
+        f"deferred {merge_stats['deferred_junctions']} junctions"
+    )
 
     paths_out = output_paths(config.output_prefix)
     stats = _stats(
@@ -123,6 +151,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         config,
         tool_versions,
         stages,
+        aligner_metrics,
     )
     _write_outputs_atomic(
         paths_out,
@@ -133,6 +162,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         graph,
         paths,
         stats,
+        _join_support_rows(graph, catalogue, config),
         emit_gfa=config.emit_gfa,
     )
     return (
@@ -515,6 +545,7 @@ def _stats(
     config: RunConfig,
     tool_versions: dict[str, str | None],
     stages: dict[str, float],
+    aligner_metrics: dict[str, int],
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
@@ -546,6 +577,8 @@ def _stats(
         "output_contigs": len(constructed),
         "output_bases": sum(item.length for item in constructed),
         "tool_versions": tool_versions,
+        "alignment_metrics": aligner_metrics,
+        "minimap2_preset": config.minimap2_preset,
         "configuration": config.as_dict(),
         "elapsed_times_by_stage": stages,
     }
@@ -560,6 +593,7 @@ def _write_outputs_atomic(
     graph: RelationshipGraph,
     paths_result: PathPlanningResult,
     stats: dict[str, object],
+    join_support_rows: tuple[tuple[str, ...], ...],
     *,
     emit_gfa: bool,
 ) -> None:
@@ -578,6 +612,8 @@ def _write_outputs_atomic(
         (temporary / paths.stats.name).write_text(
             json.dumps(stats, indent=2, sort_keys=True) + "\n", encoding="utf-8"
         )
+        _write_join_support(temporary / paths.join_support.name, join_support_rows)
+        _write_variants(temporary / paths.variants.name)
         for output in (
             paths.fasta,
             paths.provenance,
@@ -585,6 +621,8 @@ def _write_outputs_atomic(
             paths.ambiguous,
             paths.gfa,
             paths.stats,
+            paths.join_support,
+            paths.variants,
         ):
             (temporary / output.name).replace(output)
 
@@ -634,6 +672,72 @@ def _write_ambiguous(path: Path, rows: Iterable[tuple[str, str]]) -> None:
         handle.write("component_or_pair\treason\n")
         for identifier, reason in rows:
             handle.write(f"{identifier}\t{reason}\n")
+
+
+def _join_support_rows(
+    graph: RelationshipGraph, catalogue: SequenceCatalogue, config: RunConfig
+) -> tuple[tuple[str, ...], ...]:
+    """Report imperfect junctions without authorising an unreviewed consensus."""
+    if config.evidence.value != "alignments":
+        return ()
+    rows: list[tuple[str, ...]] = []
+    for edge in graph.overlap_edges:
+        if _edge_has_exact_reconcilable_overlap(edge, catalogue, config.end_tolerance):
+            continue
+        rows.append(
+            (
+                "unknown",
+                edge.edge_id,
+                edge.query_id,
+                edge.target_id,
+                "",
+                "0",
+                "0",
+                "0",
+                "0.0",
+                "",
+                "",
+                "",
+                "DEFERRED",
+                "",
+                "no approved junction policy; imperfect overlap retained",
+            )
+        )
+    return tuple(rows)
+
+
+def _write_join_support(path: Path, rows: Iterable[tuple[str, ...]]) -> None:
+    columns = (
+        "component_id",
+        "edge_id",
+        "left_contig",
+        "right_contig",
+        "technology",
+        "samples_tested",
+        "selected_reads",
+        "remapped_reads",
+        "spanning_reads",
+        "spanning_fraction",
+        "minimum_mapping_quality",
+        "minimum_flank",
+        "junction_status",
+        "policy_id",
+        "decision_reason",
+    )
+    with path.open("w", encoding="utf-8", newline="") as handle:
+        handle.write("\t".join(columns) + "\n")
+        for row in rows:
+            handle.write("\t".join(row) + "\n")
+
+
+def _write_variants(path: Path) -> None:
+    """Write an explicit empty variant report until a reviewed policy resolves sites."""
+    path.write_text(
+        "edge_id\toverlap_position\tleft_base\tright_base\tdecision\tchosen_base\t"
+        "sample\tdepth\tallele_counts\tmean_base_quality\tmean_mapping_quality\t"
+        "strand_support\treason\n",
+        encoding="utf-8",
+    )
 
 
 def _write_gfa(
