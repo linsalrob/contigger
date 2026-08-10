@@ -5,6 +5,7 @@
 #
 #   sbatch scripts/run_contigger_setonix.slurm
 #   sbatch scripts/run_contigger_setonix.slurm samples.tsv results/contigger
+#   # after completion: scripts/collect_slurm_status.sh JOB_ID results/contigger.slurm.tsv
 #
 #SBATCH --account=your-project
 #SBATCH --partition=work

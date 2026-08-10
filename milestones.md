@@ -12,7 +12,7 @@ do not need a cross-assembly comparison.
 
 - [x] Record the input contig count, total bases, and per-sample manifest for every
       comparison.
-- [ ] Record Slurm requested/used memory, elapsed time, CPU count, and exit reason.
+- [x] Record Slurm requested/used memory, elapsed time, CPU count, and exit reason.
 - [ ] Run a small fixture and one manageable Shark comparison to establish candidate,
       alignment, graph, and output counts.
 - [ ] Keep `--evidence none` for the initial scaling baseline so read validation does
@@ -25,6 +25,17 @@ The first item is recorded in every successful `<output-prefix>.stats.json` file
 also records peak process RSS, CPU seconds, and any Slurm allocation metadata available
 to the process. Scheduler exit reasons for failed jobs remain an external Slurm
 record; collect them with `sacct` using the job ID from the log filename.
+
+For completed Setonix jobs, collect the authoritative scheduler record with:
+
+```bash
+scripts/collect_slurm_status.sh JOB_ID results/contigger.slurm.tsv
+```
+
+The TSV records Slurm state, exit code, elapsed time, allocated CPUs, maximum RSS,
+requested memory, requested resources, and allocated resources. The collector must be
+run after the job finishes because Slurm cannot report the final accounting state from
+inside the running job.
 
 ## Milestone 2 — Prevent candidate explosion
 
