@@ -10,7 +10,7 @@ do not need a cross-assembly comparison.
 
 ## Milestone 1 — Establish a reproducible baseline
 
-- [ ] Record the input contig count, total bases, and per-sample manifest for every
+- [x] Record the input contig count, total bases, and per-sample manifest for every
       comparison.
 - [ ] Record Slurm requested/used memory, elapsed time, CPU count, and exit reason.
 - [ ] Run a small fixture and one manageable Shark comparison to establish candidate,
@@ -19,6 +19,12 @@ do not need a cross-assembly comparison.
       not add another source of cost.
 - [ ] Verify that exact/RC duplicates and containment remain unchanged as settings are
       tightened.
+
+The first item is recorded in every successful `<output-prefix>.stats.json` file as
+`input_contigs`, `input_bases`, `input_manifest`, and `input_by_sample`. The same file
+also records peak process RSS, CPU seconds, and any Slurm allocation metadata available
+to the process. Scheduler exit reasons for failed jobs remain an external Slurm
+record; collect them with `sacct` using the job ID from the log filename.
 
 ## Milestone 2 — Prevent candidate explosion
 

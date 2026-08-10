@@ -1,5 +1,6 @@
 """CLI contract tests."""
 
+import json
 from pathlib import Path
 
 import pytest
@@ -98,6 +99,33 @@ def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path:
     assert prefix.with_suffix(".join_support.tsv").is_file()
     assert prefix.with_suffix(".variants.tsv").is_file()
     assert "wrote" in capsys.readouterr().out
+    stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    assert stats["run_status"] == "completed"
+    assert stats["input_contigs"] == 3
+    assert stats["input_bases"] == 47
+    assert stats["input_manifest"] == [
+        {
+            "assembly_graph": None,
+            "bam": None,
+            "contigs": str(FIXTURES / "sample1.fasta"),
+            "metadata": {},
+            "sample": "S01",
+            "technology": "illumina",
+        },
+        {
+            "assembly_graph": None,
+            "bam": None,
+            "contigs": str(FIXTURES / "sample2.fasta"),
+            "metadata": {},
+            "sample": "S02",
+            "technology": "ont",
+        },
+    ]
+    assert stats["input_by_sample"] == [
+        {"bases": 31, "contigs": 2, "sample": "S01"},
+        {"bases": 16, "contigs": 1, "sample": "S02"},
+    ]
+    assert stats["resource_usage"]["peak_rss_kib"] > 0
 
 
 def test_catalogue_writes_canonical_fasta_and_complete_provenance(

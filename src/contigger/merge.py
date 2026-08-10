@@ -3,6 +3,9 @@
 from __future__ import annotations
 
 import json
+import os
+import platform
+import resource
 import time
 from collections import Counter
 from collections.abc import Iterable
@@ -562,10 +565,24 @@ def _stats(
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
     )
+    sample_metrics = _sample_metrics(records)
     return {
+        "run_status": "completed",
         "input_samples": len(samples),
         "input_contigs": len(records),
         "input_bases": sum(item.length for item in records),
+        "input_manifest": [
+            {
+                "sample": sample.sample,
+                "contigs": str(sample.contigs),
+                "bam": str(sample.bam) if sample.bam else None,
+                "technology": sample.technology,
+                "assembly_graph": str(sample.assembly_graph) if sample.assembly_graph else None,
+                "metadata": dict(sorted(sample.metadata.items())),
+            }
+            for sample in samples
+        ],
+        "input_by_sample": sample_metrics,
         "canonical_sequences": len(catalogue.sequences),
         "exact_duplicates_collapsed": len(records) - len(catalogue.sequences),
         "reverse_complement_duplicates_collapsed": sum(
@@ -600,7 +617,57 @@ def _stats(
         "minimap2_preset": config.minimap2_preset,
         "configuration": config.as_dict(),
         "elapsed_times_by_stage": stages,
+        "resource_usage": _resource_usage(),
     }
+
+
+def _sample_metrics(records: tuple[SequenceRecord, ...]) -> list[dict[str, object]]:
+    """Summarise source contig counts and bases in deterministic sample order."""
+    totals: dict[str, list[int]] = {}
+    for record in records:
+        count_and_bases = totals.setdefault(record.source_sample, [0, 0])
+        count_and_bases[0] += 1
+        count_and_bases[1] += record.length
+    return [
+        {
+            "sample": sample,
+            "contigs": values[0],
+            "bases": values[1],
+        }
+        for sample, values in sorted(totals.items())
+    ]
+
+
+def _resource_usage() -> dict[str, object]:
+    """Capture portable process and available Slurm resource metadata."""
+    usage = resource.getrusage(resource.RUSAGE_SELF)
+    # Linux reports KiB; macOS reports bytes. Contigger's production jobs run on
+    # Linux, but keeping the conversion explicit makes local baselines comparable.
+    peak_rss_kib = int(usage.ru_maxrss)
+    if platform.system() == "Darwin":
+        peak_rss_kib //= 1024
+    resource_usage: dict[str, object] = {
+        "peak_rss_kib": peak_rss_kib,
+        "user_cpu_seconds": round(usage.ru_utime, 6),
+        "system_cpu_seconds": round(usage.ru_stime, 6),
+    }
+    slurm_fields = {
+        "job_id": "SLURM_JOB_ID",
+        "job_partition": "SLURM_JOB_PARTITION",
+        "job_nodelist": "SLURM_JOB_NODELIST",
+        "cpus_per_task": "SLURM_CPUS_PER_TASK",
+        "requested_memory_per_node": "SLURM_MEM_PER_NODE",
+        "requested_memory_per_cpu": "SLURM_MEM_PER_CPU",
+        "requested_time": "SLURM_TIMELIMIT",
+    }
+    slurm = {
+        name: os.environ[variable]
+        for name, variable in slurm_fields.items()
+        if os.environ.get(variable)
+    }
+    if slurm:
+        resource_usage["slurm"] = slurm
+    return resource_usage
 
 
 def _write_outputs_atomic(
