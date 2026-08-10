@@ -1,10 +1,14 @@
 """CLI contract tests."""
 
+import json
 from pathlib import Path
 
 import pytest
 
 from contigger.cli import main
+from contigger.config import build_run_config
+from contigger.manifest import parse_manifest
+from contigger.merge import merge_samples
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -98,6 +102,81 @@ def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path:
     assert prefix.with_suffix(".join_support.tsv").is_file()
     assert prefix.with_suffix(".variants.tsv").is_file()
     assert "wrote" in capsys.readouterr().out
+    stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    assert stats["run_status"] == "completed"
+    assert stats["input_contigs"] == 3
+    assert stats["input_bases"] == 47
+    assert stats["input_manifest"] == [
+        {
+            "assembly_graph": None,
+            "bam": None,
+            "contigs": str(FIXTURES / "sample1.fasta"),
+            "metadata": {},
+            "sample": "S01",
+            "technology": "illumina",
+        },
+        {
+            "assembly_graph": None,
+            "bam": None,
+            "contigs": str(FIXTURES / "sample2.fasta"),
+            "metadata": {},
+            "sample": "S02",
+            "technology": "ont",
+        },
+    ]
+    assert stats["input_by_sample"] == [
+        {"bases": 31, "contigs": 2, "sample": "S01"},
+        {"bases": 16, "contigs": 1, "sample": "S02"},
+    ]
+    assert stats["resource_usage"]["peak_rss_kib"] > 0
+
+
+def test_stats_manifest_order_is_deterministic_for_direct_calls(tmp_path: Path) -> None:
+    validation = parse_manifest(FIXTURES / "samples.tsv")
+    prefix = tmp_path / "contigger"
+    merge_samples(
+        tuple(reversed(validation.samples)),
+        build_run_config(output_prefix=prefix),
+    )
+    stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    assert [item["sample"] for item in stats["input_manifest"]] == ["S01", "S02"]
+
+
+def test_stats_retain_samples_with_no_contigs(tmp_path: Path) -> None:
+    fasta = tmp_path / "empty.fasta"
+    fasta.write_text("\n  \n", encoding="utf-8")
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text(
+        "sample\tcontigs\nempty\tempty.fasta\n",
+        encoding="utf-8",
+    )
+    prefix = tmp_path / "contigger"
+    assert (
+        main(
+            [
+                "merge",
+                "--manifest",
+                str(manifest),
+                "--output-prefix",
+                str(prefix),
+            ]
+        )
+        == 0
+    )
+    stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    assert stats["input_by_sample"] == [{"bases": 0, "contigs": 0, "sample": "empty"}]
+
+
+def test_failed_output_install_does_not_publish_completed_stats(tmp_path: Path) -> None:
+    prefix = tmp_path / "contigger"
+    prefix.with_suffix(".join_support.tsv").mkdir()
+    validation = parse_manifest(FIXTURES / "samples.tsv")
+    with pytest.raises(OSError):
+        merge_samples(
+            validation.samples,
+            build_run_config(output_prefix=prefix),
+        )
+    assert not prefix.with_suffix(".stats.json").exists()
 
 
 def test_catalogue_writes_canonical_fasta_and_complete_provenance(
