@@ -565,7 +565,8 @@ def _stats(
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
     )
-    sample_metrics = _sample_metrics(records)
+    ordered_samples = tuple(sorted(samples, key=lambda item: item.sample))
+    sample_metrics = _sample_metrics(ordered_samples, records)
     return {
         "run_status": "completed",
         "input_samples": len(samples),
@@ -580,7 +581,7 @@ def _stats(
                 "assembly_graph": str(sample.assembly_graph) if sample.assembly_graph else None,
                 "metadata": dict(sorted(sample.metadata.items())),
             }
-            for sample in samples
+            for sample in ordered_samples
         ],
         "input_by_sample": sample_metrics,
         "canonical_sequences": len(catalogue.sequences),
@@ -621,9 +622,11 @@ def _stats(
     }
 
 
-def _sample_metrics(records: tuple[SequenceRecord, ...]) -> list[dict[str, object]]:
+def _sample_metrics(
+    samples: tuple[SampleInput, ...], records: tuple[SequenceRecord, ...]
+) -> list[dict[str, object]]:
     """Summarise source contig counts and bases in deterministic sample order."""
-    totals: dict[str, list[int]] = {}
+    totals: dict[str, list[int]] = {sample.sample: [0, 0] for sample in samples}
     for record in records:
         count_and_bases = totals.setdefault(record.source_sample, [0, 0])
         count_and_bases[0] += 1
