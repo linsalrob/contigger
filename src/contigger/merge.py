@@ -5,12 +5,16 @@ from __future__ import annotations
 import json
 import os
 import platform
-import resource
 import time
 from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+try:
+    import resource as _resource
+except ImportError:  # pragma: no cover - exercised on Windows
+    _resource = None
 
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.alignment_planning import (
@@ -643,13 +647,16 @@ def _sample_metrics(
 
 def _resource_usage() -> dict[str, object]:
     """Capture portable process and available Slurm resource metadata."""
-    usage = resource.getrusage(resource.RUSAGE_SELF)
+    if _resource is None:
+        return {"available": False}
+    usage = _resource.getrusage(_resource.RUSAGE_SELF)
     # Linux reports KiB; macOS reports bytes. Contigger's production jobs run on
     # Linux, but keeping the conversion explicit makes local baselines comparable.
     peak_rss_kib = int(usage.ru_maxrss)
     if platform.system() == "Darwin":
         peak_rss_kib //= 1024
     resource_usage: dict[str, object] = {
+        "available": True,
         "peak_rss_kib": peak_rss_kib,
         "user_cpu_seconds": round(usage.ru_utime, 6),
         "system_cpu_seconds": round(usage.ru_stime, 6),
@@ -709,11 +716,13 @@ def _write_outputs_atomic(
             paths.relationships,
             paths.ambiguous,
             paths.gfa,
-            paths.stats,
             paths.join_support,
             paths.variants,
         ):
             (temporary / output.name).replace(output)
+        # Install stats last so a failed later replacement can never publish a
+        # successful run status for an incomplete output set.
+        (temporary / paths.stats.name).replace(paths.stats)
 
 
 def _write_fasta(sequences: Iterable[SequenceRecord], path: Path) -> None:

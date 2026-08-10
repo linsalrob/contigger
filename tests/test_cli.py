@@ -167,6 +167,18 @@ def test_stats_retain_samples_with_no_contigs(tmp_path: Path) -> None:
     assert stats["input_by_sample"] == [{"bases": 0, "contigs": 0, "sample": "empty"}]
 
 
+def test_failed_output_install_does_not_publish_completed_stats(tmp_path: Path) -> None:
+    prefix = tmp_path / "contigger"
+    prefix.with_suffix(".join_support.tsv").mkdir()
+    validation = parse_manifest(FIXTURES / "samples.tsv")
+    with pytest.raises(OSError):
+        merge_samples(
+            validation.samples,
+            build_run_config(output_prefix=prefix),
+        )
+    assert not prefix.with_suffix(".stats.json").exists()
+
+
 def test_catalogue_writes_canonical_fasta_and_complete_provenance(
     capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:
