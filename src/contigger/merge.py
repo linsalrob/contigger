@@ -10,11 +10,7 @@ from collections import Counter
 from collections.abc import Iterable
 from pathlib import Path
 from tempfile import TemporaryDirectory
-
-try:
-    import resource as _resource
-except ImportError:  # pragma: no cover - exercised on Windows
-    _resource = None
+from types import ModuleType
 
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.alignment_planning import (
@@ -53,6 +49,12 @@ from contigger.path_planning import plan_linear_paths
 from contigger.provenance import ProvenanceRecord, write_provenance
 from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.utilities.sequences import reverse_complement
+
+_resource: ModuleType | None
+try:
+    import resource as _resource
+except ImportError:  # pragma: no cover - exercised on Windows
+    _resource = None
 
 
 def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[Path, ...]:
