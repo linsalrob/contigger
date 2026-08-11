@@ -130,6 +130,8 @@ def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path:
     ]
     assert stats["resource_usage"]["peak_rss_kib"] > 0
     assert stats["candidate_generation"]["candidate_pairs"] == stats["candidate_pairs"]
+    assert set(stats["stage_resource_usage"]) == {"catalogue", "candidates"}
+    assert stats["stage_resource_usage"]["catalogue"]["rss_after_kib"] is not None
 
 
 def test_candidate_guard_fails_before_alignment(

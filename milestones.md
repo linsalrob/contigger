@@ -101,6 +101,10 @@ remaining unchecked tasks are still required to bound candidate-generation memor
 `--max-seed-pair-observations N` is an earlier guard: it rejects a run after the
 frequency pass when the conservative per-minimiser seed-pair upper bound exceeds `N`,
 before retained-seed indexing and pair expansion allocate their working structures.
+Completed `stats.json` files now also record current RSS before and after the catalogue
+and candidate stages under `stage_resource_usage`, alongside their elapsed times. These
+snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
+measurements and therefore do not replace Slurm `MaxRSS` collection.
 
 ## Milestone 3 — Make alignment batching scale
 

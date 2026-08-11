@@ -31,6 +31,11 @@ and stores compact per-pair seed summaries instead of full observation-pair tupl
 but it does not yet make candidate generation fully streaming; the guard remains an
 alignment-cost safety valve rather than a substitute for the remaining scaling work.
 
+For profiling, `stats.json` also records elapsed stage timings plus current RSS before
+and after the catalogue and candidate stages in `stage_resource_usage`. These are useful
+process snapshots on Linux, not replacement per-stage peak measurements; retain the
+Slurm accounting record for final `MaxRSS`.
+
 After a Slurm job completes, collect scheduler-side memory, elapsed-time, CPU, and
 exit-status data separately from Contigger's process stats:
 

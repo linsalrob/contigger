@@ -82,16 +82,23 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         samtools_versions = {}
         samtools_commands = {}
     stages: dict[str, float] = {}
+    stage_resource_usage: dict[str, dict[str, int | None]] = {}
 
     stage_start = time.monotonic()
+    catalogue_rss_before = _current_rss_kib()
     records = load_source_sequences(samples)
     catalogue = build_catalogue(records)
     stages["catalogue"] = time.monotonic() - stage_start
+    stage_resource_usage["catalogue"] = {
+        "rss_before_kib": catalogue_rss_before,
+        "rss_after_kib": _current_rss_kib(),
+    }
     print(
         f"Loaded {len(records)} contigs; canonical catalogue {len(catalogue.sequences)} sequences"
     )
 
     stage_start = time.monotonic()
+    candidates_rss_before = _current_rss_kib()
     candidates, candidate_metrics = generate_candidates_with_metrics(
         catalogue.sequences,
         kmer_size=config.kmer_size,
@@ -109,6 +116,10 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         )
     requests = plan_selective_alignments(catalogue.sequences, candidates)
     stages["candidates"] = time.monotonic() - stage_start
+    stage_resource_usage["candidates"] = {
+        "rss_before_kib": candidates_rss_before,
+        "rss_after_kib": _current_rss_kib(),
+    }
     print(
         f"Generated {len(candidates)} candidate pairs from "
         f"{candidate_metrics.retained_observations} retained minimiser observations"
@@ -182,6 +193,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         samtools_versions,
         samtools_commands,
         candidate_metrics,
+        stage_resource_usage,
     )
     _write_outputs_atomic(
         paths_out,
@@ -579,6 +591,7 @@ def _stats(
     samtools_versions: dict[str, str | None],
     samtools_commands: dict[str, tuple[tuple[str, ...], ...]],
     candidate_metrics: CandidateGenerationMetrics,
+    stage_resource_usage: dict[str, dict[str, int | None]],
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
@@ -648,6 +661,7 @@ def _stats(
         "minimap2_preset": config.minimap2_preset,
         "configuration": config.as_dict(),
         "elapsed_times_by_stage": stages,
+        "stage_resource_usage": stage_resource_usage,
         "resource_usage": _resource_usage(),
     }
 
@@ -704,6 +718,15 @@ def _resource_usage() -> dict[str, object]:
     if slurm:
         resource_usage["slurm"] = slurm
     return resource_usage
+
+
+def _current_rss_kib() -> int | None:
+    """Return current Linux resident memory when procfs is available."""
+    try:
+        resident_pages = int(Path("/proc/self/statm").read_text(encoding="ascii").split()[1])
+        return resident_pages * os.sysconf("SC_PAGE_SIZE") // 1024
+    except (IndexError, OSError, ValueError):
+        return None
 
 
 def _write_outputs_atomic(
