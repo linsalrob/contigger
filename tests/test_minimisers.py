@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 from contigger.benchmark import MERGE_LIKE, load_truth
@@ -13,6 +14,7 @@ from contigger.minimisers import (
     sequence_minimisers,
 )
 from contigger.models import CatalogueSequence, Orientation
+from contigger.utilities.sequences import reverse_complement
 
 DATASET = Path(__file__).parents[1] / "test_data"
 
@@ -20,6 +22,31 @@ DATASET = Path(__file__).parents[1] / "test_data"
 def sequence(identifier: str, bases: str) -> CatalogueSequence:
     """Build a catalogue sequence with an irrelevant test digest."""
     return CatalogueSequence(identifier, bases, len(bases), identifier, identifier)
+
+
+def reference_minimisers(
+    item: CatalogueSequence, *, kmer_size: int, window_size: int
+) -> tuple[tuple[int, int, Orientation, str], ...]:
+    """Implement the straightforward sliding-window definition for regression tests."""
+    kmers: list[tuple[int, int, Orientation, str] | None] = []
+    for position in range(item.length - kmer_size + 1):
+        forward = item.sequence[position : position + kmer_size]
+        if set(forward) - set("ACGT"):
+            kmers.append(None)
+            continue
+        reverse = reverse_complement(forward)
+        canonical = min(forward, reverse)
+        orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
+        value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
+        kmers.append((value, position, orientation, canonical))
+    selected: set[tuple[int, int, Orientation, str]] = set()
+    effective_window = min(window_size, len(kmers))
+    for start in range(len(kmers) - effective_window + 1):
+        valid = [value for value in kmers[start : start + effective_window] if value is not None]
+        if valid:
+            minimum = min(value[0] for value in valid)
+            selected.update(value for value in valid if value[0] == minimum)
+    return tuple(sorted(selected, key=lambda value: (value[1], value[0], value[2].value, value[3])))
 
 
 def test_minimisers_are_deterministic_and_strand_explicit() -> None:
@@ -31,6 +58,16 @@ def test_minimisers_are_deterministic_and_strand_explicit() -> None:
         Orientation.FORWARD,
         Orientation.REVERSE,
     }
+
+
+def test_monotonic_minimiser_selection_matches_window_definition() -> None:
+    for bases in ("AACCGTTA", "AAAAAAA", "ACGTNNNACGT", "GATTACAGATTACA"):
+        item = sequence("a", bases)
+        observed = tuple(
+            (value.value, value.position, value.orientation, value.kmer)
+            for value in sequence_minimisers(item, kmer_size=3, window_size=3)
+        )
+        assert observed == reference_minimisers(item, kmer_size=3, window_size=3)
 
 
 def test_ambiguous_kmers_are_not_seed_evidence() -> None:

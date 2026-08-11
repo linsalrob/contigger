@@ -22,9 +22,11 @@ For an unfamiliar collection, use a candidate guardrail based on a small represe
 run. `--max-candidate-pairs N` stops before minimap2 alignment if more than `N` pairs
 survive minimiser filtering. Completed runs report `candidate_generation` counters in
 `stats.json`, including total and retained minimiser observations, repetitive seeds
-discarded, and maximum evidence accumulated for one pair. The guard does not yet make
-minimiser generation streaming, so it is an alignment-cost safety valve rather than a
-substitute for the remaining scaling work.
+discarded, maximum evidence accumulated for one pair, and timings for the minimiser
+frequency, retained-seed, pair-expansion, and candidate-filter stages. The current
+two-pass implementation avoids retaining a second full global observation collection,
+but it does not yet make candidate generation fully streaming; the guard remains an
+alignment-cost safety valve rather than a substitute for the remaining scaling work.
 
 After a Slurm job completes, collect scheduler-side memory, elapsed-time, CPU, and
 exit-status data separately from Contigger's process stats:

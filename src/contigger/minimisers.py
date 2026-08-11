@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import hashlib
-from collections import Counter
+import time
+from collections import Counter, deque
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TextIO
@@ -22,7 +23,7 @@ UNAMBIGUOUS_DNA = frozenset("ACGT")
 
 @dataclass(frozen=True, slots=True)
 class CandidateGenerationMetrics:
-    """Deterministic counters describing candidate-generation pressure."""
+    """Candidate-generation pressure counters and stage timings."""
 
     input_sequences: int
     input_bases: int
@@ -32,8 +33,12 @@ class CandidateGenerationMetrics:
     repetitive_observations_discarded: int
     candidate_pairs: int
     maximum_pair_evidence: int
+    frequency_pass_seconds: float
+    retained_seed_pass_seconds: float
+    pair_expansion_seconds: float
+    candidate_filter_seconds: float
 
-    def as_dict(self) -> dict[str, int]:
+    def as_dict(self) -> dict[str, int | float]:
         """Return counters in the form used by the run statistics JSON."""
         return {
             "input_sequences": self.input_sequences,
@@ -44,6 +49,10 @@ class CandidateGenerationMetrics:
             "repetitive_observations_discarded": self.repetitive_observations_discarded,
             "candidate_pairs": self.candidate_pairs,
             "maximum_pair_evidence": self.maximum_pair_evidence,
+            "frequency_pass_seconds": self.frequency_pass_seconds,
+            "retained_seed_pass_seconds": self.retained_seed_pass_seconds,
+            "pair_expansion_seconds": self.pair_expansion_seconds,
+            "candidate_filter_seconds": self.candidate_filter_seconds,
         }
 
 
@@ -54,34 +63,41 @@ def sequence_minimisers(
     _validate_parameters(kmer_size, window_size)
     if sequence.length < kmer_size:
         return ()
-    kmers: list[MinimiserObservation | None] = []
-    for position in range(sequence.length - kmer_size + 1):
+    kmer_count = sequence.length - kmer_size + 1
+    effective_window = min(window_size, kmer_count)
+    minima: deque[tuple[int, MinimiserObservation]] = deque()
+    selected: set[MinimiserObservation] = set()
+    for position in range(kmer_count):
         forward = sequence.sequence[position : position + kmer_size]
         if not set(forward) <= UNAMBIGUOUS_DNA:
-            kmers.append(None)
-            continue
-        reverse = reverse_complement(forward)
-        canonical = min(forward, reverse)
-        orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
-        value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
-        kmers.append(
-            MinimiserObservation(
+            observation = None
+        else:
+            reverse = reverse_complement(forward)
+            canonical = min(forward, reverse)
+            orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
+            value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
+            observation = MinimiserObservation(
                 sequence_id=sequence.identifier,
                 value=value,
                 position=position,
                 orientation=orientation,
                 kmer=canonical,
             )
-        )
 
-    selected: set[MinimiserObservation] = set()
-    effective_window = min(window_size, len(kmers))
-    for start in range(len(kmers) - effective_window + 1):
-        valid = [item for item in kmers[start : start + effective_window] if item is not None]
-        if not valid:
+        if observation is not None:
+            while minima and minima[-1][1].value > observation.value:
+                minima.pop()
+            minima.append((position, observation))
+        window_start = position - effective_window + 1
+        while minima and minima[0][0] < window_start:
+            minima.popleft()
+        if window_start < 0 or not minima:
             continue
-        minimum = min(item.value for item in valid)
-        selected.update(item for item in valid if item.value == minimum)
+        minimum_value = minima[0][1].value
+        for _, minimum in minima:
+            if minimum.value != minimum_value:
+                break
+            selected.add(minimum)
     return tuple(sorted(selected, key=_observation_sort_key))
 
 
@@ -130,20 +146,29 @@ def generate_candidates_with_metrics(
     if len({item.identifier for item in ordered}) != len(ordered):
         raise InputValidationError("candidate generation requires unique sequence identifiers")
     lengths = {item.identifier: item.length for item in ordered}
-    observations = tuple(
-        observation
-        for sequence in ordered
+    frequency_started = time.monotonic()
+    frequencies: Counter[tuple[int, str]] = Counter()
+    minimiser_observations = 0
+    for sequence in ordered:
+        observations = sequence_minimisers(sequence, kmer_size=kmer_size, window_size=window_size)
+        minimiser_observations += len(observations)
+        frequencies.update((item.value, item.kmer) for item in observations)
+    frequency_pass_seconds = time.monotonic() - frequency_started
+
+    retained_started = time.monotonic()
+    by_value: dict[tuple[int, str], list[MinimiserObservation]] = {}
+    retained_observations = 0
+    for sequence in ordered:
         for observation in sequence_minimisers(
             sequence, kmer_size=kmer_size, window_size=window_size
-        )
-    )
-    frequencies = Counter((item.value, item.kmer) for item in observations)
-    by_value: dict[tuple[int, str], list[MinimiserObservation]] = {}
-    for observation in observations:
-        key = (observation.value, observation.kmer)
-        if frequencies[key] <= max_minimiser_frequency:
-            by_value.setdefault(key, []).append(observation)
+        ):
+            key = (observation.value, observation.kmer)
+            if frequencies[key] <= max_minimiser_frequency:
+                by_value.setdefault(key, []).append(observation)
+                retained_observations += 1
+    retained_seed_pass_seconds = time.monotonic() - retained_started
 
+    pair_expansion_started = time.monotonic()
     evidence: dict[tuple[str, str], list[tuple[MinimiserObservation, MinimiserObservation]]] = {}
     for value in sorted(by_value):
         items = sorted(by_value[value], key=_observation_sort_key)
@@ -154,7 +179,9 @@ def generate_candidates_with_metrics(
                 query, target = sorted((left.sequence_id, right.sequence_id))
                 first, second = (left, right) if left.sequence_id == query else (right, left)
                 evidence.setdefault((query, target), []).append((first, second))
+    pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
+    candidate_filter_started = time.monotonic()
     candidates: list[CandidatePair] = []
     for pair in sorted(evidence):
         matches = evidence[pair]
@@ -198,19 +225,20 @@ def generate_candidates_with_metrics(
             )
         )
     ordered_candidates = tuple(candidates)
+    candidate_filter_seconds = time.monotonic() - candidate_filter_started
     metrics = CandidateGenerationMetrics(
         input_sequences=len(ordered),
         input_bases=sum(item.length for item in ordered),
-        minimiser_observations=len(observations),
-        retained_observations=sum(len(items) for items in by_value.values()),
+        minimiser_observations=minimiser_observations,
+        retained_observations=retained_observations,
         unique_minimisers=len(frequencies),
-        repetitive_observations_discarded=sum(
-            1
-            for observation in observations
-            if frequencies[(observation.value, observation.kmer)] > max_minimiser_frequency
-        ),
+        repetitive_observations_discarded=minimiser_observations - retained_observations,
         candidate_pairs=len(ordered_candidates),
         maximum_pair_evidence=max((len(matches) for matches in evidence.values()), default=0),
+        frequency_pass_seconds=frequency_pass_seconds,
+        retained_seed_pass_seconds=retained_seed_pass_seconds,
+        pair_expansion_seconds=pair_expansion_seconds,
+        candidate_filter_seconds=candidate_filter_seconds,
     )
     return ordered_candidates, metrics
 

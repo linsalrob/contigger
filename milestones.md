@@ -83,12 +83,14 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
 
 The merge path now records deterministic minimiser-pressure counters in
 `stats.json` under `candidate_generation`: all and retained minimiser observations,
-discarded repetitive observations, unique minimisers, maximum per-pair evidence, and
-candidate pairs. `--max-candidate-pairs N` aborts before minimap2 alignment if the
-final candidate count exceeds `N`, preventing accidental submission of an
-unbounded alignment job. This is an initial operational guardrail, not yet a
-streaming candidate implementation; the remaining unchecked tasks are still required
-to bound candidate-generation memory itself.
+discarded repetitive observations, unique minimisers, maximum per-pair evidence,
+candidate pairs, and the frequency, retained-seed, pair-expansion, and candidate-filter
+stage timings. Candidate generation uses a two-pass frequency/retained-seed workflow,
+so it no longer keeps a full global observation tuple alongside the retained seed index.
+`--max-candidate-pairs N` aborts before minimap2 alignment if the final candidate count
+exceeds `N`, preventing accidental submission of an unbounded alignment job. This is an
+initial operational guardrail, not yet a streaming candidate implementation; the
+remaining unchecked tasks are still required to bound candidate-generation memory itself.
 
 ## Milestone 3 — Make alignment batching scale
 
