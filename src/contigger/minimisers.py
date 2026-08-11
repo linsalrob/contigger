@@ -7,6 +7,8 @@ import time
 from collections import Counter, deque
 from collections.abc import Iterable
 from dataclasses import dataclass
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TextIO
 
 from contigger.exceptions import ConfigurationError, InputValidationError
@@ -159,6 +161,7 @@ def generate_candidates(
     max_minimiser_frequency: int,
     terminal_band: int,
     max_seed_pair_observations: int | None = None,
+    candidate_shards: int = 16,
 ) -> tuple[CandidatePair, ...]:
     """Generate candidates, retaining the historical tuple-only API."""
     candidates, _ = generate_candidates_with_metrics(
@@ -169,6 +172,7 @@ def generate_candidates(
         max_minimiser_frequency=max_minimiser_frequency,
         terminal_band=terminal_band,
         max_seed_pair_observations=max_seed_pair_observations,
+        candidate_shards=candidate_shards,
     )
     return candidates
 
@@ -182,6 +186,7 @@ def generate_candidates_with_metrics(
     max_minimiser_frequency: int,
     terminal_band: int,
     max_seed_pair_observations: int | None = None,
+    candidate_shards: int = 16,
 ) -> tuple[tuple[CandidatePair, ...], CandidateGenerationMetrics]:
     """Generate deterministic candidate pairs with explicit terminal seed geometry.
 
@@ -194,6 +199,8 @@ def generate_candidates_with_metrics(
         raise ConfigurationError("minimiser frequency thresholds must be positive")
     if max_seed_pair_observations is not None and max_seed_pair_observations < 1:
         raise ConfigurationError("maximum seed-pair observations must be positive when supplied")
+    if candidate_shards < 1:
+        raise ConfigurationError("candidate shard count must be positive")
     if terminal_band < 0:
         raise ConfigurationError("terminal band cannot be negative")
     ordered = tuple(sorted(sequences, key=lambda item: item.identifier))
@@ -226,45 +233,61 @@ def generate_candidates_with_metrics(
         )
 
     retained_started = time.monotonic()
-    by_value: dict[tuple[int, str], list[_SeedObservation]] = {}
     retained_observations = 0
-    for sequence_index, sequence in enumerate(ordered):
-        for observation in sequence_minimisers(
-            sequence, kmer_size=kmer_size, window_size=window_size
-        ):
-            key = (observation.value, observation.kmer)
-            if frequencies[key] <= max_minimiser_frequency:
-                by_value.setdefault(key, []).append(
-                    _SeedObservation(sequence_index, observation.position, observation.orientation)
-                )
-                retained_observations += 1
-    retained_seed_pass_seconds = time.monotonic() - retained_started
-
-    pair_expansion_started = time.monotonic()
     evidence: dict[tuple[int, int], _PairEvidence] = {}
-    for minimiser_id, value in enumerate(sorted(by_value)):
-        items = sorted(
-            by_value[value],
-            key=lambda item: (item.sequence_index, item.position, item.orientation.value),
-        )
-        for left_index, left in enumerate(items):
-            for right in items[left_index + 1 :]:
-                if left.sequence_index == right.sequence_index:
-                    continue
-                query, target = sorted((left.sequence_index, right.sequence_index))
-                first, second = (left, right) if left.sequence_index == query else (right, left)
-                pair = (query, target)
-                pair_evidence = evidence.get(pair)
-                if pair_evidence is None:
-                    pair_evidence = _PairEvidence.empty()
-                    evidence[pair] = pair_evidence
-                pair_evidence.add(
-                    minimiser_id,
-                    first.position,
-                    second.position,
-                    first.orientation,
-                    second.orientation,
+    with TemporaryDirectory(prefix="contigger-candidates-") as temporary_directory:
+        paths = [
+            Path(temporary_directory) / f"seeds-{index:03d}.tsv"
+            for index in range(candidate_shards)
+        ]
+        outputs = [path.open("w", encoding="ascii", newline="") for path in paths]
+        try:
+            for sequence_index, sequence in enumerate(ordered):
+                for observation in sequence_minimisers(
+                    sequence, kmer_size=kmer_size, window_size=window_size
+                ):
+                    key = (observation.value, observation.kmer)
+                    if frequencies[key] <= max_minimiser_frequency:
+                        shard = observation.value % candidate_shards
+                        outputs[shard].write(
+                            f"{observation.value}\t{observation.kmer}\t{sequence_index}\t"
+                            f"{observation.position}\t{observation.orientation.value}\n"
+                        )
+                        retained_observations += 1
+        finally:
+            for output in outputs:
+                output.close()
+        retained_seed_pass_seconds = time.monotonic() - retained_started
+        pair_expansion_started = time.monotonic()
+        minimiser_id = 0
+        for path in paths:
+            by_value = _read_seed_shard(path)
+            for value in sorted(by_value):
+                items = sorted(
+                    by_value[value],
+                    key=lambda item: (item.sequence_index, item.position, item.orientation.value),
                 )
+                for left_index, left in enumerate(items):
+                    for right in items[left_index + 1 :]:
+                        if left.sequence_index == right.sequence_index:
+                            continue
+                        query, target = sorted((left.sequence_index, right.sequence_index))
+                        first, second = (
+                            (left, right) if left.sequence_index == query else (right, left)
+                        )
+                        pair = (query, target)
+                        pair_evidence = evidence.get(pair)
+                        if pair_evidence is None:
+                            pair_evidence = _PairEvidence.empty()
+                            evidence[pair] = pair_evidence
+                        pair_evidence.add(
+                            minimiser_id,
+                            first.position,
+                            second.position,
+                            first.orientation,
+                            second.orientation,
+                        )
+                minimiser_id += 1
     pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
     candidate_filter_started = time.monotonic()
@@ -354,6 +377,18 @@ def write_candidates_tsv(candidates: Iterable[CandidatePair], output: TextIO) ->
             )
             + "\n"
         )
+
+
+def _read_seed_shard(path: Path) -> dict[tuple[int, str], list[_SeedObservation]]:
+    """Read one deterministic retained-seed shard into its bounded grouping map."""
+    by_value: dict[tuple[int, str], list[_SeedObservation]] = {}
+    with path.open(encoding="ascii") as input_file:
+        for line in input_file:
+            value, kmer, sequence_index, position, orientation = line.rstrip("\n").split("\t")
+            by_value.setdefault((int(value), kmer), []).append(
+                _SeedObservation(int(sequence_index), int(position), Orientation(orientation))
+            )
+    return by_value
 
 
 def _terminal_topologies(
