@@ -18,6 +18,24 @@ contigger merge --manifest samples.tsv --output-prefix results/contigger \
 
 Monitor `stats.json` for candidate pairs, alignment batches, index builds/reuse, stage timings, and output counts. The checked-in scale harness has been exercised at 10,000 contigs and a 100,000-contig smoke case; do not extrapolate those measurements to a different dataset or hardware without profiling. Unexpected candidate explosion is usually the first warning sign.
 
+For an unfamiliar collection, use a candidate guardrail based on a small representative
+run. `--max-seed-pair-observations N` stops after frequency counting but before retained
+seed indexing if a conservative seed-pair upper bound exceeds `N`; it protects the
+candidate-generation working set. `--max-candidate-pairs N` stops before minimap2
+alignment if more than `N` pairs survive minimiser filtering. Completed runs report `candidate_generation` counters in
+`stats.json`, including total and retained minimiser observations, repetitive seeds
+discarded, maximum evidence accumulated for one pair, and timings for the minimiser
+frequency, retained-seed, pair-expansion, and candidate-filter stages. The current
+two-pass implementation avoids retaining a second full global observation collection,
+and stores compact per-pair seed summaries instead of full observation-pair tuples,
+but it does not yet make candidate generation fully streaming; the guard remains an
+alignment-cost safety valve rather than a substitute for the remaining scaling work.
+
+For profiling, `stats.json` also records elapsed stage timings plus current RSS before
+and after the catalogue and candidate stages in `stage_resource_usage`. These are useful
+process snapshots on Linux, not replacement per-stage peak measurements; retain the
+Slurm accounting record for final `MaxRSS`.
+
 After a Slurm job completes, collect scheduler-side memory, elapsed-time, CPU, and
 exit-status data separately from Contigger's process stats:
 

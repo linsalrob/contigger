@@ -19,6 +19,7 @@ Important options:
 | `--threads` | 1 | minimap2 threads. |
 | `--minimap2-preset` | `asm20` | `asm5`, `asm10`, or `asm20`. |
 | `--index-dir` | output-local cache | Directory for validated target indexes. |
+| `--max-candidate-pairs` | unlimited | Abort before alignment if this many candidate pairs is exceeded. |
 | `--evidence` | `none` | `none`, `alignments`, or legacy `reads` (the latter is rejected). |
 | `--emit-gfa` | off | Populate the GFA output. |
 | `--dry-run` | off | Validate and print the plan without biological outputs. |

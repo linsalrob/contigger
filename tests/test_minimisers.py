@@ -2,13 +2,22 @@
 
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
+
+import pytest
 
 from contigger.benchmark import MERGE_LIKE, load_truth
 from contigger.catalogue import build_catalogue, load_source_sequences
+from contigger.exceptions import ConfigurationError
 from contigger.manifest import parse_manifest
-from contigger.minimisers import generate_candidates, sequence_minimisers
+from contigger.minimisers import (
+    generate_candidates,
+    generate_candidates_with_metrics,
+    sequence_minimisers,
+)
 from contigger.models import CatalogueSequence, Orientation
+from contigger.utilities.sequences import reverse_complement
 
 DATASET = Path(__file__).parents[1] / "test_data"
 
@@ -16,6 +25,31 @@ DATASET = Path(__file__).parents[1] / "test_data"
 def sequence(identifier: str, bases: str) -> CatalogueSequence:
     """Build a catalogue sequence with an irrelevant test digest."""
     return CatalogueSequence(identifier, bases, len(bases), identifier, identifier)
+
+
+def reference_minimisers(
+    item: CatalogueSequence, *, kmer_size: int, window_size: int
+) -> tuple[tuple[int, int, Orientation, str], ...]:
+    """Implement the straightforward sliding-window definition for regression tests."""
+    kmers: list[tuple[int, int, Orientation, str] | None] = []
+    for position in range(item.length - kmer_size + 1):
+        forward = item.sequence[position : position + kmer_size]
+        if set(forward) - set("ACGT"):
+            kmers.append(None)
+            continue
+        reverse = reverse_complement(forward)
+        canonical = min(forward, reverse)
+        orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
+        value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
+        kmers.append((value, position, orientation, canonical))
+    selected: set[tuple[int, int, Orientation, str]] = set()
+    effective_window = min(window_size, len(kmers))
+    for start in range(len(kmers) - effective_window + 1):
+        valid = [value for value in kmers[start : start + effective_window] if value is not None]
+        if valid:
+            minimum = min(value[0] for value in valid)
+            selected.update(value for value in valid if value[0] == minimum)
+    return tuple(sorted(selected, key=lambda value: (value[1], value[0], value[2].value, value[3])))
 
 
 def test_minimisers_are_deterministic_and_strand_explicit() -> None:
@@ -27,6 +61,16 @@ def test_minimisers_are_deterministic_and_strand_explicit() -> None:
         Orientation.FORWARD,
         Orientation.REVERSE,
     }
+
+
+def test_monotonic_minimiser_selection_matches_window_definition() -> None:
+    for bases in ("AACCGTTA", "AAAAAAA", "ACGTNNNACGT", "GATTACAGATTACA"):
+        item = sequence("a", bases)
+        observed = tuple(
+            (value.value, value.position, value.orientation, value.kmer)
+            for value in sequence_minimisers(item, kmer_size=3, window_size=3)
+        )
+        assert observed == reference_minimisers(item, kmer_size=3, window_size=3)
 
 
 def test_ambiguous_kmers_are_not_seed_evidence() -> None:
@@ -53,6 +97,23 @@ def test_terminal_overlap_emits_candidate_with_position_evidence() -> None:
     assert any("SUFFIX_TO_TARGET_PREFIX" in item for item in candidate.terminal_topologies)
 
 
+def test_candidate_metrics_describe_retained_seed_pressure() -> None:
+    shared = "ACGTCAGTACGATCGTACGA"
+    candidates, metrics = generate_candidates_with_metrics(
+        [sequence("a", "TTGCAACGTT" + shared), sequence("b", shared + "GGCATTAACC")],
+        kmer_size=5,
+        window_size=3,
+        min_shared_minimisers=2,
+        max_minimiser_frequency=20,
+        terminal_band=8,
+    )
+    assert len(candidates) == metrics.candidate_pairs == 1
+    assert metrics.input_sequences == 2
+    assert metrics.input_bases == 60
+    assert metrics.retained_observations <= metrics.minimiser_observations
+    assert metrics.unique_minimisers > 0
+
+
 def test_internal_similarity_does_not_emit_candidate() -> None:
     shared = "ACGTCAGTACGATCGTACGA"
     left = sequence("a", "A" * 15 + shared + "C" * 15)
@@ -77,6 +138,20 @@ def test_frequent_minimisers_are_suppressed() -> None:
         max_minimiser_frequency=2,
         terminal_band=5,
     )
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_seed_pair_limit_must_be_positive(limit: int) -> None:
+    with pytest.raises(ConfigurationError, match="seed-pair"):
+        generate_candidates(
+            [sequence("a", "AACCGGTT")],
+            kmer_size=3,
+            window_size=2,
+            min_shared_minimisers=1,
+            max_minimiser_frequency=20,
+            terminal_band=2,
+            max_seed_pair_observations=limit,
+        )
 
 
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:

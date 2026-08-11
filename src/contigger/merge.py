@@ -22,7 +22,7 @@ from contigger.decision_policy import evaluate_graph_decisions
 from contigger.evidence.bam import BamEvidenceProvider
 from contigger.exceptions import InputValidationError
 from contigger.graph import build_relationship_graph
-from contigger.minimisers import generate_candidates
+from contigger.minimisers import CandidateGenerationMetrics, generate_candidates_with_metrics
 from contigger.models import (
     AlignmentHit,
     AlignmentRequest,
@@ -82,27 +82,48 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         samtools_versions = {}
         samtools_commands = {}
     stages: dict[str, float] = {}
+    stage_resource_usage: dict[str, dict[str, int | None]] = {}
 
     stage_start = time.monotonic()
+    catalogue_rss_before = _current_rss_kib()
     records = load_source_sequences(samples)
     catalogue = build_catalogue(records)
     stages["catalogue"] = time.monotonic() - stage_start
+    stage_resource_usage["catalogue"] = {
+        "rss_before_kib": catalogue_rss_before,
+        "rss_after_kib": _current_rss_kib(),
+    }
     print(
         f"Loaded {len(records)} contigs; canonical catalogue {len(catalogue.sequences)} sequences"
     )
 
     stage_start = time.monotonic()
-    candidates = generate_candidates(
+    candidates_rss_before = _current_rss_kib()
+    candidates, candidate_metrics = generate_candidates_with_metrics(
         catalogue.sequences,
         kmer_size=config.kmer_size,
         window_size=config.window_size,
         min_shared_minimisers=config.min_shared_minimisers,
         max_minimiser_frequency=config.max_minimiser_frequency,
         terminal_band=max(config.min_overlap, config.min_containment),
+        max_seed_pair_observations=config.max_seed_pair_observations,
     )
+    if config.max_candidate_pairs is not None and len(candidates) > config.max_candidate_pairs:
+        raise InputValidationError(
+            f"candidate pair count {len(candidates)} exceeds "
+            f"--max-candidate-pairs {config.max_candidate_pairs}; "
+            "increase the limit or tighten candidate-generation parameters"
+        )
     requests = plan_selective_alignments(catalogue.sequences, candidates)
     stages["candidates"] = time.monotonic() - stage_start
-    print(f"Generated {len(candidates)} candidate pairs")
+    stage_resource_usage["candidates"] = {
+        "rss_before_kib": candidates_rss_before,
+        "rss_after_kib": _current_rss_kib(),
+    }
+    print(
+        f"Generated {len(candidates)} candidate pairs from "
+        f"{candidate_metrics.retained_observations} retained minimiser observations"
+    )
 
     stage_start = time.monotonic()
     hits: tuple[AlignmentHit, ...]
@@ -171,6 +192,8 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         aligner_metrics,
         samtools_versions,
         samtools_commands,
+        candidate_metrics,
+        stage_resource_usage,
     )
     _write_outputs_atomic(
         paths_out,
@@ -567,12 +590,19 @@ def _stats(
     aligner_metrics: dict[str, int],
     samtools_versions: dict[str, str | None],
     samtools_commands: dict[str, tuple[tuple[str, ...], ...]],
+    candidate_metrics: CandidateGenerationMetrics,
+    stage_resource_usage: dict[str, dict[str, int | None]],
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
     )
     ordered_samples = tuple(sorted(samples, key=lambda item: item.sample))
     sample_metrics = _sample_metrics(ordered_samples, records)
+    representative_orientations = {
+        member.catalogue_id: member.orientation
+        for member in catalogue.members
+        if member.representative
+    }
     return {
         "run_status": "completed",
         "input_samples": len(samples),
@@ -593,10 +623,17 @@ def _stats(
         "canonical_sequences": len(catalogue.sequences),
         "exact_duplicates_collapsed": len(records) - len(catalogue.sequences),
         "reverse_complement_duplicates_collapsed": sum(
-            1 for item in catalogue.members if item.orientation is Orientation.REVERSE
+            1
+            for member in catalogue.members
+            if not member.representative
+            and member.orientation is not representative_orientations[member.catalogue_id]
+        ),
+        "reverse_oriented_catalogue_members": sum(
+            1 for member in catalogue.members if member.orientation is Orientation.REVERSE
         ),
         "contained_contigs_removed": merge_stats["contained_contigs_removed"],
         "candidate_pairs": len(candidates),
+        "candidate_generation": candidate_metrics.as_dict(),
         "alignment_pairs": len(requests),
         "relationship_counts": dict(sorted(relationship_counts.items())),
         "graph_components": len(graph.components),
@@ -624,6 +661,7 @@ def _stats(
         "minimap2_preset": config.minimap2_preset,
         "configuration": config.as_dict(),
         "elapsed_times_by_stage": stages,
+        "stage_resource_usage": stage_resource_usage,
         "resource_usage": _resource_usage(),
     }
 
@@ -680,6 +718,15 @@ def _resource_usage() -> dict[str, object]:
     if slurm:
         resource_usage["slurm"] = slurm
     return resource_usage
+
+
+def _current_rss_kib() -> int | None:
+    """Return current Linux resident memory when procfs is available."""
+    try:
+        resident_pages = int(Path("/proc/self/statm").read_text(encoding="ascii").split()[1])
+        return resident_pages * os.sysconf("SC_PAGE_SIZE") // 1024
+    except (IndexError, OSError, ValueError):
+        return None
 
 
 def _write_outputs_atomic(

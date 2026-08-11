@@ -32,6 +32,8 @@ def build_run_config(
     emit_gfa: bool = False,
     minimap2_preset: str = "asm20",
     index_dir: Path | str | None = None,
+    max_candidate_pairs: int | None = None,
+    max_seed_pair_observations: int | None = None,
 ) -> RunConfig:
     """Validate raw CLI-style values and construct a normalised configuration."""
     try:
@@ -60,4 +62,6 @@ def build_run_config(
         emit_gfa=emit_gfa,
         minimap2_preset=minimap2_preset,
         index_dir=Path(index_dir) if index_dir is not None else None,
+        max_candidate_pairs=max_candidate_pairs,
+        max_seed_pair_observations=max_seed_pair_observations,
     )

@@ -13,11 +13,11 @@ do not need a cross-assembly comparison.
 - [x] Record the input contig count, total bases, and per-sample manifest for every
       comparison.
 - [x] Record Slurm requested/used memory, elapsed time, CPU count, and exit reason.
-- [ ] Run a small fixture and one manageable Shark comparison to establish candidate,
+- [x] Run a small fixture and one manageable Shark comparison to establish candidate,
       alignment, graph, and output counts.
-- [ ] Keep `--evidence none` for the initial scaling baseline so read validation does
+- [x] Keep `--evidence none` for the initial scaling baseline so read validation does
       not add another source of cost.
-- [ ] Verify that exact/RC duplicates and containment remain unchanged as settings are
+- [x] Verify that exact/RC duplicates and containment remain unchanged as settings are
       tightened.
 
 The first item is recorded in every successful `<output-prefix>.stats.json` file as
@@ -37,6 +37,36 @@ requested memory, requested resources, and allocated resources. The collector mu
 run after the job finishes because Slurm cannot report the final accounting state from
 inside the running job.
 
+### Milestone 1 completion evidence
+
+The small fixture completed in sequence-only mode with 3 input contigs, 47 input bases,
+zero candidate pairs, and 3 output contigs. A deterministic 4,000-contig subset of two
+BundegiBeachWater assemblies was then run with minimap2 from the ATAVIDE environment:
+
+| Setting | Candidates | Alignment observations | Graph components | Output contigs | Output bases |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline (`identity=98`, `min-overlap=1000`, `k=21`, `window=10`, `max-frequency=20`) | 47 | 47 | 4,000 | 4,000 | 2,108,711 |
+| Exploratory tightened settings (`identity=99`, `min-overlap=2000`, `k=31`, `window=15`, `min-shared=8`, `max-frequency=20`) | 31 | 31 | 4,000 | 4,000 | 2,108,711 |
+
+Both runs used `--evidence none`, completed successfully, constructed zero joins, and
+produced byte-identical FASTA and provenance outputs. Catalogue and containment
+dispositions were unchanged in both runs: 4,000 canonical sequences, 0 exact or
+reverse-complement duplicate collapses, 1,927 reverse-oriented catalogue members, and
+0 contained contigs removed.
+The exploratory tightened run reduced candidate/alignment work on this subset, but it is
+**not an accepted production setting**: the checked-in Pseudomonas decision-preservation
+benchmark must pass before a threshold change can be adopted. The tightened evaluation
+increases missed/false relationship decisions around the `identity_9799` regression, so
+the baseline settings remain the only approved settings from this comparison.
+
+The exact private-data manifest-construction command, selection rule, tool versions,
+output checksums, and summary counts are recorded in
+[`benchmarks/shark_baseline_results.json`](benchmarks/shark_baseline_results.json).
+The manifest itself, source paths, and source/subset checksums are deliberately not
+committed because the Shark input data are experimental.
+This is a manageable baseline, not evidence that the original 500k-contig Shark
+comparisons are now scalable; those remain Milestone 2 and 3 work.
+
 ## Milestone 2 — Prevent candidate explosion
 
 - [ ] Profile memory and runtime separately for catalogue loading and minimiser
@@ -45,9 +75,36 @@ inside the running job.
       IDs and bounded batches or shard files.
 - [ ] Stream candidate generation instead of retaining every observation and pair in
       memory at once.
-- [ ] Add an early candidate-count/memory estimate and a clear configurable guardrail.
+- [x] Add an early candidate-count/memory estimate and a clear configurable guardrail.
 - [ ] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
       versus candidate reduction; do not update biological baselines silently.
+
+### Milestone 2 progress
+
+The merge path now records deterministic minimiser-pressure counters in
+`stats.json` under `candidate_generation`: all and retained minimiser observations,
+discarded repetitive observations, unique minimisers, maximum per-pair evidence,
+candidate pairs, and the frequency, retained-seed, pair-expansion, and candidate-filter
+stage timings. Candidate generation uses a two-pass frequency/retained-seed workflow,
+so it no longer keeps a full global observation tuple alongside the retained seed index.
+Per-pair evidence is also accumulated as compact shared-value, position, orientation, and
+count sets rather than retaining a tuple of full minimiser observations for every shared
+seed. This preserves candidate geometry while removing the largest duplicated evidence
+collection from ordinary runs.
+The retained-seed index and pair-evidence map use compact integer sequence and minimiser
+IDs internally; source identifiers and k-mer strings are retained only at the input/output
+boundaries needed to preserve collision-safe candidate semantics.
+`--max-candidate-pairs N` aborts before minimap2 alignment if the final candidate count
+exceeds `N`, preventing accidental submission of an unbounded alignment job. This is an
+initial operational guardrail, not yet a streaming candidate implementation; the
+remaining unchecked tasks are still required to bound candidate-generation memory itself.
+`--max-seed-pair-observations N` is an earlier guard: it rejects a run after the
+frequency pass when the conservative per-minimiser seed-pair upper bound exceeds `N`,
+before retained-seed indexing and pair expansion allocate their working structures.
+Completed `stats.json` files now also record current RSS before and after the catalogue
+and candidate stages under `stage_resource_usage`, alongside their elapsed times. These
+snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
+measurements and therefore do not replace Slurm `MaxRSS` collection.
 
 ## Milestone 3 — Make alignment batching scale
 

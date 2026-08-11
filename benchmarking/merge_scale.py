@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from contigger.catalogue import build_catalogue
-from contigger.minimisers import generate_candidates, sequence_minimisers
+from contigger.minimisers import generate_candidates_with_metrics
 from contigger.models import SequenceRecord
 
 
@@ -42,7 +42,7 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
     catalogue = build_catalogue(records)
     catalogue_seconds = time.perf_counter() - started
     started = time.perf_counter()
-    candidates = generate_candidates(
+    candidates, candidate_metrics = generate_candidates_with_metrics(
         catalogue.sequences,
         kmer_size=21,
         window_size=10,
@@ -51,9 +51,6 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
         terminal_band=1000,
     )
     minimiser_seconds = time.perf_counter() - started
-    observations = sum(
-        len(sequence_minimisers(item, kmer_size=21, window_size=10)) for item in catalogue.sequences
-    )
     lengths = sorted(item.length for item in catalogue.sequences)
     peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
     return {
@@ -63,9 +60,10 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
         "median_contig_length": lengths[len(lengths) // 2],
         "canonical_sequences": len(catalogue.sequences),
         "catalogue_seconds": catalogue_seconds,
-        "minimiser_seconds": minimiser_seconds,
-        "minimiser_observations": observations,
-        "retained_minimisers": observations,
+        "candidate_generation_seconds": minimiser_seconds,
+        "minimiser_observations": candidate_metrics.minimiser_observations,
+        "retained_minimisers": candidate_metrics.retained_observations,
+        "candidate_generation": candidate_metrics.as_dict(),
         "peak_rss_bytes": peak_rss,
         "candidate_count": len(candidates),
         "candidate_reduction_factor": (

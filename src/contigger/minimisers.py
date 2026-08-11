@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import hashlib
-from collections import Counter
+import time
+from collections import Counter, deque
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import TextIO
 
 from contigger.exceptions import ConfigurationError, InputValidationError
@@ -19,6 +21,90 @@ from contigger.utilities.sequences import reverse_complement
 UNAMBIGUOUS_DNA = frozenset("ACGT")
 
 
+@dataclass(frozen=True, slots=True)
+class CandidateGenerationMetrics:
+    """Candidate-generation pressure counters and stage timings."""
+
+    input_sequences: int
+    input_bases: int
+    minimiser_observations: int
+    retained_observations: int
+    unique_minimisers: int
+    repetitive_observations_discarded: int
+    candidate_pairs: int
+    maximum_pair_evidence: int
+    potential_seed_pair_observations: int
+    frequency_pass_seconds: float
+    retained_seed_pass_seconds: float
+    pair_expansion_seconds: float
+    candidate_filter_seconds: float
+
+    def as_dict(self) -> dict[str, int | float]:
+        """Return counters in the form used by the run statistics JSON."""
+        return {
+            "input_sequences": self.input_sequences,
+            "input_bases": self.input_bases,
+            "minimiser_observations": self.minimiser_observations,
+            "retained_observations": self.retained_observations,
+            "unique_minimisers": self.unique_minimisers,
+            "repetitive_observations_discarded": self.repetitive_observations_discarded,
+            "candidate_pairs": self.candidate_pairs,
+            "maximum_pair_evidence": self.maximum_pair_evidence,
+            "potential_seed_pair_observations": self.potential_seed_pair_observations,
+            "frequency_pass_seconds": self.frequency_pass_seconds,
+            "retained_seed_pass_seconds": self.retained_seed_pass_seconds,
+            "pair_expansion_seconds": self.pair_expansion_seconds,
+            "candidate_filter_seconds": self.candidate_filter_seconds,
+        }
+
+
+@dataclass(slots=True)
+class _PairEvidence:
+    """Compact candidate evidence accumulated without retaining seed-pair tuples."""
+
+    shared_values: set[int]
+    query_positions: set[int]
+    target_positions: set[int]
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]]
+    observation_count: int = 0
+
+    @classmethod
+    def empty(cls) -> _PairEvidence:
+        """Create an empty accumulator for one ordered candidate pair."""
+        return cls(set(), set(), set(), {})
+
+    def add(
+        self,
+        minimiser_id: int,
+        query_position: int,
+        target_position: int,
+        query_orientation: Orientation,
+        target_orientation: Orientation,
+    ) -> None:
+        """Record one shared minimiser without retaining the source objects."""
+        relative = (
+            Orientation.FORWARD if query_orientation is target_orientation else Orientation.REVERSE
+        )
+        query_by_orientation, target_by_orientation = self.positions_by_orientation.setdefault(
+            relative, (set(), set())
+        )
+        self.shared_values.add(minimiser_id)
+        self.query_positions.add(query_position)
+        self.target_positions.add(target_position)
+        query_by_orientation.add(query_position)
+        target_by_orientation.add(target_position)
+        self.observation_count += 1
+
+
+@dataclass(frozen=True, slots=True)
+class _SeedObservation:
+    """Retained minimiser evidence using a compact sequence index."""
+
+    sequence_index: int
+    position: int
+    orientation: Orientation
+
+
 def sequence_minimisers(
     sequence: CatalogueSequence, *, kmer_size: int, window_size: int
 ) -> tuple[MinimiserObservation, ...]:
@@ -26,34 +112,41 @@ def sequence_minimisers(
     _validate_parameters(kmer_size, window_size)
     if sequence.length < kmer_size:
         return ()
-    kmers: list[MinimiserObservation | None] = []
-    for position in range(sequence.length - kmer_size + 1):
+    kmer_count = sequence.length - kmer_size + 1
+    effective_window = min(window_size, kmer_count)
+    minima: deque[tuple[int, MinimiserObservation]] = deque()
+    selected: set[MinimiserObservation] = set()
+    for position in range(kmer_count):
         forward = sequence.sequence[position : position + kmer_size]
         if not set(forward) <= UNAMBIGUOUS_DNA:
-            kmers.append(None)
-            continue
-        reverse = reverse_complement(forward)
-        canonical = min(forward, reverse)
-        orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
-        value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
-        kmers.append(
-            MinimiserObservation(
+            observation = None
+        else:
+            reverse = reverse_complement(forward)
+            canonical = min(forward, reverse)
+            orientation = Orientation.FORWARD if forward == canonical else Orientation.REVERSE
+            value = int.from_bytes(hashlib.sha256(canonical.encode("ascii")).digest()[:8], "big")
+            observation = MinimiserObservation(
                 sequence_id=sequence.identifier,
                 value=value,
                 position=position,
                 orientation=orientation,
                 kmer=canonical,
             )
-        )
 
-    selected: set[MinimiserObservation] = set()
-    effective_window = min(window_size, len(kmers))
-    for start in range(len(kmers) - effective_window + 1):
-        valid = [item for item in kmers[start : start + effective_window] if item is not None]
-        if not valid:
+        if observation is not None:
+            while minima and minima[-1][1].value > observation.value:
+                minima.pop()
+            minima.append((position, observation))
+        window_start = position - effective_window + 1
+        while minima and minima[0][0] < window_start:
+            minima.popleft()
+        if window_start < 0 or not minima:
             continue
-        minimum = min(item.value for item in valid)
-        selected.update(item for item in valid if item.value == minimum)
+        minimum_value = minima[0][1].value
+        for _, minimum in minima:
+            if minimum.value != minimum_value:
+                break
+            selected.add(minimum)
     return tuple(sorted(selected, key=_observation_sort_key))
 
 
@@ -65,7 +158,31 @@ def generate_candidates(
     min_shared_minimisers: int,
     max_minimiser_frequency: int,
     terminal_band: int,
+    max_seed_pair_observations: int | None = None,
 ) -> tuple[CandidatePair, ...]:
+    """Generate candidates, retaining the historical tuple-only API."""
+    candidates, _ = generate_candidates_with_metrics(
+        sequences,
+        kmer_size=kmer_size,
+        window_size=window_size,
+        min_shared_minimisers=min_shared_minimisers,
+        max_minimiser_frequency=max_minimiser_frequency,
+        terminal_band=terminal_band,
+        max_seed_pair_observations=max_seed_pair_observations,
+    )
+    return candidates
+
+
+def generate_candidates_with_metrics(
+    sequences: Iterable[CatalogueSequence],
+    *,
+    kmer_size: int,
+    window_size: int,
+    min_shared_minimisers: int,
+    max_minimiser_frequency: int,
+    terminal_band: int,
+    max_seed_pair_observations: int | None = None,
+) -> tuple[tuple[CandidatePair, ...], CandidateGenerationMetrics]:
     """Generate deterministic candidate pairs with explicit terminal seed geometry.
 
     Shared seeds are necessary but not sufficient: emitted pairs must also support a
@@ -75,56 +192,92 @@ def generate_candidates(
     _validate_parameters(kmer_size, window_size)
     if min_shared_minimisers < 1 or max_minimiser_frequency < 1:
         raise ConfigurationError("minimiser frequency thresholds must be positive")
+    if max_seed_pair_observations is not None and max_seed_pair_observations < 1:
+        raise ConfigurationError("maximum seed-pair observations must be positive when supplied")
     if terminal_band < 0:
         raise ConfigurationError("terminal band cannot be negative")
     ordered = tuple(sorted(sequences, key=lambda item: item.identifier))
     if len({item.identifier for item in ordered}) != len(ordered):
         raise InputValidationError("candidate generation requires unique sequence identifiers")
-    lengths = {item.identifier: item.length for item in ordered}
-    observations = tuple(
-        observation
-        for sequence in ordered
+    sequence_ids = tuple(item.identifier for item in ordered)
+    lengths = tuple(item.length for item in ordered)
+    frequency_started = time.monotonic()
+    frequencies: Counter[tuple[int, str]] = Counter()
+    minimiser_observations = 0
+    for sequence in ordered:
+        observations = sequence_minimisers(sequence, kmer_size=kmer_size, window_size=window_size)
+        minimiser_observations += len(observations)
+        frequencies.update((item.value, item.kmer) for item in observations)
+    frequency_pass_seconds = time.monotonic() - frequency_started
+    potential_seed_pair_observations = sum(
+        frequency * (frequency - 1) // 2
+        for frequency in frequencies.values()
+        if frequency <= max_minimiser_frequency
+    )
+    if (
+        max_seed_pair_observations is not None
+        and potential_seed_pair_observations > max_seed_pair_observations
+    ):
+        raise InputValidationError(
+            "potential seed-pair observations "
+            f"{potential_seed_pair_observations} exceed "
+            f"--max-seed-pair-observations {max_seed_pair_observations}; "
+            "tighten minimiser parameters or increase the limit"
+        )
+
+    retained_started = time.monotonic()
+    by_value: dict[tuple[int, str], list[_SeedObservation]] = {}
+    retained_observations = 0
+    for sequence_index, sequence in enumerate(ordered):
         for observation in sequence_minimisers(
             sequence, kmer_size=kmer_size, window_size=window_size
-        )
-    )
-    frequencies = Counter((item.value, item.kmer) for item in observations)
-    by_value: dict[tuple[int, str], list[MinimiserObservation]] = {}
-    for observation in observations:
-        key = (observation.value, observation.kmer)
-        if frequencies[key] <= max_minimiser_frequency:
-            by_value.setdefault(key, []).append(observation)
+        ):
+            key = (observation.value, observation.kmer)
+            if frequencies[key] <= max_minimiser_frequency:
+                by_value.setdefault(key, []).append(
+                    _SeedObservation(sequence_index, observation.position, observation.orientation)
+                )
+                retained_observations += 1
+    retained_seed_pass_seconds = time.monotonic() - retained_started
 
-    evidence: dict[tuple[str, str], list[tuple[MinimiserObservation, MinimiserObservation]]] = {}
-    for value in sorted(by_value):
-        items = sorted(by_value[value], key=_observation_sort_key)
+    pair_expansion_started = time.monotonic()
+    evidence: dict[tuple[int, int], _PairEvidence] = {}
+    for minimiser_id, value in enumerate(sorted(by_value)):
+        items = sorted(
+            by_value[value],
+            key=lambda item: (item.sequence_index, item.position, item.orientation.value),
+        )
         for left_index, left in enumerate(items):
             for right in items[left_index + 1 :]:
-                if left.sequence_id == right.sequence_id:
+                if left.sequence_index == right.sequence_index:
                     continue
-                query, target = sorted((left.sequence_id, right.sequence_id))
-                first, second = (left, right) if left.sequence_id == query else (right, left)
-                evidence.setdefault((query, target), []).append((first, second))
+                query, target = sorted((left.sequence_index, right.sequence_index))
+                first, second = (left, right) if left.sequence_index == query else (right, left)
+                pair = (query, target)
+                pair_evidence = evidence.get(pair)
+                if pair_evidence is None:
+                    pair_evidence = _PairEvidence.empty()
+                    evidence[pair] = pair_evidence
+                pair_evidence.add(
+                    minimiser_id,
+                    first.position,
+                    second.position,
+                    first.orientation,
+                    second.orientation,
+                )
+    pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
+    candidate_filter_started = time.monotonic()
     candidates: list[CandidatePair] = []
     for pair in sorted(evidence):
-        matches = evidence[pair]
-        shared_values = {(query.value, query.kmer) for query, _ in matches}
-        if len(shared_values) < min_shared_minimisers:
+        pair_evidence = evidence[pair]
+        if len(pair_evidence.shared_values) < min_shared_minimisers:
             continue
         orientations = tuple(
-            sorted(
-                {
-                    Orientation.FORWARD
-                    if query.orientation is target.orientation
-                    else Orientation.REVERSE
-                    for query, target in matches
-                },
-                key=lambda item: item.value,
-            )
+            sorted(pair_evidence.positions_by_orientation, key=lambda item: item.value)
         )
-        topologies = _terminal_topologies(
-            matches,
+        topologies = _terminal_topologies_from_positions(
+            pair_evidence.positions_by_orientation,
             lengths[pair[0]],
             lengths[pair[1]],
             kmer_size,
@@ -134,12 +287,12 @@ def generate_candidates(
             continue
         candidates.append(
             CandidatePair(
-                query_id=pair[0],
-                target_id=pair[1],
-                shared_minimisers=len(shared_values),
+                query_id=sequence_ids[pair[0]],
+                target_id=sequence_ids[pair[1]],
+                shared_minimisers=len(pair_evidence.shared_values),
                 orientation=orientations[0] if len(orientations) == 1 else None,
-                query_positions=tuple(sorted({query.position for query, _ in matches})),
-                target_positions=tuple(sorted({target.position for _, target in matches})),
+                query_positions=tuple(sorted(pair_evidence.query_positions)),
+                target_positions=tuple(sorted(pair_evidence.target_positions)),
                 supported_orientations=orientations,
                 terminal_topologies=topologies,
                 reasons=(
@@ -148,7 +301,26 @@ def generate_candidates(
                 ),
             )
         )
-    return tuple(candidates)
+    ordered_candidates = tuple(candidates)
+    candidate_filter_seconds = time.monotonic() - candidate_filter_started
+    metrics = CandidateGenerationMetrics(
+        input_sequences=len(ordered),
+        input_bases=sum(item.length for item in ordered),
+        minimiser_observations=minimiser_observations,
+        retained_observations=retained_observations,
+        unique_minimisers=len(frequencies),
+        repetitive_observations_discarded=minimiser_observations - retained_observations,
+        candidate_pairs=len(ordered_candidates),
+        maximum_pair_evidence=max(
+            (pair_evidence.observation_count for pair_evidence in evidence.values()), default=0
+        ),
+        potential_seed_pair_observations=potential_seed_pair_observations,
+        frequency_pass_seconds=frequency_pass_seconds,
+        retained_seed_pass_seconds=retained_seed_pass_seconds,
+        pair_expansion_seconds=pair_expansion_seconds,
+        candidate_filter_seconds=candidate_filter_seconds,
+    )
+    return ordered_candidates, metrics
 
 
 def write_candidates_tsv(candidates: Iterable[CandidatePair], output: TextIO) -> None:
@@ -191,6 +363,34 @@ def _terminal_topologies(
     kmer_size: int,
     terminal_band: int,
 ) -> tuple[str, ...]:
+    """Calculate topology labels from full observations for compatibility tests."""
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]] = {}
+    for query, target in matches:
+        relative = (
+            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
+        )
+        query_positions, target_positions = positions_by_orientation.setdefault(
+            relative, (set(), set())
+        )
+        query_positions.add(query.position)
+        target_positions.add(target.position)
+    return _terminal_topologies_from_positions(
+        positions_by_orientation,
+        query_length,
+        target_length,
+        kmer_size,
+        terminal_band,
+    )
+
+
+def _terminal_topologies_from_positions(
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]],
+    query_length: int,
+    target_length: int,
+    kmer_size: int,
+    terminal_band: int,
+) -> tuple[str, ...]:
+    """Calculate terminal topology labels from compact per-orientation position sets."""
     topologies: set[str] = set()
 
     def query_prefix(position: int) -> bool:
@@ -205,19 +405,7 @@ def _terminal_topologies(
     def target_suffix(position: int) -> bool:
         return position + kmer_size > target_length - terminal_band
 
-    by_orientation: dict[Orientation, list[tuple[MinimiserObservation, MinimiserObservation]]] = {
-        Orientation.FORWARD: [],
-        Orientation.REVERSE: [],
-    }
-    for query, target in matches:
-        relative = (
-            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
-        )
-        by_orientation[relative].append((query, target))
-
-    for relative, oriented_matches in by_orientation.items():
-        query_positions = {query.position for query, _ in oriented_matches}
-        target_positions = {target.position for _, target in oriented_matches}
+    for relative, (query_positions, target_positions) in positions_by_orientation.items():
         if not query_positions:
             continue
         query_has_prefix = any(query_prefix(item) for item in query_positions)
