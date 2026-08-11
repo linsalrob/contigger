@@ -41,6 +41,9 @@ class CandidateGenerationMetrics:
     retained_seed_pass_seconds: float
     pair_expansion_seconds: float
     candidate_filter_seconds: float
+    candidate_shards: int
+    temporary_seed_bytes: int
+    temporary_pair_bytes: int
 
     def as_dict(self) -> dict[str, int | float]:
         """Return counters in the form used by the run statistics JSON."""
@@ -58,6 +61,9 @@ class CandidateGenerationMetrics:
             "retained_seed_pass_seconds": self.retained_seed_pass_seconds,
             "pair_expansion_seconds": self.pair_expansion_seconds,
             "candidate_filter_seconds": self.candidate_filter_seconds,
+            "candidate_shards": self.candidate_shards,
+            "temporary_seed_bytes": self.temporary_seed_bytes,
+            "temporary_pair_bytes": self.temporary_pair_bytes,
         }
 
 
@@ -320,6 +326,8 @@ def generate_candidates_with_metrics(
                 )
                 if candidate is not None:
                     candidates.append(candidate)
+        temporary_seed_bytes = sum(path.stat().st_size for path in paths)
+        temporary_pair_bytes = sum(path.stat().st_size for path in pair_paths)
     finally:
         temporary.cleanup()
     ordered_candidates = tuple(candidates)
@@ -338,6 +346,9 @@ def generate_candidates_with_metrics(
         retained_seed_pass_seconds=retained_seed_pass_seconds,
         pair_expansion_seconds=pair_expansion_seconds,
         candidate_filter_seconds=candidate_filter_seconds,
+        candidate_shards=candidate_shards,
+        temporary_seed_bytes=temporary_seed_bytes,
+        temporary_pair_bytes=temporary_pair_bytes,
     )
     return ordered_candidates, metrics
 
