@@ -5,8 +5,11 @@ from __future__ import annotations
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from contigger.benchmark import MERGE_LIKE, load_truth
 from contigger.catalogue import build_catalogue, load_source_sequences
+from contigger.exceptions import ConfigurationError
 from contigger.manifest import parse_manifest
 from contigger.minimisers import (
     generate_candidates,
@@ -135,6 +138,20 @@ def test_frequent_minimisers_are_suppressed() -> None:
         max_minimiser_frequency=2,
         terminal_band=5,
     )
+
+
+@pytest.mark.parametrize("limit", [0, -1])
+def test_seed_pair_limit_must_be_positive(limit: int) -> None:
+    with pytest.raises(ConfigurationError, match="seed-pair"):
+        generate_candidates(
+            [sequence("a", "AACCGGTT")],
+            kmer_size=3,
+            window_size=2,
+            min_shared_minimisers=1,
+            max_minimiser_frequency=20,
+            terminal_band=2,
+            max_seed_pair_observations=limit,
+        )
 
 
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:

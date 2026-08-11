@@ -192,6 +192,8 @@ def generate_candidates_with_metrics(
     _validate_parameters(kmer_size, window_size)
     if min_shared_minimisers < 1 or max_minimiser_frequency < 1:
         raise ConfigurationError("minimiser frequency thresholds must be positive")
+    if max_seed_pair_observations is not None and max_seed_pair_observations < 1:
+        raise ConfigurationError("maximum seed-pair observations must be positive when supplied")
     if terminal_band < 0:
         raise ConfigurationError("terminal band cannot be negative")
     ordered = tuple(sorted(sequences, key=lambda item: item.identifier))
