@@ -209,7 +209,12 @@ def generate_candidates_with_metrics(
                     continue
                 query, target = sorted((left.sequence_id, right.sequence_id))
                 first, second = (left, right) if left.sequence_id == query else (right, left)
-                evidence.setdefault((query, target), _PairEvidence.empty()).add(first, second)
+                pair = (query, target)
+                pair_evidence = evidence.get(pair)
+                if pair_evidence is None:
+                    pair_evidence = _PairEvidence.empty()
+                    evidence[pair] = pair_evidence
+                pair_evidence.add(first, second)
     pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
     candidate_filter_started = time.monotonic()
