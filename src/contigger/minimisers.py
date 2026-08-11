@@ -13,6 +13,7 @@ from typing import TextIO
 
 from contigger.exceptions import ConfigurationError, InputValidationError
 from contigger.models import (
+    MAX_CANDIDATE_SHARDS,
     CandidatePair,
     CatalogueSequence,
     MinimiserObservation,
@@ -21,7 +22,6 @@ from contigger.models import (
 from contigger.utilities.sequences import reverse_complement
 
 UNAMBIGUOUS_DNA = frozenset("ACGT")
-MAX_CANDIDATE_SHARDS = 64
 
 
 @dataclass(frozen=True, slots=True)

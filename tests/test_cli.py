@@ -219,11 +219,25 @@ def test_stats_distinguish_reverse_members_from_reverse_complement_duplicates(
     manifest.write_text("sample\tcontigs\nS1\tcontigs.fasta\n", encoding="utf-8")
     prefix = tmp_path / "contigger"
 
-    assert main(["merge", "--manifest", str(manifest), "--output-prefix", str(prefix)]) == 0
+    assert (
+        main(
+            [
+                "merge",
+                "--manifest",
+                str(manifest),
+                "--output-prefix",
+                str(prefix),
+                "--candidate-shards",
+                "3",
+            ]
+        )
+        == 0
+    )
     stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
     assert stats["exact_duplicates_collapsed"] == 1
     assert stats["reverse_complement_duplicates_collapsed"] == 1
     assert stats["reverse_oriented_catalogue_members"] == 1
+    assert stats["candidate_generation"]["candidate_shards"] == 3
     capsys.readouterr()
 
 

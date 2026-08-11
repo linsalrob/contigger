@@ -10,6 +10,8 @@ from typing import Any
 
 from contigger.exceptions import ConfigurationError, InputValidationError
 
+MAX_CANDIDATE_SHARDS = 64
+
 
 class Orientation(StrEnum):
     """Explicit orientation of a query relative to a target."""
@@ -783,6 +785,7 @@ class RunConfig:
     index_dir: Path | None = None
     max_candidate_pairs: int | None = None
     max_seed_pair_observations: int | None = None
+    candidate_shards: int = 16
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.identity <= 1.0:
@@ -805,6 +808,10 @@ class RunConfig:
             raise ConfigurationError(
                 "maximum seed-pair observations must be positive when supplied"
             )
+        if not 1 <= self.candidate_shards <= MAX_CANDIDATE_SHARDS:
+            raise ConfigurationError(
+                f"candidate shard count must be between 1 and {MAX_CANDIDATE_SHARDS}"
+            )
         if self.minimap2_preset not in {"asm5", "asm10", "asm20"}:
             raise ConfigurationError(
                 f"unsupported minimap2 assembly preset: {self.minimap2_preset}"
@@ -825,6 +832,7 @@ class RunConfig:
             "max_minimiser_frequency": self.max_minimiser_frequency,
             "max_candidate_pairs": self.max_candidate_pairs,
             "max_seed_pair_observations": self.max_seed_pair_observations,
+            "candidate_shards": self.candidate_shards,
             "min_containment": self.min_containment,
             "min_overlap": self.min_overlap,
             "min_shared_minimisers": self.min_shared_minimisers,

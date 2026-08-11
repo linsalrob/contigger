@@ -107,6 +107,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         max_minimiser_frequency=config.max_minimiser_frequency,
         terminal_band=max(config.min_overlap, config.min_containment),
         max_seed_pair_observations=config.max_seed_pair_observations,
+        candidate_shards=config.candidate_shards,
     )
     if config.max_candidate_pairs is not None and len(candidates) > config.max_candidate_pairs:
         raise InputValidationError(

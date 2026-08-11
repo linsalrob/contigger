@@ -210,6 +210,9 @@ contigger merge \
     --window-size 15 \
     --min-shared-minimisers 8 \
     --max-minimiser-frequency 20 \
+    --candidate-shards 64 \
+    --max-seed-pair-observations 100000000 \
+    --max-candidate-pairs 1000000 \
     --threads 16 \
     --evidence none \
     --index-dir "$MYSCRATCH/contigger-indexes/small"

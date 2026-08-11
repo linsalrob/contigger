@@ -13,6 +13,7 @@ from contigger.fasta import read_fasta
 REPOSITORY_ROOT = Path(__file__).parents[1]
 FIXTURE_SCRIPT = REPOSITORY_ROOT / "benchmarking" / "real_fasta_scale.py"
 PROFILE_SCRIPT = REPOSITORY_ROOT / "benchmarking" / "profile_fasta_candidates.py"
+MANIFEST_PROFILE_SCRIPT = REPOSITORY_ROOT / "benchmarking" / "profile_manifest_candidates.py"
 
 
 def _run_fixture_script(source: Path, output: Path, *counts: int) -> dict[str, object]:
@@ -161,6 +162,53 @@ def test_profile_uses_real_fasta_records(tmp_path: Path) -> None:
     assert result["input_contigs"] == 2
     assert result["input_bases"] == 16
     assert result["canonical_sequences"] == 1
+    assert result["candidate_count"] == 0
+
+
+def test_manifest_profile_validates_and_bounds_candidate_preflight(tmp_path: Path) -> None:
+    """The manifest preflight uses production loading without invoking an aligner."""
+    first = tmp_path / "first.fasta"
+    second = tmp_path / "second.fasta"
+    first.write_text(">a\nAAAACCCC\n", encoding="ascii")
+    second.write_text(">b\nGGGGTTTT\n", encoding="ascii")
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text(
+        "sample\tcontigs\nfirst\tfirst.fasta\nsecond\tsecond.fasta\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "manifest-profile.json"
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(MANIFEST_PROFILE_SCRIPT),
+            "--manifest",
+            str(manifest),
+            "--output",
+            str(output),
+            "--kmer-size",
+            "4",
+            "--window-size",
+            "2",
+            "--min-shared-minimisers",
+            "1",
+            "--max-minimiser-frequency",
+            "10",
+            "--terminal-band",
+            "10",
+            "--candidate-shards",
+            "2",
+            "--max-seed-pair-observations",
+            "100",
+            "--max-candidate-pairs",
+            "1",
+        ],
+        check=True,
+    )
+    result = json.loads(output.read_text(encoding="utf-8"))
+
+    assert result["input_samples"] == 2
+    assert result["input_contigs"] == 2
     assert result["candidate_count"] == 0
 
 
