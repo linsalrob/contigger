@@ -108,6 +108,13 @@ and candidate stages under `stage_resource_usage`, alongside their elapsed times
 snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
 measurements and therefore do not replace Slurm `MaxRSS` collection.
 
+Retained-seed shards are now externally sorted in fixed-size chunks and merged one
+minimiser value at a time. This removes the previous whole-shard Python mapping of
+retained observations while preserving deterministic candidate evidence. Temporary-sort
+bytes are recorded separately. Final candidate tuples and per-pair evidence remain
+materialized for the current public API, so this completes only the seed-group memory
+bound; the remaining pair/graph streaming work belongs to Milestones 2–4.
+
 ### 10k sharded-candidate baseline (Setonix)
 
 Job `46892769` completed on the `work` partition with 10,000 deterministic 100 bp

@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import contigger.minimisers as minimisers
 from contigger.benchmark import MERGE_LIKE, load_truth
 from contigger.catalogue import build_catalogue, load_source_sequences
 from contigger.exceptions import ConfigurationError
@@ -184,6 +185,29 @@ def test_candidate_results_are_identical_across_shard_counts() -> None:
     assert generate_candidates(sequences, candidate_shards=1, **options) == generate_candidates(
         sequences, candidate_shards=3, **options
     )
+
+
+def test_external_seed_sort_chunks_preserve_candidate_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bounded external sorting must not change positional candidate evidence."""
+    shared = "ACGTCAGTACGATCGTACGA"
+    sequences = [
+        sequence("a", "TTGCAACGTT" + shared),
+        sequence("b", shared + "GGCATTAACC"),
+        sequence("c", shared + "TTAGGCCAAT"),
+    ]
+    options = {
+        "kmer_size": 5,
+        "window_size": 3,
+        "min_shared_minimisers": 2,
+        "max_minimiser_frequency": 20,
+        "terminal_band": 8,
+        "candidate_shards": 1,
+    }
+    expected = generate_candidates(sequences, **options)
+    monkeypatch.setattr(minimisers, "_SEED_SORT_CHUNK_LINES", 1)
+    assert generate_candidates(sequences, **options) == expected
 
 
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:

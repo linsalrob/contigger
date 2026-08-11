@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import time
 from collections import Counter, deque
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -22,6 +23,7 @@ from contigger.models import (
 from contigger.utilities.sequences import reverse_complement
 
 UNAMBIGUOUS_DNA = frozenset("ACGT")
+_SEED_SORT_CHUNK_LINES = 100_000
 
 
 @dataclass(frozen=True, slots=True)
@@ -43,6 +45,7 @@ class CandidateGenerationMetrics:
     candidate_filter_seconds: float
     candidate_shards: int
     temporary_seed_bytes: int
+    temporary_seed_sort_bytes: int
     temporary_pair_bytes: int
 
     def as_dict(self) -> dict[str, int | float]:
@@ -63,6 +66,7 @@ class CandidateGenerationMetrics:
             "candidate_filter_seconds": self.candidate_filter_seconds,
             "candidate_shards": self.candidate_shards,
             "temporary_seed_bytes": self.temporary_seed_bytes,
+            "temporary_seed_sort_bytes": self.temporary_seed_sort_bytes,
             "temporary_pair_bytes": self.temporary_pair_bytes,
         }
 
@@ -276,17 +280,12 @@ def generate_candidates_with_metrics(
         pair_outputs = [path.open("w", encoding="ascii", newline="") for path in pair_paths]
         minimiser_id = 0
         try:
-            for path in paths:
-                by_value = _read_seed_shard(path)
-                for value in sorted(by_value):
-                    items = sorted(
-                        by_value[value],
-                        key=lambda item: (
-                            item.sequence_index,
-                            item.position,
-                            item.orientation.value,
-                        ),
-                    )
+            temporary_seed_sort_bytes = 0
+            for shard_index, path in enumerate(paths):
+                for _value, items, sort_bytes in _iter_sorted_seed_groups(
+                    path, Path(temporary_directory), shard_index
+                ):
+                    temporary_seed_sort_bytes += sort_bytes
                     for left_index, left in enumerate(items):
                         for right in items[left_index + 1 :]:
                             if left.sequence_index == right.sequence_index:
@@ -348,6 +347,7 @@ def generate_candidates_with_metrics(
         candidate_filter_seconds=candidate_filter_seconds,
         candidate_shards=candidate_shards,
         temporary_seed_bytes=temporary_seed_bytes,
+        temporary_seed_sort_bytes=temporary_seed_sort_bytes,
         temporary_pair_bytes=temporary_pair_bytes,
     )
     return ordered_candidates, metrics
@@ -386,16 +386,85 @@ def write_candidates_tsv(candidates: Iterable[CandidatePair], output: TextIO) ->
         )
 
 
-def _read_seed_shard(path: Path) -> dict[tuple[int, str], list[_SeedObservation]]:
-    """Read one deterministic retained-seed shard into its bounded grouping map."""
-    by_value: dict[tuple[int, str], list[_SeedObservation]] = {}
-    with path.open(encoding="ascii") as input_file:
-        for line in input_file:
+def _iter_sorted_seed_groups(
+    path: Path, temporary_directory: Path, shard_index: int
+) -> Iterator[tuple[tuple[int, str], list[_SeedObservation], int]]:
+    """Yield one minimiser group at a time from externally sorted seed-shard chunks.
+
+    Frequency filtering bounds each yielded group by ``max_minimiser_frequency``.  The
+    complete shard therefore never becomes a large Python mapping of observations.
+    """
+    chunks = _write_sorted_seed_chunks(path, temporary_directory, shard_index)
+    sort_bytes = sum(chunk.stat().st_size for chunk in chunks)
+    handles = [chunk.open(encoding="ascii") for chunk in chunks]
+    try:
+        heap: list[tuple[tuple[int, str, int, int, str], str, int]] = []
+        for index, handle in enumerate(handles):
+            line = handle.readline()
+            if line:
+                heapq.heappush(heap, (_seed_line_sort_key(line), line, index))
+        current: tuple[int, str] | None = None
+        observations: list[_SeedObservation] = []
+        while heap:
+            _, line, handle_index = heapq.heappop(heap)
             value, kmer, sequence_index, position, orientation = line.rstrip("\n").split("\t")
-            by_value.setdefault((int(value), kmer), []).append(
+            group = (int(value), kmer)
+            if current is not None and group != current:
+                yield current, observations, sort_bytes
+                sort_bytes = 0
+                observations = []
+            current = group
+            observations.append(
                 _SeedObservation(int(sequence_index), int(position), Orientation(orientation))
             )
-    return by_value
+            next_line = handles[handle_index].readline()
+            if next_line:
+                heapq.heappush(heap, (_seed_line_sort_key(next_line), next_line, handle_index))
+        if current is not None:
+            yield current, observations, sort_bytes
+    finally:
+        for handle in handles:
+            handle.close()
+        for chunk in chunks:
+            chunk.unlink()
+
+
+def _write_sorted_seed_chunks(
+    path: Path, temporary_directory: Path, shard_index: int
+) -> list[Path]:
+    """Sort fixed-size seed-line chunks, bounding peak Python memory per shard."""
+    chunks: list[Path] = []
+    with path.open(encoding="ascii") as input_file:
+        lines: list[str] = []
+        for line in input_file:
+            lines.append(line)
+            if len(lines) == _SEED_SORT_CHUNK_LINES:
+                chunks.append(
+                    _flush_seed_sort_chunk(lines, temporary_directory, shard_index, len(chunks))
+                )
+                lines = []
+        if lines:
+            chunks.append(
+                _flush_seed_sort_chunk(lines, temporary_directory, shard_index, len(chunks))
+            )
+    return chunks
+
+
+def _flush_seed_sort_chunk(
+    lines: list[str], temporary_directory: Path, shard_index: int, chunk_index: int
+) -> Path:
+    """Write one deterministically sorted, bounded seed chunk."""
+    lines.sort(key=_seed_line_sort_key)
+    path = temporary_directory / f"seeds-{shard_index:03d}-{chunk_index:06d}.sorted.tsv"
+    with path.open("w", encoding="ascii", newline="") as output:
+        output.writelines(lines)
+    return path
+
+
+def _seed_line_sort_key(line: str) -> tuple[int, str, int, int, str]:
+    """Return the deterministic external-sort key for one retained-seed line."""
+    value, kmer, sequence_index, position, orientation = line.rstrip("\n").split("\t")
+    return (int(value), kmer, int(sequence_index), int(position), orientation)
 
 
 def _read_pair_shard(path: Path) -> dict[tuple[int, int], _PairEvidence]:
