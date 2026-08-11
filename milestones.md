@@ -50,8 +50,9 @@ BundegiBeachWater assemblies was then run with minimap2 from the ATAVIDE environ
 
 Both runs used `--evidence none`, completed successfully, constructed zero joins, and
 produced byte-identical FASTA and provenance outputs. Catalogue and containment
-dispositions were unchanged in both runs: 4,000 canonical sequences, 0 exact duplicate
-collapses, 1,927 reverse-oriented canonical members, and 0 contained contigs removed.
+dispositions were unchanged in both runs: 4,000 canonical sequences, 0 exact or
+reverse-complement duplicate collapses, 1,927 reverse-oriented catalogue members, and
+0 contained contigs removed.
 The exploratory tightened run reduced candidate/alignment work on this subset, but it is
 **not an accepted production setting**: the checked-in Pseudomonas decision-preservation
 benchmark must pass before a threshold change can be adopted. The tightened evaluation

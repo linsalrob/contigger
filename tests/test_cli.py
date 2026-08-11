@@ -170,6 +170,23 @@ def test_candidate_guard_fails_before_alignment(
     assert not prefix.with_suffix(".fasta").exists()
 
 
+def test_stats_distinguish_reverse_members_from_reverse_complement_duplicates(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    fasta = tmp_path / "contigs.fasta"
+    fasta.write_text(">forward\nAACCGGTA\n>reverse\nTACCGGTT\n", encoding="utf-8")
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text("sample\tcontigs\nS1\tcontigs.fasta\n", encoding="utf-8")
+    prefix = tmp_path / "contigger"
+
+    assert main(["merge", "--manifest", str(manifest), "--output-prefix", str(prefix)]) == 0
+    stats = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    assert stats["exact_duplicates_collapsed"] == 1
+    assert stats["reverse_complement_duplicates_collapsed"] == 1
+    assert stats["reverse_oriented_catalogue_members"] == 1
+    capsys.readouterr()
+
+
 def test_stats_manifest_order_is_deterministic_for_direct_calls(tmp_path: Path) -> None:
     validation = parse_manifest(FIXTURES / "samples.tsv")
     prefix = tmp_path / "contigger"

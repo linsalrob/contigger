@@ -584,6 +584,11 @@ def _stats(
     )
     ordered_samples = tuple(sorted(samples, key=lambda item: item.sample))
     sample_metrics = _sample_metrics(ordered_samples, records)
+    representative_orientations = {
+        member.catalogue_id: member.orientation
+        for member in catalogue.members
+        if member.representative
+    }
     return {
         "run_status": "completed",
         "input_samples": len(samples),
@@ -604,7 +609,13 @@ def _stats(
         "canonical_sequences": len(catalogue.sequences),
         "exact_duplicates_collapsed": len(records) - len(catalogue.sequences),
         "reverse_complement_duplicates_collapsed": sum(
-            1 for item in catalogue.members if item.orientation is Orientation.REVERSE
+            1
+            for member in catalogue.members
+            if not member.representative
+            and member.orientation is not representative_orientations[member.catalogue_id]
+        ),
+        "reverse_oriented_catalogue_members": sum(
+            1 for member in catalogue.members if member.orientation is Orientation.REVERSE
         ),
         "contained_contigs_removed": merge_stats["contained_contigs_removed"],
         "candidate_pairs": len(candidates),
