@@ -25,6 +25,7 @@ survive minimiser filtering. Completed runs report `candidate_generation` counte
 discarded, maximum evidence accumulated for one pair, and timings for the minimiser
 frequency, retained-seed, pair-expansion, and candidate-filter stages. The current
 two-pass implementation avoids retaining a second full global observation collection,
+and stores compact per-pair seed summaries instead of full observation-pair tuples,
 but it does not yet make candidate generation fully streaming; the guard remains an
 alignment-cost safety valve rather than a substitute for the remaining scaling work.
 

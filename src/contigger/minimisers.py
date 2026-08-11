@@ -56,6 +56,37 @@ class CandidateGenerationMetrics:
         }
 
 
+@dataclass(slots=True)
+class _PairEvidence:
+    """Compact candidate evidence accumulated without retaining seed-pair tuples."""
+
+    shared_values: set[tuple[int, str]]
+    query_positions: set[int]
+    target_positions: set[int]
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]]
+    observation_count: int = 0
+
+    @classmethod
+    def empty(cls) -> _PairEvidence:
+        """Create an empty accumulator for one ordered candidate pair."""
+        return cls(set(), set(), set(), {})
+
+    def add(self, query: MinimiserObservation, target: MinimiserObservation) -> None:
+        """Record one shared minimiser without retaining the source objects."""
+        relative = (
+            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
+        )
+        query_by_orientation, target_by_orientation = self.positions_by_orientation.setdefault(
+            relative, (set(), set())
+        )
+        self.shared_values.add((query.value, query.kmer))
+        self.query_positions.add(query.position)
+        self.target_positions.add(target.position)
+        query_by_orientation.add(query.position)
+        target_by_orientation.add(target.position)
+        self.observation_count += 1
+
+
 def sequence_minimisers(
     sequence: CatalogueSequence, *, kmer_size: int, window_size: int
 ) -> tuple[MinimiserObservation, ...]:
@@ -169,7 +200,7 @@ def generate_candidates_with_metrics(
     retained_seed_pass_seconds = time.monotonic() - retained_started
 
     pair_expansion_started = time.monotonic()
-    evidence: dict[tuple[str, str], list[tuple[MinimiserObservation, MinimiserObservation]]] = {}
+    evidence: dict[tuple[str, str], _PairEvidence] = {}
     for value in sorted(by_value):
         items = sorted(by_value[value], key=_observation_sort_key)
         for left_index, left in enumerate(items):
@@ -178,29 +209,20 @@ def generate_candidates_with_metrics(
                     continue
                 query, target = sorted((left.sequence_id, right.sequence_id))
                 first, second = (left, right) if left.sequence_id == query else (right, left)
-                evidence.setdefault((query, target), []).append((first, second))
+                evidence.setdefault((query, target), _PairEvidence.empty()).add(first, second)
     pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
     candidate_filter_started = time.monotonic()
     candidates: list[CandidatePair] = []
     for pair in sorted(evidence):
-        matches = evidence[pair]
-        shared_values = {(query.value, query.kmer) for query, _ in matches}
-        if len(shared_values) < min_shared_minimisers:
+        pair_evidence = evidence[pair]
+        if len(pair_evidence.shared_values) < min_shared_minimisers:
             continue
         orientations = tuple(
-            sorted(
-                {
-                    Orientation.FORWARD
-                    if query.orientation is target.orientation
-                    else Orientation.REVERSE
-                    for query, target in matches
-                },
-                key=lambda item: item.value,
-            )
+            sorted(pair_evidence.positions_by_orientation, key=lambda item: item.value)
         )
-        topologies = _terminal_topologies(
-            matches,
+        topologies = _terminal_topologies_from_positions(
+            pair_evidence.positions_by_orientation,
             lengths[pair[0]],
             lengths[pair[1]],
             kmer_size,
@@ -212,10 +234,10 @@ def generate_candidates_with_metrics(
             CandidatePair(
                 query_id=pair[0],
                 target_id=pair[1],
-                shared_minimisers=len(shared_values),
+                shared_minimisers=len(pair_evidence.shared_values),
                 orientation=orientations[0] if len(orientations) == 1 else None,
-                query_positions=tuple(sorted({query.position for query, _ in matches})),
-                target_positions=tuple(sorted({target.position for _, target in matches})),
+                query_positions=tuple(sorted(pair_evidence.query_positions)),
+                target_positions=tuple(sorted(pair_evidence.target_positions)),
                 supported_orientations=orientations,
                 terminal_topologies=topologies,
                 reasons=(
@@ -234,7 +256,9 @@ def generate_candidates_with_metrics(
         unique_minimisers=len(frequencies),
         repetitive_observations_discarded=minimiser_observations - retained_observations,
         candidate_pairs=len(ordered_candidates),
-        maximum_pair_evidence=max((len(matches) for matches in evidence.values()), default=0),
+        maximum_pair_evidence=max(
+            (pair_evidence.observation_count for pair_evidence in evidence.values()), default=0
+        ),
         frequency_pass_seconds=frequency_pass_seconds,
         retained_seed_pass_seconds=retained_seed_pass_seconds,
         pair_expansion_seconds=pair_expansion_seconds,
@@ -283,6 +307,34 @@ def _terminal_topologies(
     kmer_size: int,
     terminal_band: int,
 ) -> tuple[str, ...]:
+    """Calculate topology labels from full observations for compatibility tests."""
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]] = {}
+    for query, target in matches:
+        relative = (
+            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
+        )
+        query_positions, target_positions = positions_by_orientation.setdefault(
+            relative, (set(), set())
+        )
+        query_positions.add(query.position)
+        target_positions.add(target.position)
+    return _terminal_topologies_from_positions(
+        positions_by_orientation,
+        query_length,
+        target_length,
+        kmer_size,
+        terminal_band,
+    )
+
+
+def _terminal_topologies_from_positions(
+    positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]],
+    query_length: int,
+    target_length: int,
+    kmer_size: int,
+    terminal_band: int,
+) -> tuple[str, ...]:
+    """Calculate terminal topology labels from compact per-orientation position sets."""
     topologies: set[str] = set()
 
     def query_prefix(position: int) -> bool:
@@ -297,19 +349,7 @@ def _terminal_topologies(
     def target_suffix(position: int) -> bool:
         return position + kmer_size > target_length - terminal_band
 
-    by_orientation: dict[Orientation, list[tuple[MinimiserObservation, MinimiserObservation]]] = {
-        Orientation.FORWARD: [],
-        Orientation.REVERSE: [],
-    }
-    for query, target in matches:
-        relative = (
-            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
-        )
-        by_orientation[relative].append((query, target))
-
-    for relative, oriented_matches in by_orientation.items():
-        query_positions = {query.position for query, _ in oriented_matches}
-        target_positions = {target.position for _, target in oriented_matches}
+    for relative, (query_positions, target_positions) in positions_by_orientation.items():
         if not query_positions:
             continue
         query_has_prefix = any(query_prefix(item) for item in query_positions)

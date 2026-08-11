@@ -87,6 +87,10 @@ discarded repetitive observations, unique minimisers, maximum per-pair evidence,
 candidate pairs, and the frequency, retained-seed, pair-expansion, and candidate-filter
 stage timings. Candidate generation uses a two-pass frequency/retained-seed workflow,
 so it no longer keeps a full global observation tuple alongside the retained seed index.
+Per-pair evidence is also accumulated as compact shared-value, position, orientation, and
+count sets rather than retaining a tuple of full minimiser observations for every shared
+seed. This preserves candidate geometry while removing the largest duplicated evidence
+collection from ordinary runs.
 `--max-candidate-pairs N` aborts before minimap2 alignment if the final candidate count
 exceeds `N`, preventing accidental submission of an unbounded alignment job. This is an
 initial operational guardrail, not yet a streaming candidate implementation; the
