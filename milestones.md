@@ -76,7 +76,7 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
 - [ ] Stream candidate generation instead of retaining every observation and pair in
       memory at once.
 - [x] Add an early candidate-count/memory estimate and a clear configurable guardrail.
-- [ ] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
+- [x] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
       versus candidate reduction; do not update biological baselines silently.
 
 ### Milestone 2 progress
@@ -119,6 +119,17 @@ and pair shard files used 6,137,828 and 95,412,263 bytes respectively. Candidate
 was the dominant stage at 41.64 seconds; this is the main performance focus before a 100k
 run. The complete deterministic result is tracked in
 `benchmarks/scale-results/sharded-candidates-10k.json`.
+
+### Pseudomonas candidate-parameter sweep (Setonix)
+
+Job `46892891` completed with exit code `0:0`, no swaps, and 100,592 KiB maximum RSS
+from `time -v` (Slurm `MaxRSS`: 155,436 KiB). It evaluated all 12 combinations of k-mer
+sizes 21/31, minimiser windows 10/15, and maximum minimiser frequencies 20/50/100 against
+both checked-in asm5 and asm20 PAF benchmarks. Every combination produced 61 candidate
+pairs, complete candidate recall, two false relationship-stage merges, and respectively
+four/two missed relationships. The small truth dataset therefore provides no evidence to
+change defaults; the results are recorded in
+`benchmarks/scale-results/pseudomonas-candidate-sweep.json`.
 
 ## Milestone 3 — Make alignment batching scale
 
