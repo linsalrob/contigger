@@ -21,6 +21,7 @@ from contigger.models import (
 from contigger.utilities.sequences import reverse_complement
 
 UNAMBIGUOUS_DNA = frozenset("ACGT")
+MAX_CANDIDATE_SHARDS = 64
 
 
 @dataclass(frozen=True, slots=True)
@@ -201,6 +202,8 @@ def generate_candidates_with_metrics(
         raise ConfigurationError("maximum seed-pair observations must be positive when supplied")
     if candidate_shards < 1:
         raise ConfigurationError("candidate shard count must be positive")
+    if candidate_shards > MAX_CANDIDATE_SHARDS:
+        raise ConfigurationError(f"candidate shard count cannot exceed {MAX_CANDIDATE_SHARDS}")
     if terminal_band < 0:
         raise ConfigurationError("terminal band cannot be negative")
     ordered = tuple(sorted(sequences, key=lambda item: item.identifier))

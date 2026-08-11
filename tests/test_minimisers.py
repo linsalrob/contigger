@@ -154,6 +154,19 @@ def test_seed_pair_limit_must_be_positive(limit: int) -> None:
         )
 
 
+def test_candidate_shard_count_is_bounded() -> None:
+    with pytest.raises(ConfigurationError, match="shard count"):
+        generate_candidates(
+            [sequence("a", "AACCGGTT")],
+            kmer_size=3,
+            window_size=2,
+            min_shared_minimisers=1,
+            max_minimiser_frequency=20,
+            terminal_band=2,
+            candidate_shards=65,
+        )
+
+
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:
     validation = parse_manifest(DATASET / "manifest.tsv")
     catalogue = build_catalogue(load_source_sequences(validation.samples))
