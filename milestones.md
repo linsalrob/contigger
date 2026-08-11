@@ -101,6 +101,8 @@ remaining unchecked tasks are still required to bound candidate-generation memor
 `--max-seed-pair-observations N` is an earlier guard: it rejects a run after the
 frequency pass when the conservative per-minimiser seed-pair upper bound exceeds `N`,
 before retained-seed indexing and pair expansion allocate their working structures.
+Candidate-generation statistics now also report deterministic shard count plus temporary
+seed and pair-evidence disk usage, so scale runs can quantify the memory/disk trade-off.
 Completed `stats.json` files now also record current RSS before and after the catalogue
 and candidate stages under `stage_resource_usage`, alongside their elapsed times. These
 snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory

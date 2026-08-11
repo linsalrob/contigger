@@ -41,6 +41,9 @@ class CandidateGenerationMetrics:
     retained_seed_pass_seconds: float
     pair_expansion_seconds: float
     candidate_filter_seconds: float
+    candidate_shards: int
+    temporary_seed_bytes: int
+    temporary_pair_bytes: int
 
     def as_dict(self) -> dict[str, int | float]:
         """Return counters in the form used by the run statistics JSON."""
@@ -58,6 +61,9 @@ class CandidateGenerationMetrics:
             "retained_seed_pass_seconds": self.retained_seed_pass_seconds,
             "pair_expansion_seconds": self.pair_expansion_seconds,
             "candidate_filter_seconds": self.candidate_filter_seconds,
+            "candidate_shards": self.candidate_shards,
+            "temporary_seed_bytes": self.temporary_seed_bytes,
+            "temporary_pair_bytes": self.temporary_pair_bytes,
         }
 
 
@@ -237,8 +243,9 @@ def generate_candidates_with_metrics(
 
     retained_started = time.monotonic()
     retained_observations = 0
-    evidence: dict[tuple[int, int], _PairEvidence] = {}
-    with TemporaryDirectory(prefix="contigger-candidates-") as temporary_directory:
+    temporary = TemporaryDirectory(prefix="contigger-candidates-")
+    temporary_directory = temporary.name
+    try:
         paths = [
             Path(temporary_directory) / f"seeds-{index:03d}.tsv"
             for index in range(candidate_shards)
@@ -262,72 +269,68 @@ def generate_candidates_with_metrics(
                 output.close()
         retained_seed_pass_seconds = time.monotonic() - retained_started
         pair_expansion_started = time.monotonic()
+        pair_paths = [
+            Path(temporary_directory) / f"pairs-{index:03d}.tsv"
+            for index in range(candidate_shards)
+        ]
+        pair_outputs = [path.open("w", encoding="ascii", newline="") for path in pair_paths]
         minimiser_id = 0
-        for path in paths:
-            by_value = _read_seed_shard(path)
-            for value in sorted(by_value):
-                items = sorted(
-                    by_value[value],
-                    key=lambda item: (item.sequence_index, item.position, item.orientation.value),
-                )
-                for left_index, left in enumerate(items):
-                    for right in items[left_index + 1 :]:
-                        if left.sequence_index == right.sequence_index:
-                            continue
-                        query, target = sorted((left.sequence_index, right.sequence_index))
-                        first, second = (
-                            (left, right) if left.sequence_index == query else (right, left)
-                        )
-                        pair = (query, target)
-                        pair_evidence = evidence.get(pair)
-                        if pair_evidence is None:
-                            pair_evidence = _PairEvidence.empty()
-                            evidence[pair] = pair_evidence
-                        pair_evidence.add(
-                            minimiser_id,
-                            first.position,
-                            second.position,
-                            first.orientation,
-                            second.orientation,
-                        )
-                minimiser_id += 1
-    pair_expansion_seconds = time.monotonic() - pair_expansion_started
+        try:
+            for path in paths:
+                by_value = _read_seed_shard(path)
+                for value in sorted(by_value):
+                    items = sorted(
+                        by_value[value],
+                        key=lambda item: (
+                            item.sequence_index,
+                            item.position,
+                            item.orientation.value,
+                        ),
+                    )
+                    for left_index, left in enumerate(items):
+                        for right in items[left_index + 1 :]:
+                            if left.sequence_index == right.sequence_index:
+                                continue
+                            query, target = sorted((left.sequence_index, right.sequence_index))
+                            first, second = (
+                                (left, right) if left.sequence_index == query else (right, left)
+                            )
+                            pair_shard = _pair_shard(query, target, candidate_shards)
+                            pair_outputs[pair_shard].write(
+                                f"{query}\t{target}\t{minimiser_id}\t{first.position}\t"
+                                f"{second.position}\t{first.orientation.value}\t"
+                                f"{second.orientation.value}\n"
+                            )
+                    minimiser_id += 1
+        finally:
+            for output in pair_outputs:
+                output.close()
+        pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
-    candidate_filter_started = time.monotonic()
-    candidates: list[CandidatePair] = []
-    for pair in sorted(evidence):
-        pair_evidence = evidence[pair]
-        if len(pair_evidence.shared_values) < min_shared_minimisers:
-            continue
-        orientations = tuple(
-            sorted(pair_evidence.positions_by_orientation, key=lambda item: item.value)
-        )
-        topologies = _terminal_topologies_from_positions(
-            pair_evidence.positions_by_orientation,
-            lengths[pair[0]],
-            lengths[pair[1]],
-            kmer_size,
-            terminal_band,
-        )
-        if not topologies:
-            continue
-        candidates.append(
-            CandidatePair(
-                query_id=sequence_ids[pair[0]],
-                target_id=sequence_ids[pair[1]],
-                shared_minimisers=len(pair_evidence.shared_values),
-                orientation=orientations[0] if len(orientations) == 1 else None,
-                query_positions=tuple(sorted(pair_evidence.query_positions)),
-                target_positions=tuple(sorted(pair_evidence.target_positions)),
-                supported_orientations=orientations,
-                terminal_topologies=topologies,
-                reasons=(
-                    "canonical positional minimisers support terminal geometry",
-                    *(() if len(orientations) == 1 else ("orientation evidence is ambiguous",)),
-                ),
-            )
-        )
-    ordered_candidates = tuple(candidates)
+        candidate_filter_started = time.monotonic()
+        candidates: list[CandidatePair] = []
+        maximum_pair_evidence = 0
+        for path in pair_paths:
+            evidence = _read_pair_shard(path)
+            for pair in sorted(evidence):
+                pair_evidence = evidence[pair]
+                maximum_pair_evidence = max(maximum_pair_evidence, pair_evidence.observation_count)
+                candidate = _candidate_from_evidence(
+                    pair,
+                    pair_evidence,
+                    sequence_ids,
+                    lengths,
+                    kmer_size,
+                    terminal_band,
+                    min_shared_minimisers,
+                )
+                if candidate is not None:
+                    candidates.append(candidate)
+        temporary_seed_bytes = sum(path.stat().st_size for path in paths)
+        temporary_pair_bytes = sum(path.stat().st_size for path in pair_paths)
+    finally:
+        temporary.cleanup()
+    ordered_candidates = tuple(sorted(candidates, key=lambda item: (item.query_id, item.target_id)))
     candidate_filter_seconds = time.monotonic() - candidate_filter_started
     metrics = CandidateGenerationMetrics(
         input_sequences=len(ordered),
@@ -337,14 +340,15 @@ def generate_candidates_with_metrics(
         unique_minimisers=len(frequencies),
         repetitive_observations_discarded=minimiser_observations - retained_observations,
         candidate_pairs=len(ordered_candidates),
-        maximum_pair_evidence=max(
-            (pair_evidence.observation_count for pair_evidence in evidence.values()), default=0
-        ),
+        maximum_pair_evidence=maximum_pair_evidence,
         potential_seed_pair_observations=potential_seed_pair_observations,
         frequency_pass_seconds=frequency_pass_seconds,
         retained_seed_pass_seconds=retained_seed_pass_seconds,
         pair_expansion_seconds=pair_expansion_seconds,
         candidate_filter_seconds=candidate_filter_seconds,
+        candidate_shards=candidate_shards,
+        temporary_seed_bytes=temporary_seed_bytes,
+        temporary_pair_bytes=temporary_pair_bytes,
     )
     return ordered_candidates, metrics
 
@@ -392,6 +396,78 @@ def _read_seed_shard(path: Path) -> dict[tuple[int, str], list[_SeedObservation]
                 _SeedObservation(int(sequence_index), int(position), Orientation(orientation))
             )
     return by_value
+
+
+def _read_pair_shard(path: Path) -> dict[tuple[int, int], _PairEvidence]:
+    """Reconstruct compact pair evidence from one bounded temporary shard."""
+    evidence: dict[tuple[int, int], _PairEvidence] = {}
+    with path.open(encoding="ascii") as input_file:
+        for line in input_file:
+            (
+                query,
+                target,
+                minimiser,
+                query_position,
+                target_position,
+                query_orientation,
+                target_orientation,
+            ) = line.rstrip("\n").split("\t")
+            pair = (int(query), int(target))
+            pair_evidence = evidence.get(pair)
+            if pair_evidence is None:
+                pair_evidence = _PairEvidence.empty()
+                evidence[pair] = pair_evidence
+            pair_evidence.add(
+                int(minimiser),
+                int(query_position),
+                int(target_position),
+                Orientation(query_orientation),
+                Orientation(target_orientation),
+            )
+    return evidence
+
+
+def _pair_shard(query: int, target: int, shard_count: int) -> int:
+    """Return a stable mixed shard index for one ordered integer candidate pair."""
+    return ((query * 0x9E3779B1) ^ (target * 0x85EBCA77)) % shard_count
+
+
+def _candidate_from_evidence(
+    pair: tuple[int, int],
+    evidence: _PairEvidence,
+    sequence_ids: tuple[str, ...],
+    lengths: tuple[int, ...],
+    kmer_size: int,
+    terminal_band: int,
+    min_shared_minimisers: int,
+) -> CandidatePair | None:
+    """Build one candidate after its complete pair evidence has been reconstructed."""
+    if len(evidence.shared_values) < min_shared_minimisers:
+        return None
+    orientations = tuple(sorted(evidence.positions_by_orientation, key=lambda item: item.value))
+    topologies = _terminal_topologies_from_positions(
+        evidence.positions_by_orientation,
+        lengths[pair[0]],
+        lengths[pair[1]],
+        kmer_size,
+        terminal_band,
+    )
+    if not topologies:
+        return None
+    return CandidatePair(
+        query_id=sequence_ids[pair[0]],
+        target_id=sequence_ids[pair[1]],
+        shared_minimisers=len(evidence.shared_values),
+        orientation=orientations[0] if len(orientations) == 1 else None,
+        query_positions=tuple(sorted(evidence.query_positions)),
+        target_positions=tuple(sorted(evidence.target_positions)),
+        supported_orientations=orientations,
+        terminal_topologies=topologies,
+        reasons=(
+            "canonical positional minimisers support terminal geometry",
+            *(() if len(orientations) == 1 else ("orientation evidence is ambiguous",)),
+        ),
+    )
 
 
 def _terminal_topologies(

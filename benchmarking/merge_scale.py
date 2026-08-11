@@ -64,6 +64,8 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
         "minimiser_observations": candidate_metrics.minimiser_observations,
         "retained_minimisers": candidate_metrics.retained_observations,
         "candidate_generation": candidate_metrics.as_dict(),
+        "temporary_seed_bytes": candidate_metrics.temporary_seed_bytes,
+        "temporary_pair_bytes": candidate_metrics.temporary_pair_bytes,
         "peak_rss_bytes": peak_rss,
         "candidate_count": len(candidates),
         "candidate_reduction_factor": (
