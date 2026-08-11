@@ -95,6 +95,9 @@ collection from ordinary runs.
 exceeds `N`, preventing accidental submission of an unbounded alignment job. This is an
 initial operational guardrail, not yet a streaming candidate implementation; the
 remaining unchecked tasks are still required to bound candidate-generation memory itself.
+`--max-seed-pair-observations N` is an earlier guard: it rejects a run after the
+frequency pass when the conservative per-minimiser seed-pair upper bound exceeds `N`,
+before retained-seed indexing and pair expansion allocate their working structures.
 
 ## Milestone 3 — Make alignment batching scale
 

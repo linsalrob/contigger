@@ -782,6 +782,7 @@ class RunConfig:
     minimap2_preset: str = "asm20"
     index_dir: Path | None = None
     max_candidate_pairs: int | None = None
+    max_seed_pair_observations: int | None = None
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.identity <= 1.0:
@@ -800,6 +801,10 @@ class RunConfig:
             raise ConfigurationError("thread count must be at least one")
         if self.max_candidate_pairs is not None and self.max_candidate_pairs < 1:
             raise ConfigurationError("maximum candidate pairs must be positive when supplied")
+        if self.max_seed_pair_observations is not None and self.max_seed_pair_observations < 1:
+            raise ConfigurationError(
+                "maximum seed-pair observations must be positive when supplied"
+            )
         if self.minimap2_preset not in {"asm5", "asm10", "asm20"}:
             raise ConfigurationError(
                 f"unsupported minimap2 assembly preset: {self.minimap2_preset}"
@@ -819,6 +824,7 @@ class RunConfig:
             "kmer_size": self.kmer_size,
             "max_minimiser_frequency": self.max_minimiser_frequency,
             "max_candidate_pairs": self.max_candidate_pairs,
+            "max_seed_pair_observations": self.max_seed_pair_observations,
             "min_containment": self.min_containment,
             "min_overlap": self.min_overlap,
             "min_shared_minimisers": self.min_shared_minimisers,

@@ -170,6 +170,44 @@ def test_candidate_guard_fails_before_alignment(
     assert not prefix.with_suffix(".fasta").exists()
 
 
+def test_seed_pair_guard_fails_before_retained_seed_indexing(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    shared = "ACGTCAGTACGATCGTACGA"
+    fasta = tmp_path / "contigs.fasta"
+    fasta.write_text(
+        f">a\nTTGCAACGTT{shared}\n>b\n{shared}GGCATTAACC\n>c\n{shared}TTAGGCCAAT\n",
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text("sample\tcontigs\nS1\tcontigs.fasta\n", encoding="utf-8")
+    prefix = tmp_path / "guarded"
+    status = main(
+        [
+            "merge",
+            "--manifest",
+            str(manifest),
+            "--output-prefix",
+            str(prefix),
+            "--min-overlap",
+            "5",
+            "--min-containment",
+            "5",
+            "--kmer-size",
+            "5",
+            "--window-size",
+            "3",
+            "--min-shared-minimisers",
+            "2",
+            "--max-seed-pair-observations",
+            "1",
+        ]
+    )
+    assert status == 2
+    assert "potential seed-pair observations" in capsys.readouterr().err
+    assert not prefix.with_suffix(".fasta").exists()
+
+
 def test_stats_distinguish_reverse_members_from_reverse_complement_duplicates(
     capsys: pytest.CaptureFixture[str], tmp_path: Path
 ) -> None:

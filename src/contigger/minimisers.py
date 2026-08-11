@@ -33,6 +33,7 @@ class CandidateGenerationMetrics:
     repetitive_observations_discarded: int
     candidate_pairs: int
     maximum_pair_evidence: int
+    potential_seed_pair_observations: int
     frequency_pass_seconds: float
     retained_seed_pass_seconds: float
     pair_expansion_seconds: float
@@ -49,6 +50,7 @@ class CandidateGenerationMetrics:
             "repetitive_observations_discarded": self.repetitive_observations_discarded,
             "candidate_pairs": self.candidate_pairs,
             "maximum_pair_evidence": self.maximum_pair_evidence,
+            "potential_seed_pair_observations": self.potential_seed_pair_observations,
             "frequency_pass_seconds": self.frequency_pass_seconds,
             "retained_seed_pass_seconds": self.retained_seed_pass_seconds,
             "pair_expansion_seconds": self.pair_expansion_seconds,
@@ -140,6 +142,7 @@ def generate_candidates(
     min_shared_minimisers: int,
     max_minimiser_frequency: int,
     terminal_band: int,
+    max_seed_pair_observations: int | None = None,
 ) -> tuple[CandidatePair, ...]:
     """Generate candidates, retaining the historical tuple-only API."""
     candidates, _ = generate_candidates_with_metrics(
@@ -149,6 +152,7 @@ def generate_candidates(
         min_shared_minimisers=min_shared_minimisers,
         max_minimiser_frequency=max_minimiser_frequency,
         terminal_band=terminal_band,
+        max_seed_pair_observations=max_seed_pair_observations,
     )
     return candidates
 
@@ -161,6 +165,7 @@ def generate_candidates_with_metrics(
     min_shared_minimisers: int,
     max_minimiser_frequency: int,
     terminal_band: int,
+    max_seed_pair_observations: int | None = None,
 ) -> tuple[tuple[CandidatePair, ...], CandidateGenerationMetrics]:
     """Generate deterministic candidate pairs with explicit terminal seed geometry.
 
@@ -185,6 +190,21 @@ def generate_candidates_with_metrics(
         minimiser_observations += len(observations)
         frequencies.update((item.value, item.kmer) for item in observations)
     frequency_pass_seconds = time.monotonic() - frequency_started
+    potential_seed_pair_observations = sum(
+        frequency * (frequency - 1) // 2
+        for frequency in frequencies.values()
+        if frequency <= max_minimiser_frequency
+    )
+    if (
+        max_seed_pair_observations is not None
+        and potential_seed_pair_observations > max_seed_pair_observations
+    ):
+        raise InputValidationError(
+            "potential seed-pair observations "
+            f"{potential_seed_pair_observations} exceed "
+            f"--max-seed-pair-observations {max_seed_pair_observations}; "
+            "tighten minimiser parameters or increase the limit"
+        )
 
     retained_started = time.monotonic()
     by_value: dict[tuple[int, str], list[MinimiserObservation]] = {}
@@ -264,6 +284,7 @@ def generate_candidates_with_metrics(
         maximum_pair_evidence=max(
             (pair_evidence.observation_count for pair_evidence in evidence.values()), default=0
         ),
+        potential_seed_pair_observations=potential_seed_pair_observations,
         frequency_pass_seconds=frequency_pass_seconds,
         retained_seed_pass_seconds=retained_seed_pass_seconds,
         pair_expansion_seconds=pair_expansion_seconds,

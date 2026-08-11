@@ -91,6 +91,11 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         help="abort before alignment if candidate pairs exceed this limit",
     )
+    merge.add_argument(
+        "--max-seed-pair-observations",
+        type=int,
+        help="abort before seed-pair expansion if its conservative upper bound exceeds this limit",
+    )
     merge.add_argument("--threads", type=int, default=1)
     merge.add_argument("--minimap2-preset", choices=("asm5", "asm10", "asm20"), default="asm20")
     merge.add_argument("--index-dir", type=Path)
@@ -290,6 +295,7 @@ def _run_merge(arguments: argparse.Namespace) -> int:
         minimap2_preset=arguments.minimap2_preset,
         index_dir=arguments.index_dir,
         max_candidate_pairs=arguments.max_candidate_pairs,
+        max_seed_pair_observations=arguments.max_seed_pair_observations,
     )
     if arguments.dry_run:
         external_tools: dict[str, str | None] = {}

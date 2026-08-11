@@ -19,8 +19,10 @@ contigger merge --manifest samples.tsv --output-prefix results/contigger \
 Monitor `stats.json` for candidate pairs, alignment batches, index builds/reuse, stage timings, and output counts. The checked-in scale harness has been exercised at 10,000 contigs and a 100,000-contig smoke case; do not extrapolate those measurements to a different dataset or hardware without profiling. Unexpected candidate explosion is usually the first warning sign.
 
 For an unfamiliar collection, use a candidate guardrail based on a small representative
-run. `--max-candidate-pairs N` stops before minimap2 alignment if more than `N` pairs
-survive minimiser filtering. Completed runs report `candidate_generation` counters in
+run. `--max-seed-pair-observations N` stops after frequency counting but before retained
+seed indexing if a conservative seed-pair upper bound exceeds `N`; it protects the
+candidate-generation working set. `--max-candidate-pairs N` stops before minimap2
+alignment if more than `N` pairs survive minimiser filtering. Completed runs report `candidate_generation` counters in
 `stats.json`, including total and retained minimiser observations, repetitive seeds
 discarded, maximum evidence accumulated for one pair, and timings for the minimiser
 frequency, retained-seed, pair-expansion, and candidate-filter stages. The current
