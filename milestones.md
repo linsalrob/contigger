@@ -69,7 +69,7 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
 
 ## Milestone 2 — Prevent candidate explosion
 
-- [ ] Profile memory and runtime separately for catalogue loading and minimiser
+- [x] Profile memory and runtime separately for catalogue loading and minimiser
       generation.
 - [ ] Replace large Python minimiser/evidence object collections with compact integer
       IDs and bounded batches or shard files.
@@ -107,6 +107,18 @@ Completed `stats.json` files now also record current RSS before and after the ca
 and candidate stages under `stage_resource_usage`, alongside their elapsed times. These
 snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
 measurements and therefore do not replace Slurm `MaxRSS` collection.
+
+### 10k sharded-candidate baseline (Setonix)
+
+Job `46892769` completed on the `work` partition with 10,000 deterministic 100 bp
+contigs (1,000,000 bases), 16 candidate shards, 8 requested CPUs, 16 GiB requested
+memory, and no swaps. Candidate generation took 52.57 seconds (catalogue: 0.08 seconds)
+and emitted 2,887 candidate pairs: a 17,317-fold reduction from all-vs-all pairs.
+Maximum RSS was 723,672 KiB from `time -v` (Slurm `MaxRSS`: 857,504 KiB). Temporary seed
+and pair shard files used 6,137,828 and 95,412,263 bytes respectively. Candidate filtering
+was the dominant stage at 41.64 seconds; this is the main performance focus before a 100k
+run. The complete deterministic result is tracked in
+`benchmarks/scale-results/sharded-candidates-10k.json`.
 
 ## Milestone 3 — Make alignment batching scale
 
