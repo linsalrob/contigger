@@ -1,0 +1,182 @@
+[
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 20,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 50,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 100,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 20,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 50,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 21,
+    "max_minimiser_frequency": 100,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 20,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 50,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 100,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 10
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 20,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 50,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  },
+  {
+    "candidate_pairs": 61,
+    "candidate_recall_complete": true,
+    "false_merges": [
+      2,
+      2
+    ],
+    "kmer_size": 31,
+    "max_minimiser_frequency": 100,
+    "missed_relationships": [
+      4,
+      2
+    ],
+    "window_size": 15
+  }
+]

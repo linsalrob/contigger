@@ -69,14 +69,14 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
 
 ## Milestone 2 — Prevent candidate explosion
 
-- [ ] Profile memory and runtime separately for catalogue loading and minimiser
+- [x] Profile memory and runtime separately for catalogue loading and minimiser
       generation.
 - [ ] Replace large Python minimiser/evidence object collections with compact integer
       IDs and bounded batches or shard files.
 - [ ] Stream candidate generation instead of retaining every observation and pair in
       memory at once.
 - [x] Add an early candidate-count/memory estimate and a clear configurable guardrail.
-- [ ] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
+- [x] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
       versus candidate reduction; do not update biological baselines silently.
 
 ### Milestone 2 progress
@@ -107,6 +107,53 @@ Completed `stats.json` files now also record current RSS before and after the ca
 and candidate stages under `stage_resource_usage`, alongside their elapsed times. These
 snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
 measurements and therefore do not replace Slurm `MaxRSS` collection.
+
+### 10k sharded-candidate baseline (Setonix)
+
+Job `46892769` completed on the `work` partition with 10,000 deterministic 100 bp
+contigs (1,000,000 bases), 16 candidate shards, 8 requested CPUs, 16 GiB requested
+memory, and no swaps. Candidate generation took 52.57 seconds (catalogue: 0.08 seconds)
+and emitted 2,887 candidate pairs: a 17,317-fold reduction from all-vs-all pairs.
+Maximum RSS was 723,672 KiB from `time -v` (Slurm `MaxRSS`: 857,504 KiB). Temporary seed
+and pair shard files used 6,137,828 and 95,412,263 bytes respectively. Candidate filtering
+was the dominant stage at 41.64 seconds; this is the main performance focus before a 100k
+run. The complete deterministic result is tracked in
+`benchmarks/scale-results/sharded-candidates-10k.json`.
+
+### Pseudomonas candidate-parameter sweep (Setonix)
+
+Job `46892891` completed with exit code `0:0`, no swaps, and 100,592 KiB maximum RSS
+from `time -v` (Slurm `MaxRSS`: 155,436 KiB). It evaluated all 12 combinations of k-mer
+sizes 21/31, minimiser windows 10/15, and maximum minimiser frequencies 20/50/100 against
+both checked-in asm5 and asm20 PAF benchmarks. Every combination produced 61 candidate
+pairs, complete candidate recall, two false relationship-stage merges, and respectively
+four/two missed relationships. The small truth dataset therefore provides no evidence to
+change defaults; the results are recorded in
+`benchmarks/scale-results/pseudomonas-candidate-sweep.json`.
+
+### Real-contig candidate scaling (Setonix)
+
+The nested, identifier-hash-selected fixtures from a private 23,279,653-contig,
+12,244,309,163-nucleotide assembly completed without swaps at 10k, 100k, and 1m
+contigs. These runs measured only FASTA loading, catalogue construction, and candidate
+generation (`k=21`, `window=10`, maximum minimiser frequency `20`, 64 shards, and a
+100,000,000 potential seed-pair guard); they did not invoke minimap2 or construct
+biological merges.
+
+| Contigs | Bases | Candidates | Candidate time | Process peak RSS | Temporary seed/pair data |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10,000 | 5.23 Mb | 826 | 44.3 s | 257 MiB | 47.5 / 0.4 MB |
+| 100,000 | 52.15 Mb | 21,884 | 460.8 s | 2.18 GiB | 480.8 / 13.1 MB |
+| 1,000,000 | 524.48 Mb | 577,498 | 4,330.3 s | 20.74 GiB | 4.87 / 0.41 GB |
+
+The 1m job completed with exit code `0:0` in 1h12m52s; Slurm reported 26,975,948 KiB
+maximum RSS and approximately 5.03 GiB maximum disk write. Candidate time and retained
+seed disk increased close to linearly, but candidate pairs and pair-evidence disk grew
+faster than input count. The 1m fixture represents only 4.3% of the source contigs and
+bases, so its runtime and memory must **not** be linearly extrapolated to the full
+collection. The tracked aggregate result is
+`benchmarks/scale-results/real-contig-candidate-scaling.json`; no private source path,
+manifest, fixture, or raw scheduler log is committed.
 
 ## Milestone 3 — Make alignment batching scale
 
@@ -139,7 +186,9 @@ measurements and therefore do not replace Slurm `MaxRSS` collection.
 
 ## Milestone 6 — Validate at Shark scale
 
-- [ ] Run deterministic 10k and 100k-contig stress tests.
+- [x] Run deterministic 10k and 100k-contig stress tests.
+- [x] Extend the bounded real-contig candidate-stage stress test to 1m contigs and
+      record RSS and temporary-disk pressure.
 - [ ] Run one representative multi-assembly Shark comparison under a documented Slurm
       allocation.
 - [ ] Compare candidate counts, minimap2 process launches, index reuse, wall time, peak

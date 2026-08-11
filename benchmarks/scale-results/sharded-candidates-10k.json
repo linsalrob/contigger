@@ -1,0 +1,52 @@
+{
+    "benchmark_metadata": {
+        "command": "python benchmarking/merge_scale.py --contigs 10000 --sequence-length 100 --output benchmarks/scale-results/sharded-candidates-10k.json",
+        "execution_commit": "2fe8d6a368aa2f353e4cc648ddc518632f505af6",
+        "hardware": {
+            "allocation_cpus": 18,
+            "node": "nid002024",
+            "requested_cpus": 8,
+            "requested_memory": "16G"
+        },
+        "settings": {
+            "candidate_shards": 16,
+            "kmer_size": 21,
+            "max_minimiser_frequency": 100,
+            "min_shared_minimisers": 5,
+            "terminal_band": 1000,
+            "window_size": 10
+        }
+    },
+    "candidate_count": 2887,
+    "candidate_generation": {
+        "candidate_filter_seconds": 41.636786816001404,
+        "candidate_pairs": 2887,
+        "candidate_shards": 16,
+        "frequency_pass_seconds": 3.099813010019716,
+        "input_bases": 1000000,
+        "input_sequences": 10000,
+        "maximum_pair_evidence": 385,
+        "minimiser_observations": 137792,
+        "pair_expansion_seconds": 4.605915795022156,
+        "potential_seed_pair_observations": 3961794,
+        "repetitive_observations_discarded": 18689,
+        "retained_observations": 119103,
+        "retained_seed_pass_seconds": 3.1173343539703637,
+        "temporary_pair_bytes": 95412263,
+        "temporary_seed_bytes": 6137828,
+        "unique_minimisers": 2795
+    },
+    "candidate_generation_seconds": 52.568885156011675,
+    "candidate_reduction_factor": 17317.284378247317,
+    "canonical_sequences": 10000,
+    "catalogue_seconds": 0.07546476199058816,
+    "input_contigs": 10000,
+    "mean_contig_length": 100.0,
+    "median_contig_length": 100,
+    "minimiser_observations": 137792,
+    "peak_rss_bytes": 741040128,
+    "retained_minimisers": 119103,
+    "temporary_pair_bytes": 95412263,
+    "temporary_seed_bytes": 6137828,
+    "total_bases": 1000000
+}

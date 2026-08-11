@@ -1,0 +1,69 @@
+{
+  "benchmark_metadata": {
+    "dataset": "private metagenomic contig assembly",
+    "source_summary": {
+      "records": 23279653,
+      "nucleotide_bases": 12244309163
+    },
+    "fixture_selection": "nested lowest blake2b identifier ranks with seed contigger-shark-real-scale-v1",
+    "fixture_command_template": "python benchmarking/real_fasta_scale.py --source <private-source.fasta> --output-directory <scratch-fixtures> --records 10000 100000 1000000 --seed contigger-shark-real-scale-v1",
+    "profile_command_template": "python benchmarking/profile_fasta_candidates.py --fasta <fixture.fasta> --output <result.json> --kmer-size 21 --window-size 10 --min-shared-minimisers 5 --max-minimiser-frequency 20 --candidate-shards 64 --max-seed-pair-observations 100000000",
+    "execution_commit": "b77dca7c8716b37b6b047d3903a30e592c8fa41b",
+    "platform": "Setonix work partition; single Python process; Slurm allocation may include extra CPUs",
+    "limitations": "This measures only FASTA loading, catalogue construction, and candidate generation. It does not measure minimap2, graph construction, sequence output, or multi-assembly merge decisions."
+  },
+  "configuration": {
+    "candidate_shards": 64,
+    "kmer_size": 21,
+    "max_minimiser_frequency": 20,
+    "max_seed_pair_observations": 100000000,
+    "min_shared_minimisers": 5,
+    "terminal_band": 1000,
+    "window_size": 10
+  },
+  "runs": [
+    {
+      "input_contigs": 10000,
+      "input_bases": 5227253,
+      "candidate_count": 826,
+      "candidate_reduction_factor": 60526.63438256658,
+      "candidate_generation_seconds": 44.27858604094945,
+      "peak_rss_bytes": 269074432,
+      "slurm_elapsed": "00:01:07",
+      "slurm_max_rss": "314068K",
+      "temporary_seed_bytes": 47489625,
+      "temporary_pair_bytes": 435722
+    },
+    {
+      "input_contigs": 100000,
+      "input_bases": 52147116,
+      "candidate_count": 21884,
+      "candidate_reduction_factor": 228475.1416560044,
+      "candidate_generation_seconds": 460.78983458597213,
+      "peak_rss_bytes": 2344955904,
+      "slurm_elapsed": "00:08:13",
+      "slurm_max_rss": "2862460K",
+      "temporary_seed_bytes": 480827830,
+      "temporary_pair_bytes": 13105083
+    },
+    {
+      "input_contigs": 1000000,
+      "input_bases": 524481576,
+      "candidate_count": 577498,
+      "candidate_reduction_factor": 865802.9984519427,
+      "candidate_generation_seconds": 4330.329643528996,
+      "peak_rss_bytes": 22268022784,
+      "slurm_elapsed": "01:12:52",
+      "slurm_max_rss": "26975948K",
+      "slurm_disk_read": "5578.20M",
+      "slurm_disk_write": "5033.61M",
+      "temporary_seed_bytes": 4872926426,
+      "temporary_pair_bytes": 405199497
+    }
+  ],
+  "interpretation": {
+    "observed": "Candidate time and retained-seed temporary disk scale close to linearly across these nested real-data samples. Candidate pairs and pair-evidence disk grow substantially faster than input contig count, so they remain the principal pressure metric.",
+    "not_an_extrapolation": "The 1m fixture is 4.3% of source contigs and bases. Do not extrapolate its 72-minute, 20.7-GiB process result linearly to the full collection: candidate-pair growth is data dependent and complete merging also adds minimap2, graph, and output costs.",
+    "next_gate": "Before a larger real merge, profile candidate generation at the next bounded size and retain --max-seed-pair-observations. Do not run an unbounded full all-assembly merge from this benchmark alone."
+  }
+}

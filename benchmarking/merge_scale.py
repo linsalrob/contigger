@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import platform
 import resource
 import time
 from pathlib import Path
@@ -54,6 +55,15 @@ def run(contig_count: int, *, sequence_length: int = 1000) -> dict[str, object]:
     lengths = sorted(item.length for item in catalogue.sequences)
     peak_rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024
     return {
+        "benchmark_configuration": {
+            "kmer_size": 21,
+            "window_size": 10,
+            "min_shared_minimisers": 5,
+            "max_minimiser_frequency": 100,
+            "terminal_band": 1000,
+            "candidate_shards": 16,
+        },
+        "platform": platform.platform(),
         "input_contigs": contig_count,
         "total_bases": contig_count * sequence_length,
         "mean_contig_length": sum(lengths) / len(lengths),
