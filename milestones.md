@@ -75,7 +75,7 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
       IDs and bounded batches or shard files.
 - [ ] Stream candidate generation instead of retaining every observation and pair in
       memory at once.
-- [ ] Add an early candidate-count/memory estimate and a clear configurable guardrail.
+- [x] Add an early candidate-count/memory estimate and a clear configurable guardrail.
 - [ ] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
       versus candidate reduction; do not update biological baselines silently.
 
@@ -91,6 +91,9 @@ Per-pair evidence is also accumulated as compact shared-value, position, orienta
 count sets rather than retaining a tuple of full minimiser observations for every shared
 seed. This preserves candidate geometry while removing the largest duplicated evidence
 collection from ordinary runs.
+The retained-seed index and pair-evidence map use compact integer sequence and minimiser
+IDs internally; source identifiers and k-mer strings are retained only at the input/output
+boundaries needed to preserve collision-safe candidate semantics.
 `--max-candidate-pairs N` aborts before minimap2 alignment if the final candidate count
 exceeds `N`, preventing accidental submission of an unbounded alignment job. This is an
 initial operational guardrail, not yet a streaming candidate implementation; the

@@ -62,7 +62,7 @@ class CandidateGenerationMetrics:
 class _PairEvidence:
     """Compact candidate evidence accumulated without retaining seed-pair tuples."""
 
-    shared_values: set[tuple[int, str]]
+    shared_values: set[int]
     query_positions: set[int]
     target_positions: set[int]
     positions_by_orientation: dict[Orientation, tuple[set[int], set[int]]]
@@ -73,20 +73,36 @@ class _PairEvidence:
         """Create an empty accumulator for one ordered candidate pair."""
         return cls(set(), set(), set(), {})
 
-    def add(self, query: MinimiserObservation, target: MinimiserObservation) -> None:
+    def add(
+        self,
+        minimiser_id: int,
+        query_position: int,
+        target_position: int,
+        query_orientation: Orientation,
+        target_orientation: Orientation,
+    ) -> None:
         """Record one shared minimiser without retaining the source objects."""
         relative = (
-            Orientation.FORWARD if query.orientation is target.orientation else Orientation.REVERSE
+            Orientation.FORWARD if query_orientation is target_orientation else Orientation.REVERSE
         )
         query_by_orientation, target_by_orientation = self.positions_by_orientation.setdefault(
             relative, (set(), set())
         )
-        self.shared_values.add((query.value, query.kmer))
-        self.query_positions.add(query.position)
-        self.target_positions.add(target.position)
-        query_by_orientation.add(query.position)
-        target_by_orientation.add(target.position)
+        self.shared_values.add(minimiser_id)
+        self.query_positions.add(query_position)
+        self.target_positions.add(target_position)
+        query_by_orientation.add(query_position)
+        target_by_orientation.add(target_position)
         self.observation_count += 1
+
+
+@dataclass(frozen=True, slots=True)
+class _SeedObservation:
+    """Retained minimiser evidence using a compact sequence index."""
+
+    sequence_index: int
+    position: int
+    orientation: Orientation
 
 
 def sequence_minimisers(
@@ -181,7 +197,8 @@ def generate_candidates_with_metrics(
     ordered = tuple(sorted(sequences, key=lambda item: item.identifier))
     if len({item.identifier for item in ordered}) != len(ordered):
         raise InputValidationError("candidate generation requires unique sequence identifiers")
-    lengths = {item.identifier: item.length for item in ordered}
+    sequence_ids = tuple(item.identifier for item in ordered)
+    lengths = tuple(item.length for item in ordered)
     frequency_started = time.monotonic()
     frequencies: Counter[tuple[int, str]] = Counter()
     minimiser_observations = 0
@@ -207,34 +224,45 @@ def generate_candidates_with_metrics(
         )
 
     retained_started = time.monotonic()
-    by_value: dict[tuple[int, str], list[MinimiserObservation]] = {}
+    by_value: dict[tuple[int, str], list[_SeedObservation]] = {}
     retained_observations = 0
-    for sequence in ordered:
+    for sequence_index, sequence in enumerate(ordered):
         for observation in sequence_minimisers(
             sequence, kmer_size=kmer_size, window_size=window_size
         ):
             key = (observation.value, observation.kmer)
             if frequencies[key] <= max_minimiser_frequency:
-                by_value.setdefault(key, []).append(observation)
+                by_value.setdefault(key, []).append(
+                    _SeedObservation(sequence_index, observation.position, observation.orientation)
+                )
                 retained_observations += 1
     retained_seed_pass_seconds = time.monotonic() - retained_started
 
     pair_expansion_started = time.monotonic()
-    evidence: dict[tuple[str, str], _PairEvidence] = {}
-    for value in sorted(by_value):
-        items = sorted(by_value[value], key=_observation_sort_key)
+    evidence: dict[tuple[int, int], _PairEvidence] = {}
+    for minimiser_id, value in enumerate(sorted(by_value)):
+        items = sorted(
+            by_value[value],
+            key=lambda item: (item.sequence_index, item.position, item.orientation.value),
+        )
         for left_index, left in enumerate(items):
             for right in items[left_index + 1 :]:
-                if left.sequence_id == right.sequence_id:
+                if left.sequence_index == right.sequence_index:
                     continue
-                query, target = sorted((left.sequence_id, right.sequence_id))
-                first, second = (left, right) if left.sequence_id == query else (right, left)
+                query, target = sorted((left.sequence_index, right.sequence_index))
+                first, second = (left, right) if left.sequence_index == query else (right, left)
                 pair = (query, target)
                 pair_evidence = evidence.get(pair)
                 if pair_evidence is None:
                     pair_evidence = _PairEvidence.empty()
                     evidence[pair] = pair_evidence
-                pair_evidence.add(first, second)
+                pair_evidence.add(
+                    minimiser_id,
+                    first.position,
+                    second.position,
+                    first.orientation,
+                    second.orientation,
+                )
     pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
     candidate_filter_started = time.monotonic()
@@ -257,8 +285,8 @@ def generate_candidates_with_metrics(
             continue
         candidates.append(
             CandidatePair(
-                query_id=pair[0],
-                target_id=pair[1],
+                query_id=sequence_ids[pair[0]],
+                target_id=sequence_ids[pair[1]],
                 shared_minimisers=len(pair_evidence.shared_values),
                 orientation=orientations[0] if len(orientations) == 1 else None,
                 query_positions=tuple(sorted(pair_evidence.query_positions)),
