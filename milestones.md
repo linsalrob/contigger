@@ -58,10 +58,11 @@ benchmark must pass before a threshold change can be adopted. The tightened eval
 increases missed/false relationship decisions around the `identity_9799` regression, so
 the baseline settings remain the only approved settings from this comparison.
 
-The exact source paths, selection rule, source/subset checksums, commands, tool versions,
+The exact private-data manifest-construction command, selection rule, tool versions,
 output checksums, and summary counts are recorded in
-[`benchmarks/shark_baseline_manifest.tsv`](benchmarks/shark_baseline_manifest.tsv) and
 [`benchmarks/shark_baseline_results.json`](benchmarks/shark_baseline_results.json).
+The manifest itself, source paths, and source/subset checksums are deliberately not
+committed because the Shark input data are experimental.
 This is a manageable baseline, not evidence that the original 500k-contig Shark
 comparisons are now scalable; those remain Milestone 2 and 3 work.
 
