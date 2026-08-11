@@ -295,7 +295,7 @@ def generate_candidates_with_metrics(
                             first, second = (
                                 (left, right) if left.sequence_index == query else (right, left)
                             )
-                            pair_shard = (query * len(sequence_ids) + target) % candidate_shards
+                            pair_shard = _pair_shard(query, target, candidate_shards)
                             pair_outputs[pair_shard].write(
                                 f"{query}\t{target}\t{minimiser_id}\t{first.position}\t"
                                 f"{second.position}\t{first.orientation.value}\t"
@@ -330,7 +330,7 @@ def generate_candidates_with_metrics(
         temporary_pair_bytes = sum(path.stat().st_size for path in pair_paths)
     finally:
         temporary.cleanup()
-    ordered_candidates = tuple(candidates)
+    ordered_candidates = tuple(sorted(candidates, key=lambda item: (item.query_id, item.target_id)))
     candidate_filter_seconds = time.monotonic() - candidate_filter_started
     metrics = CandidateGenerationMetrics(
         input_sequences=len(ordered),
@@ -425,6 +425,11 @@ def _read_pair_shard(path: Path) -> dict[tuple[int, int], _PairEvidence]:
                 Orientation(target_orientation),
             )
     return evidence
+
+
+def _pair_shard(query: int, target: int, shard_count: int) -> int:
+    """Return a stable mixed shard index for one ordered integer candidate pair."""
+    return ((query * 0x9E3779B1) ^ (target * 0x85EBCA77)) % shard_count
 
 
 def _candidate_from_evidence(

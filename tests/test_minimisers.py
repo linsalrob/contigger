@@ -167,6 +167,25 @@ def test_candidate_shard_count_is_bounded() -> None:
         )
 
 
+def test_candidate_results_are_identical_across_shard_counts() -> None:
+    shared = "ACGTCAGTACGATCGTACGA"
+    sequences = [
+        sequence("a", "TTGCAACGTT" + shared),
+        sequence("b", shared + "GGCATTAACC"),
+        sequence("c", shared + "TTAGGCCAAT"),
+    ]
+    options = {
+        "kmer_size": 5,
+        "window_size": 3,
+        "min_shared_minimisers": 2,
+        "max_minimiser_frequency": 20,
+        "terminal_band": 8,
+    }
+    assert generate_candidates(sequences, candidate_shards=1, **options) == generate_candidates(
+        sequences, candidate_shards=3, **options
+    )
+
+
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:
     validation = parse_manifest(DATASET / "manifest.tsv")
     catalogue = build_catalogue(load_source_sequences(validation.samples))
