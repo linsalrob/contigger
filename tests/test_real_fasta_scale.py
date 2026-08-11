@@ -212,6 +212,35 @@ def test_manifest_profile_validates_and_bounds_candidate_preflight(tmp_path: Pat
     assert result["candidate_count"] == 0
 
 
+def test_manifest_profile_handles_whitespace_only_fasta(tmp_path: Path) -> None:
+    """A parser-accepted empty record set produces explicit nullable summaries."""
+    fasta = tmp_path / "whitespace.fasta"
+    fasta.write_text("\n \n", encoding="ascii")
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text("sample\tcontigs\nempty\twhitespace.fasta\n", encoding="utf-8")
+    output = tmp_path / "empty-profile.json"
+
+    subprocess.run(
+        [
+            sys.executable,
+            str(MANIFEST_PROFILE_SCRIPT),
+            "--manifest",
+            str(manifest),
+            "--output",
+            str(output),
+            "--max-seed-pair-observations",
+            "1",
+            "--max-candidate-pairs",
+            "1",
+        ],
+        check=True,
+    )
+    result = json.loads(output.read_text(encoding="utf-8"))
+    assert result["input_contigs"] == 0
+    assert result["mean_contig_length"] is None
+    assert result["median_contig_length"] is None
+
+
 def _priority(identifier: str) -> int:
     """Return the fixture script's test-seed rank for a short test identifier."""
     payload = f"test-seed\0{identifier}".encode()

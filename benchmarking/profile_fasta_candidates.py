@@ -45,19 +45,28 @@ def run(
         max_seed_pair_observations=max_seed_pair_observations,
     )
     candidate_seconds = time.perf_counter() - started
-    lengths = sorted(record.length for record in records)
     input_count = len(records)
+    lengths = sorted(record.length for record in records)
+    median_length: float | None
+    if not lengths:
+        median_length = None
+    elif input_count % 2:
+        median_length = float(lengths[input_count // 2])
+    else:
+        median_length = (lengths[input_count // 2 - 1] + lengths[input_count // 2]) / 2
     return {
         "schema_version": 1,
         "source_fasta": str(fasta),
         "input_contigs": input_count,
         "input_bases": sum(record.length for record in records),
-        "mean_contig_length": sum(lengths) / input_count,
-        "median_contig_length": lengths[input_count // 2],
+        "mean_contig_length": sum(lengths) / input_count if input_count else None,
+        "median_contig_length": median_length,
         "canonical_sequences": len(catalogue.sequences),
         "candidate_count": len(candidates),
         "candidate_reduction_factor": (
-            input_count * (input_count - 1) / 2 / len(candidates) if candidates else None
+            len(catalogue.sequences) * (len(catalogue.sequences) - 1) / 2 / len(candidates)
+            if candidates
+            else None
         ),
         "timings_seconds": {
             "fasta_load": load_seconds,
