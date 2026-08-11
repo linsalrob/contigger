@@ -13,11 +13,11 @@ do not need a cross-assembly comparison.
 - [x] Record the input contig count, total bases, and per-sample manifest for every
       comparison.
 - [x] Record Slurm requested/used memory, elapsed time, CPU count, and exit reason.
-- [ ] Run a small fixture and one manageable Shark comparison to establish candidate,
+- [x] Run a small fixture and one manageable Shark comparison to establish candidate,
       alignment, graph, and output counts.
-- [ ] Keep `--evidence none` for the initial scaling baseline so read validation does
+- [x] Keep `--evidence none` for the initial scaling baseline so read validation does
       not add another source of cost.
-- [ ] Verify that exact/RC duplicates and containment remain unchanged as settings are
+- [x] Verify that exact/RC duplicates and containment remain unchanged as settings are
       tightened.
 
 The first item is recorded in every successful `<output-prefix>.stats.json` file as
@@ -36,6 +36,26 @@ The TSV records Slurm state, exit code, elapsed time, allocated CPUs, maximum RS
 requested memory, requested resources, and allocated resources. The collector must be
 run after the job finishes because Slurm cannot report the final accounting state from
 inside the running job.
+
+### Milestone 1 completion evidence
+
+The small fixture completed in sequence-only mode with 3 input contigs, 47 input bases,
+zero candidate pairs, and 3 output contigs. A deterministic 4,000-contig subset of two
+BundegiBeachWater assemblies was then run with minimap2 from the ATAVIDE environment:
+
+| Setting | Candidates | Alignment observations | Graph components | Output contigs | Output bases |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Baseline (`identity=98`, `min-overlap=1000`, `k=21`, `window=10`, `max-frequency=20`) | 47 | 47 | 4,000 | 4,000 | 2,108,711 |
+| Tightened (`identity=99`, `min-overlap=2000`, `k=31`, `window=15`, `min-shared=8`, `max-frequency=20`) | 31 | 31 | 4,000 | 4,000 | 2,108,711 |
+
+Both runs used `--evidence none`, completed successfully, constructed zero joins, and
+produced byte-identical FASTA and provenance outputs. Catalogue and containment
+dispositions were unchanged in both runs: 4,000 canonical sequences, 0 exact duplicate
+collapses, 1,927 reverse-oriented canonical members, and 0 contained contigs removed.
+The tightened run therefore reduced candidate/alignment work without changing the
+representative output on this subset. This is a manageable baseline, not evidence that
+the original 500k-contig Shark comparisons are now scalable; those remain Milestone 2
+and 3 work.
 
 ## Milestone 2 — Prevent candidate explosion
 
