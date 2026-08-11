@@ -21,15 +21,12 @@ from collections.abc import Iterator
 from contextlib import ExitStack
 from dataclasses import dataclass
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import TextIO
 
+from contigger.fasta import IUPAC_DNA
 
-@dataclass(frozen=True, slots=True)
-class FastaRecordLocation:
-    """One FASTA record identity and its deterministic selection priority."""
-
-    identifier: str
-    priority: int
+IDENTIFIER_SHARDS = 128
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +52,7 @@ def _records(path: Path) -> Iterator[tuple[str, list[str]]]:
         for line_number, line in enumerate(handle, start=1):
             if line.startswith(">"):
                 if identifier is not None:
+                    _validate_sequence_lines(path, identifier, lines[1:])
                     yield identifier, lines
                 header = line[1:].strip()
                 if not header:
@@ -68,13 +66,43 @@ def _records(path: Path) -> Iterator[tuple[str, list[str]]]:
                 lines.append(line)
     if identifier is None:
         raise ValueError(f"{path}: FASTA file is empty")
+    _validate_sequence_lines(path, identifier, lines[1:])
     yield identifier, lines
+
+
+def _validate_sequence_lines(path: Path, identifier: str, lines: list[str]) -> None:
+    """Reject empty or non-IUPAC records before creating a purportedly valid fixture."""
+    sequence = "".join("".join(line.split()) for line in lines).upper()
+    if not sequence:
+        raise ValueError(f"{path}: empty sequence for {identifier!r}")
+    invalid = sorted(set(sequence) - IUPAC_DNA)
+    if invalid:
+        rendered = ", ".join(invalid)
+        raise ValueError(f"{path}: invalid DNA symbol(s) for {identifier!r}: {rendered}")
 
 
 def _priority(identifier: str, seed: str) -> int:
     """Return a stable, seed-scoped 64-bit rank for a FASTA identifier."""
     payload = f"{seed}\0{identifier}".encode()
     return int.from_bytes(hashlib.blake2b(payload, digest_size=8).digest(), "big")
+
+
+def _identifier_shard(identifier: str) -> int:
+    """Assign an identifier to one bounded duplicate-validation shard."""
+    digest = hashlib.blake2b(identifier.encode(), digest_size=8).digest()
+    return int.from_bytes(digest, "big") % IDENTIFIER_SHARDS
+
+
+def _raise_if_duplicate_identifiers(paths: tuple[Path, ...], source: Path) -> None:
+    """Check all identifier shards while bounding memory to one shard at a time."""
+    for path in paths:
+        seen: set[str] = set()
+        with path.open("r", encoding="utf-8") as handle:
+            for identifier in handle:
+                identifier = identifier.rstrip("\n")
+                if identifier in seen:
+                    raise ValueError(f"{source}: duplicate FASTA identifier {identifier!r}")
+                seen.add(identifier)
 
 
 def select_identifiers(path: Path, count: int, seed: str) -> tuple[set[str], SourceSummary]:
@@ -84,14 +112,23 @@ def select_identifiers(path: Path, count: int, seed: str) -> tuple[set[str], Sou
     heap: list[tuple[int, str]] = []
     records = 0
     bases = 0
-    for identifier, lines in _records(path):
-        records += 1
-        bases += sum(len(line.strip()) for line in lines[1:])
-        entry = (-_priority(identifier, seed), identifier)
-        if len(heap) < count:
-            heapq.heappush(heap, entry)
-        elif entry > heap[0]:
-            heapq.heapreplace(heap, entry)
+    with TemporaryDirectory(prefix="contigger-fixture-identifiers-") as temporary_directory:
+        paths = tuple(
+            Path(temporary_directory) / f"identifiers-{index:03d}.txt"
+            for index in range(IDENTIFIER_SHARDS)
+        )
+        with ExitStack() as stack:
+            outputs = [stack.enter_context(item.open("w", encoding="utf-8")) for item in paths]
+            for identifier, lines in _records(path):
+                records += 1
+                bases += sum(len(line.strip()) for line in lines[1:])
+                outputs[_identifier_shard(identifier)].write(identifier + "\n")
+                entry = (-_priority(identifier, seed), identifier)
+                if len(heap) < count:
+                    heapq.heappush(heap, entry)
+                elif entry > heap[0]:
+                    heapq.heapreplace(heap, entry)
+        _raise_if_duplicate_identifiers(paths, path)
     if records < count:
         raise ValueError(f"requested {count} records, but {path} contains only {records}")
     selected = {identifier for _, identifier in heap}

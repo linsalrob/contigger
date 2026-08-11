@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -69,9 +70,17 @@ def test_create_fixtures_are_nested_and_preserve_records(tmp_path: Path) -> None
 
 
 def test_create_fixtures_rejects_duplicate_identifiers(tmp_path: Path) -> None:
-    """Duplicate source identifiers cannot yield a reproducible identifier-based fixture."""
+    """Every duplicate is rejected, including one outside the selected subset."""
     source = tmp_path / "duplicate.fasta"
-    source.write_text(">same\nAAAA\n>same\nCCCC\n", encoding="ascii")
+    duplicate = "duplicate"
+    unique = next(
+        candidate
+        for index in range(1000)
+        if _priority(candidate := f"unique-{index}") < _priority(duplicate)
+    )
+    source.write_text(
+        f">{duplicate}\nAAAA\n>{duplicate}\nCCCC\n>{unique}\nGGGG\n", encoding="ascii"
+    )
 
     result = subprocess.run(
         [
@@ -90,7 +99,32 @@ def test_create_fixtures_rejects_duplicate_identifiers(tmp_path: Path) -> None:
     )
 
     assert result.returncode != 0
-    assert "duplicate FASTA identifiers" in result.stderr
+    assert "duplicate FASTA identifier" in result.stderr
+
+
+def test_create_fixtures_rejects_invalid_dna_symbols(tmp_path: Path) -> None:
+    """A malformed source cannot produce a fixture that later fails Contigger validation."""
+    source = tmp_path / "invalid.fasta"
+    source.write_text(">invalid\nAAAACZCC\n", encoding="ascii")
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(FIXTURE_SCRIPT),
+            "--source",
+            str(source),
+            "--output-directory",
+            str(tmp_path / "fixtures"),
+            "--records",
+            "1",
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode != 0
+    assert "invalid DNA symbol" in result.stderr
 
 
 def test_profile_uses_real_fasta_records(tmp_path: Path) -> None:
@@ -128,3 +162,9 @@ def test_profile_uses_real_fasta_records(tmp_path: Path) -> None:
     assert result["input_bases"] == 16
     assert result["canonical_sequences"] == 1
     assert result["candidate_count"] == 0
+
+
+def _priority(identifier: str) -> int:
+    """Return the fixture script's test-seed rank for a short test identifier."""
+    payload = f"test-seed\0{identifier}".encode()
+    return int.from_bytes(hashlib.blake2b(payload, digest_size=8).digest(), "big")
