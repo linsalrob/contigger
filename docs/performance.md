@@ -88,8 +88,13 @@ One private metagenomic assembly was profiled with this method at 10k, 100k, and
 contigs. The candidate stage took 44 seconds, 7.7 minutes, and 72.2 minutes,
 respectively; process peak RSS was 257 MiB, 2.18 GiB, and 20.74 GiB. Candidate pairs
 grew from 826 to 21,884 to 577,498, so pair evidence—not just input bases—must remain a
-hard operational guardrail. The complete aggregate settings and measurements are in
-`benchmarks/scale-results/real-contig-candidate-scaling.json`.
+hard operational guardrail. Across these three nested fixtures, candidate time increased
+10.4x and then 9.4x for each 10x increase in contig count; peak process RSS increased
+8.7x and then 9.5x. The current retained-seed implementation therefore shows
+approximately linear time and memory behaviour on this real dataset through 1m contigs.
+This is an observation, not a general complexity guarantee: repetitive sequence content
+can still make candidate-pair growth super-linear. The complete aggregate settings and
+measurements are in `benchmarks/scale-results/real-contig-candidate-scaling.json`.
 This was a pre-alignment benchmark: it does not include minimap2, graph, or output costs
 and must not be extrapolated linearly to a whole collection.
 
