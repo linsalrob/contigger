@@ -13,3 +13,8 @@ record and nucleotide-base totals; these should be preferred to filesystem-size-
 estimates.  Generated FASTA files, manifests containing private paths, raw scheduler
 logs, and full profiling JSON stay outside version control.  Commit only aggregate,
 non-sensitive findings with their command settings and hardware context.
+
+The checked-in aggregate real-contig candidate baseline is
+`benchmarks/scale-results/real-contig-candidate-scaling.json`.
+It records 10k, 100k, and 1m nested samples, but is explicitly pre-alignment and not a
+claim that an end-to-end full-size merge will fit the same resources.

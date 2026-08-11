@@ -84,4 +84,13 @@ checking candidate count, temporary shard bytes, peak RSS, and elapsed time at t
 previous size.  A hash sample measures typical sequence-length and repeat content; it
 does not guarantee a worst-case repeat stress test.
 
+One private metagenomic assembly was profiled with this method at 10k, 100k, and 1m
+contigs. The candidate stage took 44 seconds, 7.7 minutes, and 72.2 minutes,
+respectively; process peak RSS was 257 MiB, 2.18 GiB, and 20.74 GiB. Candidate pairs
+grew from 826 to 21,884 to 577,498, so pair evidence—not just input bases—must remain a
+hard operational guardrail. The complete aggregate settings and measurements are in
+`benchmarks/scale-results/real-contig-candidate-scaling.json`.
+This was a pre-alignment benchmark: it does not include minimap2, graph, or output costs
+and must not be extrapolated linearly to a whole collection.
+
 For a Pawsey Setonix CPU example, see [`scripts/run_contigger_setonix.slurm`](https://github.com/linsalrob/contigger/blob/main/scripts/run_contigger_setonix.slurm). Replace its account placeholder before submission. It follows Pawsey's guidance to specify nodes, tasks, CPUs, memory, and wall time; see the [Setonix job documentation](https://pawsey.atlassian.net/wiki/spaces/US/pages/51929058/Running+Jobs+on+Setonix) for current partition and allocation policies.

@@ -131,6 +131,30 @@ four/two missed relationships. The small truth dataset therefore provides no evi
 change defaults; the results are recorded in
 `benchmarks/scale-results/pseudomonas-candidate-sweep.json`.
 
+### Real-contig candidate scaling (Setonix)
+
+The nested, identifier-hash-selected fixtures from a private 23,279,653-contig,
+12,244,309,163-nucleotide assembly completed without swaps at 10k, 100k, and 1m
+contigs. These runs measured only FASTA loading, catalogue construction, and candidate
+generation (`k=21`, `window=10`, maximum minimiser frequency `20`, 64 shards, and a
+100,000,000 potential seed-pair guard); they did not invoke minimap2 or construct
+biological merges.
+
+| Contigs | Bases | Candidates | Candidate time | Process peak RSS | Temporary seed/pair data |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 10,000 | 5.23 Mb | 826 | 44.3 s | 257 MiB | 47.5 / 0.4 MB |
+| 100,000 | 52.15 Mb | 21,884 | 460.8 s | 2.18 GiB | 480.8 / 13.1 MB |
+| 1,000,000 | 524.48 Mb | 577,498 | 4,330.3 s | 20.74 GiB | 4.87 / 0.41 GB |
+
+The 1m job completed with exit code `0:0` in 1h12m52s; Slurm reported 26,975,948 KiB
+maximum RSS and approximately 5.03 GiB maximum disk write. Candidate time and retained
+seed disk increased close to linearly, but candidate pairs and pair-evidence disk grew
+faster than input count. The 1m fixture represents only 4.3% of the source contigs and
+bases, so its runtime and memory must **not** be linearly extrapolated to the full
+collection. The tracked aggregate result is
+`benchmarks/scale-results/real-contig-candidate-scaling.json`; no private source path,
+manifest, fixture, or raw scheduler log is committed.
+
 ## Milestone 3 — Make alignment batching scale
 
 - [ ] Replace the current per-target index strategy for large runs with bounded
@@ -162,7 +186,9 @@ change defaults; the results are recorded in
 
 ## Milestone 6 — Validate at Shark scale
 
-- [ ] Run deterministic 10k and 100k-contig stress tests.
+- [x] Run deterministic 10k and 100k-contig stress tests.
+- [x] Extend the bounded real-contig candidate-stage stress test to 1m contigs and
+      record RSS and temporary-disk pressure.
 - [ ] Run one representative multi-assembly Shark comparison under a documented Slurm
       allocation.
 - [ ] Compare candidate counts, minimap2 process launches, index reuse, wall time, peak
