@@ -86,6 +86,11 @@ def build_parser() -> argparse.ArgumentParser:
     merge.add_argument("--window-size", type=int, default=10)
     merge.add_argument("--min-shared-minimisers", type=int, default=5)
     merge.add_argument("--max-minimiser-frequency", type=int, default=100)
+    merge.add_argument(
+        "--max-candidate-pairs",
+        type=int,
+        help="abort before alignment if candidate pairs exceed this limit",
+    )
     merge.add_argument("--threads", type=int, default=1)
     merge.add_argument("--minimap2-preset", choices=("asm5", "asm10", "asm20"), default="asm20")
     merge.add_argument("--index-dir", type=Path)
@@ -284,6 +289,7 @@ def _run_merge(arguments: argparse.Namespace) -> int:
         emit_gfa=arguments.emit_gfa,
         minimap2_preset=arguments.minimap2_preset,
         index_dir=arguments.index_dir,
+        max_candidate_pairs=arguments.max_candidate_pairs,
     )
     if arguments.dry_run:
         external_tools: dict[str, str | None] = {}

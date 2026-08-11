@@ -24,6 +24,13 @@ def test_index_and_preset_configuration() -> None:
     assert config.index_dir.name == "cache"
 
 
+def test_candidate_guard_configuration() -> None:
+    config = build_run_config(max_candidate_pairs=12)
+    assert config.max_candidate_pairs == 12
+    with pytest.raises(ConfigurationError, match="candidate pairs"):
+        build_run_config(max_candidate_pairs=0)
+
+
 @pytest.mark.parametrize("identity", [-1.0, 100.1])
 def test_invalid_identity(identity: float) -> None:
     with pytest.raises(ConfigurationError, match="identity"):

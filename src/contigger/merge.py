@@ -22,7 +22,7 @@ from contigger.decision_policy import evaluate_graph_decisions
 from contigger.evidence.bam import BamEvidenceProvider
 from contigger.exceptions import InputValidationError
 from contigger.graph import build_relationship_graph
-from contigger.minimisers import generate_candidates
+from contigger.minimisers import CandidateGenerationMetrics, generate_candidates_with_metrics
 from contigger.models import (
     AlignmentHit,
     AlignmentRequest,
@@ -92,7 +92,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     )
 
     stage_start = time.monotonic()
-    candidates = generate_candidates(
+    candidates, candidate_metrics = generate_candidates_with_metrics(
         catalogue.sequences,
         kmer_size=config.kmer_size,
         window_size=config.window_size,
@@ -100,9 +100,18 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         max_minimiser_frequency=config.max_minimiser_frequency,
         terminal_band=max(config.min_overlap, config.min_containment),
     )
+    if config.max_candidate_pairs is not None and len(candidates) > config.max_candidate_pairs:
+        raise InputValidationError(
+            f"candidate pair count {len(candidates)} exceeds "
+            f"--max-candidate-pairs {config.max_candidate_pairs}; "
+            "increase the limit or tighten candidate-generation parameters"
+        )
     requests = plan_selective_alignments(catalogue.sequences, candidates)
     stages["candidates"] = time.monotonic() - stage_start
-    print(f"Generated {len(candidates)} candidate pairs")
+    print(
+        f"Generated {len(candidates)} candidate pairs from "
+        f"{candidate_metrics.retained_observations} retained minimiser observations"
+    )
 
     stage_start = time.monotonic()
     hits: tuple[AlignmentHit, ...]
@@ -171,6 +180,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         aligner_metrics,
         samtools_versions,
         samtools_commands,
+        candidate_metrics,
     )
     _write_outputs_atomic(
         paths_out,
@@ -567,6 +577,7 @@ def _stats(
     aligner_metrics: dict[str, int],
     samtools_versions: dict[str, str | None],
     samtools_commands: dict[str, tuple[tuple[str, ...], ...]],
+    candidate_metrics: CandidateGenerationMetrics,
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
@@ -597,6 +608,7 @@ def _stats(
         ),
         "contained_contigs_removed": merge_stats["contained_contigs_removed"],
         "candidate_pairs": len(candidates),
+        "candidate_generation": candidate_metrics.as_dict(),
         "alignment_pairs": len(requests),
         "relationship_counts": dict(sorted(relationship_counts.items())),
         "graph_components": len(graph.components),

@@ -77,6 +77,17 @@ comparisons are now scalable; those remain Milestone 2 and 3 work.
 - [ ] Benchmark `--max-minimiser-frequency`, k-mer size, and window size for recall
       versus candidate reduction; do not update biological baselines silently.
 
+### Milestone 2 progress
+
+The merge path now records deterministic minimiser-pressure counters in
+`stats.json` under `candidate_generation`: all and retained minimiser observations,
+discarded repetitive observations, unique minimisers, maximum per-pair evidence, and
+candidate pairs. `--max-candidate-pairs N` aborts before minimap2 alignment if the
+final candidate count exceeds `N`, preventing accidental submission of an
+unbounded alignment job. This is an initial operational guardrail, not yet a
+streaming candidate implementation; the remaining unchecked tasks are still required
+to bound candidate-generation memory itself.
+
 ## Milestone 3 — Make alignment batching scale
 
 - [ ] Replace the current per-target index strategy for large runs with bounded

@@ -129,6 +129,45 @@ def test_real_merge_writes_outputs(capsys: pytest.CaptureFixture[str], tmp_path:
         {"bases": 16, "contigs": 1, "sample": "S02"},
     ]
     assert stats["resource_usage"]["peak_rss_kib"] > 0
+    assert stats["candidate_generation"]["candidate_pairs"] == stats["candidate_pairs"]
+
+
+def test_candidate_guard_fails_before_alignment(
+    capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    shared = "ACGTCAGTACGATCGTACGA"
+    fasta = tmp_path / "contigs.fasta"
+    fasta.write_text(
+        f">a\nTTGCAACGTT{shared}\n>b\n{shared}GGCATTAACC\n>c\n{shared}TTAGGCCAAT\n",
+        encoding="utf-8",
+    )
+    manifest = tmp_path / "samples.tsv"
+    manifest.write_text("sample\tcontigs\nS1\tcontigs.fasta\n", encoding="utf-8")
+    prefix = tmp_path / "guarded"
+    status = main(
+        [
+            "merge",
+            "--manifest",
+            str(manifest),
+            "--output-prefix",
+            str(prefix),
+            "--min-overlap",
+            "5",
+            "--min-containment",
+            "5",
+            "--kmer-size",
+            "5",
+            "--window-size",
+            "3",
+            "--min-shared-minimisers",
+            "2",
+            "--max-candidate-pairs",
+            "1",
+        ]
+    )
+    assert status == 2
+    assert "candidate pair count" in capsys.readouterr().err
+    assert not prefix.with_suffix(".fasta").exists()
 
 
 def test_stats_manifest_order_is_deterministic_for_direct_calls(tmp_path: Path) -> None:

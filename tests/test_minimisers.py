@@ -7,7 +7,11 @@ from pathlib import Path
 from contigger.benchmark import MERGE_LIKE, load_truth
 from contigger.catalogue import build_catalogue, load_source_sequences
 from contigger.manifest import parse_manifest
-from contigger.minimisers import generate_candidates, sequence_minimisers
+from contigger.minimisers import (
+    generate_candidates,
+    generate_candidates_with_metrics,
+    sequence_minimisers,
+)
 from contigger.models import CatalogueSequence, Orientation
 
 DATASET = Path(__file__).parents[1] / "test_data"
@@ -51,6 +55,23 @@ def test_terminal_overlap_emits_candidate_with_position_evidence() -> None:
     assert candidate.query_positions
     assert candidate.target_positions
     assert any("SUFFIX_TO_TARGET_PREFIX" in item for item in candidate.terminal_topologies)
+
+
+def test_candidate_metrics_describe_retained_seed_pressure() -> None:
+    shared = "ACGTCAGTACGATCGTACGA"
+    candidates, metrics = generate_candidates_with_metrics(
+        [sequence("a", "TTGCAACGTT" + shared), sequence("b", shared + "GGCATTAACC")],
+        kmer_size=5,
+        window_size=3,
+        min_shared_minimisers=2,
+        max_minimiser_frequency=20,
+        terminal_band=8,
+    )
+    assert len(candidates) == metrics.candidate_pairs == 1
+    assert metrics.input_sequences == 2
+    assert metrics.input_bases == 60
+    assert metrics.retained_observations <= metrics.minimiser_observations
+    assert metrics.unique_minimisers > 0
 
 
 def test_internal_similarity_does_not_emit_candidate() -> None:

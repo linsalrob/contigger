@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections import Counter
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import TextIO
 
 from contigger.exceptions import ConfigurationError, InputValidationError
@@ -17,6 +18,33 @@ from contigger.models import (
 from contigger.utilities.sequences import reverse_complement
 
 UNAMBIGUOUS_DNA = frozenset("ACGT")
+
+
+@dataclass(frozen=True, slots=True)
+class CandidateGenerationMetrics:
+    """Deterministic counters describing candidate-generation pressure."""
+
+    input_sequences: int
+    input_bases: int
+    minimiser_observations: int
+    retained_observations: int
+    unique_minimisers: int
+    repetitive_observations_discarded: int
+    candidate_pairs: int
+    maximum_pair_evidence: int
+
+    def as_dict(self) -> dict[str, int]:
+        """Return counters in the form used by the run statistics JSON."""
+        return {
+            "input_sequences": self.input_sequences,
+            "input_bases": self.input_bases,
+            "minimiser_observations": self.minimiser_observations,
+            "retained_observations": self.retained_observations,
+            "unique_minimisers": self.unique_minimisers,
+            "repetitive_observations_discarded": self.repetitive_observations_discarded,
+            "candidate_pairs": self.candidate_pairs,
+            "maximum_pair_evidence": self.maximum_pair_evidence,
+        }
 
 
 def sequence_minimisers(
@@ -66,6 +94,27 @@ def generate_candidates(
     max_minimiser_frequency: int,
     terminal_band: int,
 ) -> tuple[CandidatePair, ...]:
+    """Generate candidates, retaining the historical tuple-only API."""
+    candidates, _ = generate_candidates_with_metrics(
+        sequences,
+        kmer_size=kmer_size,
+        window_size=window_size,
+        min_shared_minimisers=min_shared_minimisers,
+        max_minimiser_frequency=max_minimiser_frequency,
+        terminal_band=terminal_band,
+    )
+    return candidates
+
+
+def generate_candidates_with_metrics(
+    sequences: Iterable[CatalogueSequence],
+    *,
+    kmer_size: int,
+    window_size: int,
+    min_shared_minimisers: int,
+    max_minimiser_frequency: int,
+    terminal_band: int,
+) -> tuple[tuple[CandidatePair, ...], CandidateGenerationMetrics]:
     """Generate deterministic candidate pairs with explicit terminal seed geometry.
 
     Shared seeds are necessary but not sufficient: emitted pairs must also support a
@@ -148,7 +197,22 @@ def generate_candidates(
                 ),
             )
         )
-    return tuple(candidates)
+    ordered_candidates = tuple(candidates)
+    metrics = CandidateGenerationMetrics(
+        input_sequences=len(ordered),
+        input_bases=sum(item.length for item in ordered),
+        minimiser_observations=len(observations),
+        retained_observations=sum(len(items) for items in by_value.values()),
+        unique_minimisers=len(frequencies),
+        repetitive_observations_discarded=sum(
+            1
+            for observation in observations
+            if frequencies[(observation.value, observation.kmer)] > max_minimiser_frequency
+        ),
+        candidate_pairs=len(ordered_candidates),
+        maximum_pair_evidence=max((len(matches) for matches in evidence.values()), default=0),
+    )
+    return ordered_candidates, metrics
 
 
 def write_candidates_tsv(candidates: Iterable[CandidatePair], output: TextIO) -> None:
