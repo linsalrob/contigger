@@ -1,0 +1,51 @@
+{
+  "dataset": "BundegiBeachWater",
+  "source_manifest": "samples.BundegiBeachWater.tsv",
+  "selection_rule": "For each listed source FASTA, retain the first 2000 FASTA records in file order.",
+  "manifest_artifact": "benchmarks/shark_baseline_manifest.tsv",
+  "contigger_commit": "c731c15d07f1f7c31b05d680c0c1b5a8adfe1644",
+  "contigger_version": "0.1.0.dev0",
+  "minimap2_version": "2.31-r1302",
+  "evidence": "none",
+  "baseline_command": "contigger merge --manifest samples.tsv --output-prefix baseline --identity 98 --min-overlap 1000 --kmer-size 21 --window-size 10 --min-shared-minimisers 5 --max-minimiser-frequency 20 --threads 4 --evidence none --index-dir indexes",
+  "tightened_command": "contigger merge --manifest samples.tsv --output-prefix tightened --identity 99 --min-overlap 2000 --kmer-size 31 --window-size 15 --min-shared-minimisers 8 --max-minimiser-frequency 20 --threads 4 --evidence none --index-dir tight-indexes",
+  "baseline": {
+    "input_contigs": 4000,
+    "input_bases": 2108711,
+    "canonical_sequences": 4000,
+    "exact_duplicates_collapsed": 0,
+    "reverse_complement_duplicates_collapsed": 1927,
+    "contained_contigs_removed": 0,
+    "candidate_pairs": 47,
+    "alignment_pairs": 47,
+    "graph_components": 4000,
+    "merged_linear_paths": 0,
+    "merged_junctions": 0,
+    "output_contigs": 4000,
+    "output_bases": 2108711,
+    "fasta_sha256": "3d1233886fa6974329f601a4936bc56e45cccd9b1d2e06cd2079b504268d2f34",
+    "provenance_sha256": "1dbefbc2add395e49ed318befe4d2ae6eda548a6d55adcb668af3ed1a22d35d5"
+  },
+  "tightened_comparison": {
+    "input_contigs": 4000,
+    "input_bases": 2108711,
+    "canonical_sequences": 4000,
+    "exact_duplicates_collapsed": 0,
+    "reverse_complement_duplicates_collapsed": 1927,
+    "contained_contigs_removed": 0,
+    "candidate_pairs": 31,
+    "alignment_pairs": 31,
+    "graph_components": 4000,
+    "merged_linear_paths": 0,
+    "merged_junctions": 0,
+    "output_contigs": 4000,
+    "output_bases": 2108711,
+    "fasta_sha256": "3d1233886fa6974329f601a4936bc56e45cccd9b1d2e06cd2079b504268d2f34",
+    "provenance_sha256": "1dbefbc2add395e49ed318befe4d2ae6eda548a6d55adcb668af3ed1a22d35d5"
+  },
+  "decision_preservation": {
+    "status": "rejected",
+    "reason": "The tightened settings reduce candidate work on this subset but fail the checked-in Pseudomonas decision-preservation gate around the identity_9799 regression and must not be adopted.",
+    "pseudomonas_baseline": "benchmarks/pseudomonas_pipeline_baseline.json"
+  }
+}

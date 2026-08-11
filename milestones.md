@@ -46,16 +46,24 @@ BundegiBeachWater assemblies was then run with minimap2 from the ATAVIDE environ
 | Setting | Candidates | Alignment observations | Graph components | Output contigs | Output bases |
 | --- | ---: | ---: | ---: | ---: | ---: |
 | Baseline (`identity=98`, `min-overlap=1000`, `k=21`, `window=10`, `max-frequency=20`) | 47 | 47 | 4,000 | 4,000 | 2,108,711 |
-| Tightened (`identity=99`, `min-overlap=2000`, `k=31`, `window=15`, `min-shared=8`, `max-frequency=20`) | 31 | 31 | 4,000 | 4,000 | 2,108,711 |
+| Exploratory tightened settings (`identity=99`, `min-overlap=2000`, `k=31`, `window=15`, `min-shared=8`, `max-frequency=20`) | 31 | 31 | 4,000 | 4,000 | 2,108,711 |
 
 Both runs used `--evidence none`, completed successfully, constructed zero joins, and
 produced byte-identical FASTA and provenance outputs. Catalogue and containment
 dispositions were unchanged in both runs: 4,000 canonical sequences, 0 exact duplicate
 collapses, 1,927 reverse-oriented canonical members, and 0 contained contigs removed.
-The tightened run therefore reduced candidate/alignment work without changing the
-representative output on this subset. This is a manageable baseline, not evidence that
-the original 500k-contig Shark comparisons are now scalable; those remain Milestone 2
-and 3 work.
+The exploratory tightened run reduced candidate/alignment work on this subset, but it is
+**not an accepted production setting**: the checked-in Pseudomonas decision-preservation
+benchmark must pass before a threshold change can be adopted. The tightened evaluation
+increases missed/false relationship decisions around the `identity_9799` regression, so
+the baseline settings remain the only approved settings from this comparison.
+
+The exact source paths, selection rule, source/subset checksums, commands, tool versions,
+output checksums, and summary counts are recorded in
+[`benchmarks/shark_baseline_manifest.tsv`](benchmarks/shark_baseline_manifest.tsv) and
+[`benchmarks/shark_baseline_results.json`](benchmarks/shark_baseline_results.json).
+This is a manageable baseline, not evidence that the original 500k-contig Shark
+comparisons are now scalable; those remain Milestone 2 and 3 work.
 
 ## Milestone 2 — Prevent candidate explosion
 
