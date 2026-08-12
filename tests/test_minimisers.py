@@ -207,6 +207,7 @@ def test_external_seed_sort_chunks_preserve_candidate_results(
     }
     expected = generate_candidates(sequences, **options)
     monkeypatch.setattr(minimisers, "_SEED_SORT_CHUNK_LINES", 1)
+    monkeypatch.setattr(minimisers, "_SEED_SORT_FAN_IN", 2)
     assert generate_candidates(sequences, **options) == expected
 
 

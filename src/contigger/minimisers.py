@@ -24,6 +24,7 @@ from contigger.utilities.sequences import reverse_complement
 
 UNAMBIGUOUS_DNA = frozenset("ACGT")
 _SEED_SORT_CHUNK_LINES = 100_000
+_SEED_SORT_FAN_IN = 64
 
 
 @dataclass(frozen=True, slots=True)
@@ -395,7 +396,7 @@ def _iter_sorted_seed_groups(
     complete shard therefore never becomes a large Python mapping of observations.
     """
     chunks = _write_sorted_seed_chunks(path, temporary_directory, shard_index)
-    sort_bytes = sum(chunk.stat().st_size for chunk in chunks)
+    chunks, sort_bytes = _reduce_seed_sort_chunks(chunks, temporary_directory, shard_index)
     handles = [chunk.open(encoding="ascii") for chunk in chunks]
     try:
         heap: list[tuple[tuple[int, str, int, int, str], str, int]] = []
@@ -448,6 +449,50 @@ def _write_sorted_seed_chunks(
                 _flush_seed_sort_chunk(lines, temporary_directory, shard_index, len(chunks))
             )
     return chunks
+
+
+def _reduce_seed_sort_chunks(
+    chunks: list[Path], temporary_directory: Path, shard_index: int
+) -> tuple[list[Path], int]:
+    """Merge sorted seed chunks in bounded fan-in passes before opening them together."""
+    total_bytes = sum(chunk.stat().st_size for chunk in chunks)
+    pass_index = 0
+    while len(chunks) > _SEED_SORT_FAN_IN:
+        merged: list[Path] = []
+        for group_index, start in enumerate(range(0, len(chunks), _SEED_SORT_FAN_IN)):
+            group = chunks[start : start + _SEED_SORT_FAN_IN]
+            output = temporary_directory / (
+                f"seeds-{shard_index:03d}-merge-{pass_index:03d}-{group_index:06d}.tsv"
+            )
+            _merge_seed_sort_chunks(group, output)
+            total_bytes += output.stat().st_size
+            for chunk in group:
+                chunk.unlink()
+            merged.append(output)
+        chunks = merged
+        pass_index += 1
+    return chunks, total_bytes
+
+
+def _merge_seed_sort_chunks(chunks: list[Path], output_path: Path) -> None:
+    """Merge already sorted chunks while opening no more than one bounded group."""
+    handles = [chunk.open(encoding="ascii") for chunk in chunks]
+    try:
+        heap: list[tuple[tuple[int, str, int, int, str], str, int]] = []
+        for index, handle in enumerate(handles):
+            line = handle.readline()
+            if line:
+                heapq.heappush(heap, (_seed_line_sort_key(line), line, index))
+        with output_path.open("w", encoding="ascii", newline="") as output:
+            while heap:
+                _, line, handle_index = heapq.heappop(heap)
+                output.write(line)
+                next_line = handles[handle_index].readline()
+                if next_line:
+                    heapq.heappush(heap, (_seed_line_sort_key(next_line), next_line, handle_index))
+    finally:
+        for handle in handles:
+            handle.close()
 
 
 def _flush_seed_sort_chunk(
