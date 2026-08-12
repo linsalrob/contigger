@@ -122,8 +122,8 @@ class _SeedObservation:
     orientation: Orientation
 
 
-class _PairShardWriters:
-    """Write pair shards with a bounded LRU pool of append-mode file handles."""
+class _ShardWriters:
+    """Write deterministic shards with a bounded LRU pool of append-mode handles."""
 
     def __init__(self, paths: list[Path]) -> None:
         """Create a writer pool for the supplied deterministic shard paths."""
@@ -131,7 +131,7 @@ class _PairShardWriters:
         self._handles: OrderedDict[int, TextIO] = OrderedDict()
 
     def write(self, shard: int, line: str) -> None:
-        """Append one pair-evidence line without exceeding the handle budget."""
+        """Append one shard line without exceeding the handle budget."""
         handle = self._handles.pop(shard, None)
         if handle is None:
             if len(self._handles) == _pair_output_handle_limit():
@@ -284,7 +284,9 @@ def generate_candidates_with_metrics(
             Path(temporary_directory) / f"seeds-{index:03d}.tsv"
             for index in range(candidate_shards)
         ]
-        outputs = [path.open("w", encoding="ascii", newline="") for path in paths]
+        for path in paths:
+            path.touch()
+        outputs = _ShardWriters(paths)
         try:
             for sequence_index, sequence in enumerate(ordered):
                 for observation in sequence_minimisers(
@@ -293,14 +295,14 @@ def generate_candidates_with_metrics(
                     key = (observation.value, observation.kmer)
                     if frequencies[key] <= max_minimiser_frequency:
                         shard = observation.value % candidate_shards
-                        outputs[shard].write(
+                        outputs.write(
+                            shard,
                             f"{observation.value}\t{observation.kmer}\t{sequence_index}\t"
-                            f"{observation.position}\t{observation.orientation.value}\n"
+                            f"{observation.position}\t{observation.orientation.value}\n",
                         )
                         retained_observations += 1
         finally:
-            for output in outputs:
-                output.close()
+            outputs.close()
         retained_seed_pass_seconds = time.monotonic() - retained_started
         pair_expansion_started = time.monotonic()
         pair_paths = [
@@ -309,7 +311,7 @@ def generate_candidates_with_metrics(
         ]
         for path in pair_paths:
             path.touch()
-        pair_outputs = _PairShardWriters(pair_paths)
+        pair_outputs = _ShardWriters(pair_paths)
         minimiser_id = 0
         try:
             temporary_seed_sort_bytes = 0

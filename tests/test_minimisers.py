@@ -223,6 +223,21 @@ def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
     assert minimisers._pair_output_handle_limit() == 10
 
 
+def test_bounded_shard_writers_support_many_shards_under_low_limit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Both retained-seed and pair writers must share the low-descriptor safeguard."""
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (20, 20))
+    paths = [tmp_path / f"shard-{index}.tsv" for index in range(64)]
+    writers = minimisers._ShardWriters(paths)
+    for index in range(64):
+        writers.write(index, f"{index}\n")
+    writers.close()
+    assert [path.read_text(encoding="ascii") for path in paths] == [
+        f"{index}\n" for index in range(64)
+    ]
+
+
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:
     validation = parse_manifest(DATASET / "manifest.tsv")
     catalogue = build_catalogue(load_source_sequences(validation.samples))
