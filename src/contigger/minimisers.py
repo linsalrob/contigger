@@ -134,7 +134,7 @@ class _PairShardWriters:
         """Append one pair-evidence line without exceeding the handle budget."""
         handle = self._handles.pop(shard, None)
         if handle is None:
-            if len(self._handles) == _PAIR_OUTPUT_OPEN_FILES:
+            if len(self._handles) == _pair_output_handle_limit():
                 _, oldest = self._handles.popitem(last=False)
                 oldest.close()
             handle = self._paths[shard].open("a", encoding="ascii", newline="")
@@ -511,13 +511,21 @@ def _seed_sort_fan_in() -> int:
     soft_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
     if soft_limit == resource.RLIM_INFINITY:
         return _SEED_SORT_FAN_IN
-    available = soft_limit - _PAIR_OUTPUT_OPEN_FILES - _DESCRIPTOR_RESERVE - 1
+    available = soft_limit - _pair_output_handle_limit() - _DESCRIPTOR_RESERVE - 1
     if available < 2:
         raise ConfigurationError(
             "file-descriptor limit is too low for bounded candidate shard sorting; "
             "raise the soft limit or reduce --candidate-shards"
         )
     return min(_SEED_SORT_FAN_IN, available)
+
+
+def _pair_output_handle_limit() -> int:
+    """Bound concurrent pair-shard writers under the process descriptor soft limit."""
+    soft_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if soft_limit == resource.RLIM_INFINITY:
+        return _PAIR_OUTPUT_OPEN_FILES
+    return min(_PAIR_OUTPUT_OPEN_FILES, max(1, soft_limit - _DESCRIPTOR_RESERVE - 2))
 
 
 def _merge_seed_sort_chunks(chunks: list[Path], output_path: Path) -> None:

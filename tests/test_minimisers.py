@@ -217,6 +217,10 @@ def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
     """External sorting leaves headroom for its bounded pair-output writer pool."""
     monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (64, 64))
     assert minimisers._seed_sort_fan_in() == 39
+    assert minimisers._pair_output_handle_limit() == 16
+
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (20, 20))
+    assert minimisers._pair_output_handle_limit() == 10
 
 
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:
