@@ -7,6 +7,7 @@ from pathlib import Path
 
 import pytest
 
+import contigger.minimisers as minimisers
 from contigger.benchmark import MERGE_LIKE, load_truth
 from contigger.catalogue import build_catalogue, load_source_sequences
 from contigger.exceptions import ConfigurationError
@@ -184,6 +185,70 @@ def test_candidate_results_are_identical_across_shard_counts() -> None:
     assert generate_candidates(sequences, candidate_shards=1, **options) == generate_candidates(
         sequences, candidate_shards=3, **options
     )
+
+
+def test_external_seed_sort_chunks_preserve_candidate_results(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Bounded external sorting must not change positional candidate evidence."""
+    shared = "ACGTCAGTACGATCGTACGA"
+    sequences = [
+        sequence("a", "TTGCAACGTT" + shared),
+        sequence("b", shared + "GGCATTAACC"),
+        sequence("c", shared + "TTAGGCCAAT"),
+    ]
+    options = {
+        "kmer_size": 5,
+        "window_size": 3,
+        "min_shared_minimisers": 2,
+        "max_minimiser_frequency": 20,
+        "terminal_band": 8,
+        "candidate_shards": 1,
+    }
+    expected = generate_candidates(sequences, **options)
+    monkeypatch.setattr(minimisers, "_SEED_SORT_CHUNK_LINES", 1)
+    monkeypatch.setattr(minimisers, "_SEED_SORT_FAN_IN", 2)
+    assert generate_candidates(sequences, **options) == expected
+
+
+def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """External sorting leaves headroom for its bounded pair-output writer pool."""
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (64, 64))
+    assert minimisers._seed_sort_fan_in() == 39
+    assert minimisers._pair_output_handle_limit() == 16
+
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (20, 20))
+    assert minimisers._pair_output_handle_limit() == 9
+    assert minimisers._seed_sort_fan_in() == 2
+
+
+def test_single_seed_sort_chunk_does_not_require_merge_fan_in(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A low descriptor limit cannot reject a shard that needs no external merge."""
+    chunk = tmp_path / "seed.sorted.tsv"
+    chunk.write_text("1\tAAAA\t0\t0\t+\n", encoding="ascii")
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (11, 11))
+    chunks, temporary_bytes = minimisers._reduce_seed_sort_chunks([chunk], tmp_path, 0)
+    assert chunks == [chunk]
+    assert temporary_bytes == chunk.stat().st_size
+
+
+def test_bounded_shard_writers_support_many_shards_under_low_limit(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """Both retained-seed and pair writers must share the low-descriptor safeguard."""
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (20, 20))
+    paths = [tmp_path / f"shard-{index}.tsv" for index in range(64)]
+    writers = minimisers._ShardWriters(paths)
+    for index in range(64):
+        writers.write(index, f"{index}\n")
+    writers.close()
+    assert [path.read_text(encoding="ascii") for path in paths] == [
+        f"{index}\n" for index in range(64)
+    ]
 
 
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:

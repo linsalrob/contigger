@@ -1,0 +1,57 @@
+{
+  "purpose": "Private Shark multi-assembly candidate-only preflights; no minimap2 alignment, relationship graph, or biological merge output was produced.",
+  "execution_commit": "695aaca",
+  "candidate_configuration": {
+    "kmer_size": 21,
+    "window_size": 10,
+    "min_shared_minimisers": 5,
+    "max_minimiser_frequency": 20,
+    "terminal_band": 1000,
+    "candidate_shards": 64,
+    "max_seed_pair_observations": 100000000,
+    "max_candidate_pairs": 1000000
+  },
+  "scheduler_allocation": {
+    "partition": "work",
+    "requested_memory": "64G",
+    "requested_time": "04:00:00",
+    "requested_cpus": 1
+  },
+  "runs": {
+    "BundegiBeachWater": {
+      "status": "completed",
+      "input_samples": 2,
+      "input_contigs": 502796,
+      "input_bases": 267360993,
+      "canonical_sequences": 502793,
+      "candidate_pairs": 567392,
+      "candidate_seconds": 2576.143,
+      "process_peak_rss_bytes": 10804523008,
+      "slurm_elapsed": "00:43:33",
+      "slurm_max_rss_kib": 13463500,
+      "temporary_seed_bytes": 2518219214,
+      "temporary_pair_bytes": 465355823
+    },
+    "Guitarfish": {
+      "status": "completed",
+      "input_samples": 4,
+      "input_contigs": 775558,
+      "input_bases": 367933101,
+      "canonical_sequences": 775553,
+      "candidate_pairs": 546286,
+      "candidate_seconds": 3037.911,
+      "process_peak_rss_bytes": 15661608960,
+      "slurm_elapsed": "00:51:29",
+      "slurm_max_rss_kib": 19181004,
+      "temporary_seed_bytes": 3356037569,
+      "temporary_pair_bytes": 590387270
+    },
+    "TantabiddiWater": {
+      "status": "guard_rejected",
+      "reason": "1493032 final candidate pairs exceeded the explicit 1000000 candidate-pair limit; no alignment was started.",
+      "slurm_elapsed": "00:57:29",
+      "slurm_max_rss_kib": 20597740
+    }
+  },
+  "decision": "Do not start a full merge from these preflights. Complete the bounded alignment and graph milestones before submitting hundreds of thousands of candidate pairs to minimap2."
+}

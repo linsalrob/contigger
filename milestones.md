@@ -108,6 +108,13 @@ and candidate stages under `stage_resource_usage`, alongside their elapsed times
 snapshots support profiling on Linux/Pawsey systems; they are not per-stage peak-memory
 measurements and therefore do not replace Slurm `MaxRSS` collection.
 
+Retained-seed shards are now externally sorted in fixed-size chunks and merged one
+minimiser value at a time. This removes the previous whole-shard Python mapping of
+retained observations while preserving deterministic candidate evidence. Temporary-sort
+bytes are recorded separately. Final candidate tuples and per-pair evidence remain
+materialized for the current public API, so this completes only the seed-group memory
+bound; the remaining pair/graph streaming work belongs to Milestones 2–4.
+
 ### 10k sharded-candidate baseline (Setonix)
 
 Job `46892769` completed on the `work` partition with 10,000 deterministic 100 bp
@@ -154,6 +161,26 @@ bases, so its runtime and memory must **not** be linearly extrapolated to the fu
 collection. The tracked aggregate result is
 `benchmarks/scale-results/real-contig-candidate-scaling.json`; no private source path,
 manifest, fixture, or raw scheduler log is committed.
+
+### Private Shark manifest candidate-only preflights (Setonix)
+
+The three smallest multi-assembly private manifests were profiled with the production
+candidate implementation only: 64 candidate shards, a 100,000,000 seed-pair upper
+bound, and a 1,000,000 final-candidate bound. No run invoked minimap2, built a graph, or
+wrote a biological output. The aggregate, path-free results are tracked in
+`benchmarks/shark_candidate_preflight_results.json`.
+
+| Manifest | Input contigs | Candidates | Candidate time | Slurm MaxRSS | Outcome |
+| --- | ---: | ---: | ---: | ---: | --- |
+| BundegiBeachWater | 502,796 | 567,392 | 42.9 min | 12.8 GiB | completed |
+| Guitarfish | 775,558 | 546,286 | 50.6 min | 18.3 GiB | completed |
+| TantabiddiWater | not recorded after guard rejection | 1,493,032 | 57.3 min | 19.6 GiB | rejected before alignment |
+
+TantabiddiWater demonstrates why both guards must be explicit: its run stopped at the
+final candidate-pair guard, before minimap2. BundegiBeachWater and Guitarfish passed
+candidate generation but still have more than half a million candidate pairs each.
+They are **not** approved for full merging until Milestones 3 and 4 provide bounded
+alignment and graph processing.
 
 ## Milestone 3 — Make alignment batching scale
 
@@ -210,6 +237,9 @@ contigger merge \
     --window-size 15 \
     --min-shared-minimisers 8 \
     --max-minimiser-frequency 20 \
+    --candidate-shards 64 \
+    --max-seed-pair-observations 100000000 \
+    --max-candidate-pairs 1000000 \
     --threads 16 \
     --evidence none \
     --index-dir "$MYSCRATCH/contigger-indexes/small"
