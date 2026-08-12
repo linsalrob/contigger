@@ -489,6 +489,8 @@ def _reduce_seed_sort_chunks(
 ) -> tuple[list[Path], int]:
     """Merge sorted seed chunks in bounded fan-in passes before opening them together."""
     total_bytes = sum(chunk.stat().st_size for chunk in chunks)
+    if len(chunks) < 2:
+        return chunks, total_bytes
     pass_index = 0
     fan_in = _seed_sort_fan_in()
     while len(chunks) > fan_in:

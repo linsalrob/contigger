@@ -224,6 +224,18 @@ def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
     assert minimisers._seed_sort_fan_in() == 2
 
 
+def test_single_seed_sort_chunk_does_not_require_merge_fan_in(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    """A low descriptor limit cannot reject a shard that needs no external merge."""
+    chunk = tmp_path / "seed.sorted.tsv"
+    chunk.write_text("1\tAAAA\t0\t0\t+\n", encoding="ascii")
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (11, 11))
+    chunks, temporary_bytes = minimisers._reduce_seed_sort_chunks([chunk], tmp_path, 0)
+    assert chunks == [chunk]
+    assert temporary_bytes == chunk.stat().st_size
+
+
 def test_bounded_shard_writers_support_many_shards_under_low_limit(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
