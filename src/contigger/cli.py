@@ -102,6 +102,12 @@ def build_parser() -> argparse.ArgumentParser:
         default=16,
         help="disk shards for candidate evidence (default: 16; maximum: 64)",
     )
+    merge.add_argument(
+        "--max-queries-per-alignment-batch",
+        type=int,
+        default=1000,
+        help="approved queries per indexed minimap2 batch (default: 1000)",
+    )
     merge.add_argument("--threads", type=int, default=1)
     merge.add_argument("--minimap2-preset", choices=("asm5", "asm10", "asm20"), default="asm20")
     merge.add_argument("--index-dir", type=Path)
@@ -303,6 +309,7 @@ def _run_merge(arguments: argparse.Namespace) -> int:
         max_candidate_pairs=arguments.max_candidate_pairs,
         max_seed_pair_observations=arguments.max_seed_pair_observations,
         candidate_shards=arguments.candidate_shards,
+        max_queries_per_alignment_batch=arguments.max_queries_per_alignment_batch,
     )
     if arguments.dry_run:
         external_tools: dict[str, str | None] = {}

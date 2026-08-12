@@ -81,12 +81,16 @@ def execute_indexed_selective_alignments(
     requests: Iterable[AlignmentRequest],
     aligner: IndexedAligner,
     index_directory: Path,
+    *,
+    max_queries_per_batch: int = 1000,
 ) -> tuple[AlignmentHit, ...]:
     """Batch approved queries by one target and reuse validated target indexes.
 
     A batch never contains multiple targets, so minimap2 cannot introduce
     unrequested query-target combinations through an all-v-all expansion.
     """
+    if max_queries_per_batch < 1:
+        raise InputValidationError("maximum indexed alignment batch size must be positive")
     request_items = tuple(
         sorted(requests, key=lambda item: (item.target.identifier, item.query.identifier))
     )
@@ -110,18 +114,20 @@ def execute_indexed_selective_alignments(
         index_name = hashlib.sha256(target_id.encode("utf-8")).hexdigest()
         index_path = index_directory / f"target-{index_name}.mmi"
         aligner.build_index((target,), index_path)
-        queries = tuple(request.query for request in group)
-        batch_expected = {
-            (request.query.identifier, request.target.identifier) for request in group
-        }
-        for hit in aligner.align_indexed(queries, (target,), index_path):
-            observed = (hit.query_id, hit.target_id)
-            if observed not in batch_expected:
-                raise InputValidationError(
-                    "alignment backend returned identifiers outside current selective batch: "
-                    f"observed {observed}"
-                )
-            hits.append(hit)
+        for start in range(0, len(group), max_queries_per_batch):
+            batch = group[start : start + max_queries_per_batch]
+            queries = tuple(request.query for request in batch)
+            batch_expected = {
+                (request.query.identifier, request.target.identifier) for request in batch
+            }
+            for hit in aligner.align_indexed(queries, (target,), index_path):
+                observed = (hit.query_id, hit.target_id)
+                if observed not in batch_expected:
+                    raise InputValidationError(
+                        "alignment backend returned identifiers outside current selective batch: "
+                        f"observed {observed}"
+                    )
+                hits.append(hit)
     return tuple(sorted(hits, key=alignment_sort_key))
 
 

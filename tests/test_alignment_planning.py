@@ -161,6 +161,20 @@ def test_indexed_executor_batches_queries_only_for_their_approved_target(tmp_pat
     ]
 
 
+def test_indexed_executor_reuses_one_target_index_across_query_batches(tmp_path: Path) -> None:
+    """Large target groups are split without introducing cross-target alignments."""
+    requests = plan_selective_alignments(
+        [sequence("a"), sequence("b"), sequence("c")],
+        [CandidatePair("a", "c", 2), CandidatePair("b", "c", 2)],
+    )
+    aligner = FakeIndexedAligner()
+    hits = execute_indexed_selective_alignments(
+        requests, aligner, tmp_path, max_queries_per_batch=1
+    )
+    assert aligner.batches == [(("a",), ("c",)), (("b",), ("c",))]
+    assert [(hit.query_id, hit.target_id) for hit in hits] == [("a", "c"), ("b", "c")]
+
+
 def test_indexed_executor_rejects_pair_from_another_planned_batch(tmp_path: Path) -> None:
     requests = plan_selective_alignments(
         [sequence("a"), sequence("b"), sequence("c")],

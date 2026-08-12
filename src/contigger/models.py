@@ -786,6 +786,7 @@ class RunConfig:
     max_candidate_pairs: int | None = None
     max_seed_pair_observations: int | None = None
     candidate_shards: int = 16
+    max_queries_per_alignment_batch: int = 1000
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.identity <= 1.0:
@@ -812,6 +813,8 @@ class RunConfig:
             raise ConfigurationError(
                 f"candidate shard count must be between 1 and {MAX_CANDIDATE_SHARDS}"
             )
+        if self.max_queries_per_alignment_batch < 1:
+            raise ConfigurationError("maximum indexed alignment batch size must be positive")
         if self.minimap2_preset not in {"asm5", "asm10", "asm20"}:
             raise ConfigurationError(
                 f"unsupported minimap2 assembly preset: {self.minimap2_preset}"
@@ -833,6 +836,7 @@ class RunConfig:
             "max_candidate_pairs": self.max_candidate_pairs,
             "max_seed_pair_observations": self.max_seed_pair_observations,
             "candidate_shards": self.candidate_shards,
+            "max_queries_per_alignment_batch": self.max_queries_per_alignment_batch,
             "min_containment": self.min_containment,
             "min_overlap": self.min_overlap,
             "min_shared_minimisers": self.min_shared_minimisers,

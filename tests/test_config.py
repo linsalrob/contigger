@@ -37,6 +37,8 @@ def test_candidate_guard_configuration() -> None:
         build_run_config(max_seed_pair_observations=0)
     with pytest.raises(ConfigurationError, match="candidate shard"):
         build_run_config(candidate_shards=65)
+    with pytest.raises(ConfigurationError, match="indexed alignment batch"):
+        build_run_config(max_queries_per_alignment_batch=0)
 
 
 @pytest.mark.parametrize("identity", [-1.0, 100.1])

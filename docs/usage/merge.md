@@ -21,6 +21,7 @@ Important options:
 | `--index-dir` | output-local cache | Directory for validated target indexes. |
 | `--max-candidate-pairs` | unlimited | Abort before alignment if this many candidate pairs is exceeded. |
 | `--candidate-shards` | 16 | Disk shards used for candidate evidence; use 64 for the bounded large-scale profile. |
+| `--max-queries-per-alignment-batch` | 1000 | Maximum approved queries passed to one indexed minimap2 invocation. |
 | `--evidence` | `none` | `none`, `alignments`, or legacy `reads` (the latter is rejected). |
 | `--emit-gfa` | off | Populate the GFA output. |
 | `--dry-run` | off | Validate and print the plan without biological outputs. |

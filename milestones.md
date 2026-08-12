@@ -188,11 +188,21 @@ alignment and graph processing.
       multi-target index shards or another validated batched design.
 - [ ] Preserve strict approved-pair filtering: alignments returned outside a planned
       batch must be rejected.
-- [ ] Reuse indexes only when sequence content, minimap2 preset, and software metadata
+- [x] Reuse indexes only when sequence content, minimap2 preset, and software metadata
       match exactly.
 - [ ] Process alignment hits in bounded batches and write resumable relationship
       artifacts rather than retaining all hits in RAM.
 - [ ] Report index builds, index reuse, alignment batches, temporary disk, and peak RSS.
+
+### Milestone 3 progress
+
+The indexed selective executor now splits each single-target approved-query group into
+deterministic bounded batches (`--max-queries-per-alignment-batch`, default 1,000),
+while reusing the same content-validated minimap2 index. Returned hits remain checked
+against the exact approved query/target pairs in each batch. This bounds temporary query
+FASTA size and individual minimap2 invocations without allowing multi-target or
+all-vs-all expansion. Hits are still accumulated before relationship classification, so
+the resumable relationship-artifact requirement remains open.
 
 ## Milestone 4 — Stream graph and sequence construction
 
@@ -205,10 +215,10 @@ alignment and graph processing.
 
 ## Milestone 5 — Fix exact-match handling
 
-- [ ] Reproduce the BundegiBeachWater failure:
+- [ ] Reproduce the BundegiBeachWater failure on the private full manifest:
       `exact matches must be resolved by the sequence catalogue before graph construction`.
-- [ ] Ensure exact relationships are reconciled or filtered before graph construction.
-- [ ] Add a permanent regression test and rerun the exact/RC and Pseudomonas baselines.
+- [x] Ensure exact relationships are reconciled or filtered before graph construction.
+- [x] Add a permanent synthetic regression test; rerun the exact/RC and Pseudomonas baselines.
 - [ ] Confirm that the fix does not increase known false constructed joins.
 
 ## Milestone 6 — Validate at Shark scale

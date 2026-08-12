@@ -6,7 +6,7 @@ Defaults favor fewer false joins. Increase thresholds to become more conservativ
 | --- | --- | --- |
 | Relationship | `--identity`, `--min-overlap`, `--min-containment`, `--containment-coverage`, `--end-tolerance` | Higher identity/length/coverage or lower tolerance generally reduces false positives and misses more joins. |
 | Candidates | `--kmer-size`, `--window-size`, `--min-shared-minimisers`, `--max-minimiser-frequency`, `--candidate-shards`, `--max-seed-pair-observations`, `--max-candidate-pairs` | Candidate settings control recall and runtime, not merge authorization. Leave defaults alone initially. |
-| Performance | `--threads`, `--minimap2-preset`, `--index-dir` | Threads affect alignment runtime; presets affect sensitivity. Index metadata prevents unsafe reuse. |
+| Performance | `--threads`, `--minimap2-preset`, `--index-dir`, `--max-queries-per-alignment-batch` | Threads affect alignment runtime; presets affect sensitivity. Index metadata prevents unsafe reuse. |
 | Evidence | `--evidence`, `--conflict-policy` | Alignment mode validates sample evidence but currently defers unreviewed imperfect consensus. |
 
 Defaults are identity 98, overlap 1000, containment 500, containment coverage 98, end tolerance 50, k-mer 21, window 10, five shared minimisers, maximum minimiser frequency 100, one thread, and preset `asm20`.
