@@ -82,6 +82,7 @@ class Minimap2Aligner:
                 )
             if index_path not in self._built_indexes:
                 self.index_reuses += 1
+                self._built_indexes.add(index_path)
             return index_path
         expected = self._index_metadata(target_records)
         if self.executable is None:
