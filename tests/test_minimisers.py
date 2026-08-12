@@ -220,7 +220,8 @@ def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
     assert minimisers._pair_output_handle_limit() == 16
 
     monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (20, 20))
-    assert minimisers._pair_output_handle_limit() == 10
+    assert minimisers._pair_output_handle_limit() == 9
+    assert minimisers._seed_sort_fan_in() == 2
 
 
 def test_bounded_shard_writers_support_many_shards_under_low_limit(

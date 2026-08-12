@@ -527,7 +527,9 @@ def _pair_output_handle_limit() -> int:
     soft_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
     if soft_limit == resource.RLIM_INFINITY:
         return _PAIR_OUTPUT_OPEN_FILES
-    return min(_PAIR_OUTPUT_OPEN_FILES, max(1, soft_limit - _DESCRIPTOR_RESERVE - 2))
+    # Keep enough descriptors for two merge inputs, one merge output, and the standard
+    # reserve.  A one-handle writer pool is still useful at a very low soft limit.
+    return min(_PAIR_OUTPUT_OPEN_FILES, max(1, soft_limit - _DESCRIPTOR_RESERVE - 3))
 
 
 def _merge_seed_sort_chunks(chunks: list[Path], output_path: Path) -> None:
