@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import hashlib
 import heapq
+import resource
 import time
-from collections import Counter, deque
+from collections import Counter, OrderedDict, deque
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
@@ -25,6 +26,8 @@ from contigger.utilities.sequences import reverse_complement
 UNAMBIGUOUS_DNA = frozenset("ACGT")
 _SEED_SORT_CHUNK_LINES = 100_000
 _SEED_SORT_FAN_IN = 64
+_PAIR_OUTPUT_OPEN_FILES = 16
+_DESCRIPTOR_RESERVE = 8
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,6 +120,32 @@ class _SeedObservation:
     sequence_index: int
     position: int
     orientation: Orientation
+
+
+class _PairShardWriters:
+    """Write pair shards with a bounded LRU pool of append-mode file handles."""
+
+    def __init__(self, paths: list[Path]) -> None:
+        """Create a writer pool for the supplied deterministic shard paths."""
+        self._paths = paths
+        self._handles: OrderedDict[int, TextIO] = OrderedDict()
+
+    def write(self, shard: int, line: str) -> None:
+        """Append one pair-evidence line without exceeding the handle budget."""
+        handle = self._handles.pop(shard, None)
+        if handle is None:
+            if len(self._handles) == _PAIR_OUTPUT_OPEN_FILES:
+                _, oldest = self._handles.popitem(last=False)
+                oldest.close()
+            handle = self._paths[shard].open("a", encoding="ascii", newline="")
+        self._handles[shard] = handle
+        handle.write(line)
+
+    def close(self) -> None:
+        """Close all currently cached pair-shard handles."""
+        for handle in self._handles.values():
+            handle.close()
+        self._handles.clear()
 
 
 def sequence_minimisers(
@@ -278,7 +307,9 @@ def generate_candidates_with_metrics(
             Path(temporary_directory) / f"pairs-{index:03d}.tsv"
             for index in range(candidate_shards)
         ]
-        pair_outputs = [path.open("w", encoding="ascii", newline="") for path in pair_paths]
+        for path in pair_paths:
+            path.touch()
+        pair_outputs = _PairShardWriters(pair_paths)
         minimiser_id = 0
         try:
             temporary_seed_sort_bytes = 0
@@ -296,15 +327,15 @@ def generate_candidates_with_metrics(
                                 (left, right) if left.sequence_index == query else (right, left)
                             )
                             pair_shard = _pair_shard(query, target, candidate_shards)
-                            pair_outputs[pair_shard].write(
+                            pair_outputs.write(
+                                pair_shard,
                                 f"{query}\t{target}\t{minimiser_id}\t{first.position}\t"
                                 f"{second.position}\t{first.orientation.value}\t"
-                                f"{second.orientation.value}\n"
+                                f"{second.orientation.value}\n",
                             )
                     minimiser_id += 1
         finally:
-            for output in pair_outputs:
-                output.close()
+            pair_outputs.close()
         pair_expansion_seconds = time.monotonic() - pair_expansion_started
 
         candidate_filter_started = time.monotonic()
@@ -457,10 +488,11 @@ def _reduce_seed_sort_chunks(
     """Merge sorted seed chunks in bounded fan-in passes before opening them together."""
     total_bytes = sum(chunk.stat().st_size for chunk in chunks)
     pass_index = 0
-    while len(chunks) > _SEED_SORT_FAN_IN:
+    fan_in = _seed_sort_fan_in()
+    while len(chunks) > fan_in:
         merged: list[Path] = []
-        for group_index, start in enumerate(range(0, len(chunks), _SEED_SORT_FAN_IN)):
-            group = chunks[start : start + _SEED_SORT_FAN_IN]
+        for group_index, start in enumerate(range(0, len(chunks), fan_in)):
+            group = chunks[start : start + fan_in]
             output = temporary_directory / (
                 f"seeds-{shard_index:03d}-merge-{pass_index:03d}-{group_index:06d}.tsv"
             )
@@ -472,6 +504,20 @@ def _reduce_seed_sort_chunks(
         chunks = merged
         pass_index += 1
     return chunks, total_bytes
+
+
+def _seed_sort_fan_in() -> int:
+    """Return a safe merge fan-in after reserving pair writers and standard handles."""
+    soft_limit, _ = resource.getrlimit(resource.RLIMIT_NOFILE)
+    if soft_limit == resource.RLIM_INFINITY:
+        return _SEED_SORT_FAN_IN
+    available = soft_limit - _PAIR_OUTPUT_OPEN_FILES - _DESCRIPTOR_RESERVE - 1
+    if available < 2:
+        raise ConfigurationError(
+            "file-descriptor limit is too low for bounded candidate shard sorting; "
+            "raise the soft limit or reduce --candidate-shards"
+        )
+    return min(_SEED_SORT_FAN_IN, available)
 
 
 def _merge_seed_sort_chunks(chunks: list[Path], output_path: Path) -> None:

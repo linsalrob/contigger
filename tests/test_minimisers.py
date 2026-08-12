@@ -211,6 +211,14 @@ def test_external_seed_sort_chunks_preserve_candidate_results(
     assert generate_candidates(sequences, **options) == expected
 
 
+def test_seed_sort_fan_in_reserves_pair_writer_descriptors(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """External sorting leaves headroom for its bounded pair-output writer pool."""
+    monkeypatch.setattr(minimisers.resource, "getrlimit", lambda _resource: (64, 64))
+    assert minimisers._seed_sort_fan_in() == 39
+
+
 def test_pseudomonas_valid_pairwise_cases_reach_selective_alignment() -> None:
     validation = parse_manifest(DATASET / "manifest.tsv")
     catalogue = build_catalogue(load_source_sequences(validation.samples))
