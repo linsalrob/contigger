@@ -92,7 +92,11 @@ def test_build_index_reuses_only_matching_content(
     target = SequenceRecord("t", "", "t", "", "ACGT", 4)
     assert aligner.build_index((target,), index) == index
     assert aligner.build_index((target,), index) == index
-    assert len(calls) == 2
+    reused = Minimap2Aligner(Path("/opt/minimap2"))
+    assert reused.build_index((target,), index) == index
+    assert reused.build_index((target,), index) == index
+    assert reused.index_reuses == 1
+    assert len(calls) == 3
     assert calls[1][1:4] == ("-x", "asm20", "-d")
     with pytest.raises(InputValidationError, match="does not match"):
         aligner.build_index((SequenceRecord("t", "", "t", "", "AAAA", 4),), index)

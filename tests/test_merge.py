@@ -3,14 +3,21 @@
 import pytest
 
 from contigger.exceptions import InputValidationError
-from contigger.merge import _construct_path, _edge_has_exact_reconcilable_overlap
+from contigger.merge import (
+    _construct_path,
+    _edge_has_exact_reconcilable_overlap,
+    _relationships_for_graph,
+)
 from contigger.models import (
+    AlignmentHit,
     CatalogueSequence,
     GraphEdge,
     GraphEdgeKind,
     LinearPathPlan,
     Orientation,
+    PairRelationship,
     PlannedPathNode,
+    Relationship,
     RelationshipType,
     SequenceCatalogue,
 )
@@ -176,3 +183,26 @@ def test_endpoint_beyond_tolerance_cannot_become_a_known_false_join() -> None:
         (),
     )
     assert not _edge_has_exact_reconcilable_overlap(edge, catalogue, 0)
+
+
+def test_exact_paf_relationship_is_retained_only_outside_the_graph() -> None:
+    """Exact PAF classifications cannot bypass catalogue-level deduplication."""
+    hit = AlignmentHit("a", "b", 8, 8, 0, 8, 0, 8, Orientation.FORWARD, 8, 8)
+    exact = PairRelationship(
+        Relationship(
+            RelationshipType.EXACT_MATCH,
+            "a",
+            "b",
+            Orientation.FORWARD,
+            1.0,
+            8,
+            1.0,
+            1.0,
+            "confident",
+            ("full exact span",),
+        ),
+        hit,
+        (hit,),
+        (),
+    )
+    assert _relationships_for_graph((exact,)) == ()

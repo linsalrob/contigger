@@ -35,6 +35,7 @@ def build_run_config(
     max_candidate_pairs: int | None = None,
     max_seed_pair_observations: int | None = None,
     candidate_shards: int = 16,
+    max_queries_per_alignment_batch: int = 1000,
 ) -> RunConfig:
     """Validate raw CLI-style values and construct a normalised configuration."""
     try:
@@ -66,4 +67,5 @@ def build_run_config(
         max_candidate_pairs=max_candidate_pairs,
         max_seed_pair_observations=max_seed_pair_observations,
         candidate_shards=candidate_shards,
+        max_queries_per_alignment_batch=max_queries_per_alignment_batch,
     )

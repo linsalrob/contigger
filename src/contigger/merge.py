@@ -135,7 +135,12 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
             f".{config.output_prefix.name}-indexes"
         )
         aligner = Minimap2Aligner(threads=config.threads, preset=config.minimap2_preset)
-        hits = execute_indexed_selective_alignments(requests, aligner, index_dir)
+        hits = execute_indexed_selective_alignments(
+            requests,
+            aligner,
+            index_dir,
+            max_queries_per_batch=config.max_queries_per_alignment_batch,
+        )
         tool_versions = {"minimap2": aligner.tool_version}
         for name in aligner_metrics:
             aligner_metrics[name] = int(getattr(aligner, name, 0))
@@ -146,8 +151,9 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
 
     stage_start = time.monotonic()
     relationships = tuple(classify_pair(group, config) for group in group_ordered_pairs(hits))
+    graph_relationships = _relationships_for_graph(relationships)
     graph = build_relationship_graph(
-        relationships, sequence_ids=(item.identifier for item in catalogue.sequences)
+        graph_relationships, sequence_ids=(item.identifier for item in catalogue.sequences)
     )
     safe_edges = tuple(
         edge.edge_id
@@ -215,6 +221,23 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         paths_out.ambiguous,
         paths_out.gfa,
         paths_out.stats,
+    )
+
+
+def _relationships_for_graph(
+    relationships: tuple[PairRelationship, ...],
+) -> tuple[PairRelationship, ...]:
+    """Exclude exact PAF classifications already handled by the sequence catalogue.
+
+    Catalogue construction is the sole authority for exact and reverse-complement
+    deduplication. An exact full-span PAF between distinct canonical identifiers is
+    retained in relationship diagnostics, but it must not bypass that authority by
+    becoming a graph edge or making either source disappear from output.
+    """
+    return tuple(
+        item
+        for item in relationships
+        if item.relationship.relationship_type is not RelationshipType.EXACT_MATCH
     )
 
 
