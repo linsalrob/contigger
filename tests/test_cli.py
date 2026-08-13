@@ -252,6 +252,24 @@ def test_stats_manifest_order_is_deterministic_for_direct_calls(tmp_path: Path) 
     assert [item["sample"] for item in stats["input_manifest"]] == ["S01", "S02"]
 
 
+def test_merge_reuses_a_valid_empty_relationship_checkpoint(tmp_path: Path) -> None:
+    """Repeated compatible no-candidate runs reuse the completed checkpoint."""
+    validation = parse_manifest(FIXTURES / "samples.tsv")
+    prefix = tmp_path / "contigger"
+    config = build_run_config(output_prefix=prefix)
+
+    merge_samples(validation.samples, config)
+    first = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+    merge_samples(validation.samples, config)
+    second = json.loads(prefix.with_suffix(".stats.json").read_text(encoding="utf-8"))
+
+    checkpoint = tmp_path / ".contigger.relationships.jsonl"
+    assert checkpoint.is_file()
+    assert first["relationship_checkpoint_reused"] is False
+    assert second["relationship_checkpoint_reused"] is True
+    assert second["alignment_observations"] == 0
+
+
 def test_stats_retain_samples_with_no_contigs(tmp_path: Path) -> None:
     fasta = tmp_path / "empty.fasta"
     fasta.write_text("\n  \n", encoding="utf-8")

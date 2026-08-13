@@ -190,7 +190,7 @@ alignment and graph processing.
       batch must be rejected.
 - [x] Reuse indexes only when sequence content, minimap2 preset, and software metadata
       match exactly.
-- [ ] Process alignment hits in bounded batches and write resumable relationship
+- [x] Process alignment hits in bounded batches and write resumable relationship
       artifacts rather than retaining all hits in RAM.
 - [ ] Report index builds, index reuse, alignment batches, temporary disk, and peak RSS.
 
@@ -201,8 +201,15 @@ deterministic bounded batches (`--max-queries-per-alignment-batch`, default 1,00
 while reusing the same content-validated minimap2 index. Returned hits remain checked
 against the exact approved query/target pairs in each batch. This bounds temporary query
 FASTA size and individual minimap2 invocations without allowing multi-target or
-all-vs-all expansion. Hits are still accumulated before relationship classification, so
-the resumable relationship-artifact requirement remains open.
+all-vs-all expansion. Production merge now classifies each yielded batch immediately and
+writes complete pair decisions to an atomic, digest/configuration-validated hidden
+relationship artifact beside the output prefix. A compatible retry reuses that artifact
+without launching minimap2, while stale artifacts are replaced and malformed or
+truncated artifacts are rejected. Compatibility includes the exact minimap2 version as
+well as catalogue content and normalized configuration. Raw alignment observations are
+no longer accumulated globally. The current
+graph and final output stages still load all classified relationships once, so incremental
+component construction remains Milestone 4 work.
 
 ## Milestone 4 — Stream graph and sequence construction
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from collections.abc import Iterable
+from collections.abc import Iterable, Iterator
 from pathlib import Path
 
 from contigger.aligners.base import Aligner, IndexedAligner
@@ -89,6 +89,34 @@ def execute_indexed_selective_alignments(
     A batch never contains multiple targets, so minimap2 cannot introduce
     unrequested query-target combinations through an all-v-all expansion.
     """
+    hits = [
+        hit
+        for batch in iter_indexed_selective_alignment_batches(
+            requests,
+            aligner,
+            index_directory,
+            max_queries_per_batch=max_queries_per_batch,
+        )
+        for hit in batch
+    ]
+    return tuple(sorted(hits, key=alignment_sort_key))
+
+
+def iter_indexed_selective_alignment_batches(
+    requests: Iterable[AlignmentRequest],
+    aligner: IndexedAligner,
+    index_directory: Path,
+    *,
+    max_queries_per_batch: int = 1000,
+) -> Iterator[tuple[AlignmentHit, ...]]:
+    """Yield validated, deterministic indexed-alignment batches.
+
+    Each yielded batch has exactly one target and at most
+    ``max_queries_per_batch`` approved queries.  Keeping this boundary visible
+    lets callers classify and checkpoint results without retaining every raw
+    alignment observation in memory.  The tuple-returning executor remains as
+    a backwards-compatible convenience wrapper.
+    """
     if max_queries_per_batch < 1:
         raise InputValidationError("maximum indexed alignment batch size must be positive")
     request_items = tuple(
@@ -103,7 +131,6 @@ def execute_indexed_selective_alignments(
         expected.add(pair)
         grouped[request.target.identifier].append(request)
 
-    hits: list[AlignmentHit] = []
     for target_id in sorted(grouped):
         group = grouped[target_id]
         target = group[0].target
@@ -120,6 +147,7 @@ def execute_indexed_selective_alignments(
             batch_expected = {
                 (request.query.identifier, request.target.identifier) for request in batch
             }
+            batch_hits: list[AlignmentHit] = []
             for hit in aligner.align_indexed(queries, (target,), index_path):
                 observed = (hit.query_id, hit.target_id)
                 if observed not in batch_expected:
@@ -127,8 +155,8 @@ def execute_indexed_selective_alignments(
                         "alignment backend returned identifiers outside current selective batch: "
                         f"observed {observed}"
                     )
-                hits.append(hit)
-    return tuple(sorted(hits, key=alignment_sort_key))
+                batch_hits.append(hit)
+            yield tuple(sorted(batch_hits, key=alignment_sort_key))
 
 
 def _as_record(sequence: CatalogueSequence) -> SequenceRecord:
