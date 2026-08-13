@@ -9,6 +9,7 @@ import pytest
 from contigger.alignment_planning import (
     execute_indexed_selective_alignments,
     execute_selective_alignments,
+    iter_indexed_selective_alignment_batches,
     plan_selective_alignments,
 )
 from contigger.exceptions import InputValidationError
@@ -173,6 +174,25 @@ def test_indexed_executor_reuses_one_target_index_across_query_batches(tmp_path:
     )
     assert aligner.batches == [(("a",), ("c",)), (("b",), ("c",))]
     assert [(hit.query_id, hit.target_id) for hit in hits] == [("a", "c"), ("b", "c")]
+
+
+def test_indexed_batch_iterator_does_not_accumulate_other_batches(tmp_path: Path) -> None:
+    """The streaming API yields one deterministic target/query batch at a time."""
+    requests = plan_selective_alignments(
+        [sequence("a"), sequence("b"), sequence("c")],
+        [CandidatePair("a", "c", 2), CandidatePair("b", "c", 2)],
+    )
+    aligner = FakeIndexedAligner()
+    batches = iter_indexed_selective_alignment_batches(
+        requests, aligner, tmp_path, max_queries_per_batch=1
+    )
+
+    first = next(batches)
+    assert [(hit.query_id, hit.target_id) for hit in first] == [("a", "c")]
+    assert aligner.batches == [(("a",), ("c",))]
+    assert [(hit.query_id, hit.target_id) for hit in next(batches)] == [("b", "c")]
+    with pytest.raises(StopIteration):
+        next(batches)
 
 
 def test_indexed_executor_rejects_pair_from_another_planned_batch(tmp_path: Path) -> None:

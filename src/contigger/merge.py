@@ -14,7 +14,7 @@ from types import ModuleType
 
 from contigger.aligners.minimap2 import Minimap2Aligner
 from contigger.alignment_planning import (
-    execute_indexed_selective_alignments,
+    iter_indexed_selective_alignment_batches,
     plan_selective_alignments,
 )
 from contigger.catalogue import build_catalogue, load_source_sequences
@@ -24,7 +24,6 @@ from contigger.exceptions import InputValidationError
 from contigger.graph import build_relationship_graph
 from contigger.minimisers import CandidateGenerationMetrics, generate_candidates_with_metrics
 from contigger.models import (
-    AlignmentHit,
     AlignmentRequest,
     CandidatePair,
     CatalogueMember,
@@ -47,6 +46,12 @@ from contigger.models import (
 from contigger.outputs import OutputPaths, output_paths
 from contigger.path_planning import plan_linear_paths
 from contigger.provenance import ProvenanceRecord, write_provenance
+from contigger.relationship_artifacts import (
+    RelationshipArtifactWriter,
+    read_relationship_artifact,
+    relationship_artifact_identity,
+    relationship_artifact_path,
+)
 from contigger.relationships import classify_pair, group_ordered_pairs
 from contigger.utilities.sequences import reverse_complement
 
@@ -127,30 +132,49 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     )
 
     stage_start = time.monotonic()
-    hits: tuple[AlignmentHit, ...]
     tool_versions: dict[str, str | None] = {"minimap2": None}
-    aligner_metrics: dict[str, int] = {"index_builds": 0, "index_reuses": 0, "alignment_batches": 0}
-    if requests:
+    aligner_metrics: dict[str, int] = {
+        "index_builds": 0,
+        "index_reuses": 0,
+        "alignment_batches": 0,
+    }
+    artifact_path = relationship_artifact_path(config.output_prefix)
+    artifact_identity = relationship_artifact_identity(catalogue.sequences, config)
+    relationships = read_relationship_artifact(artifact_path, artifact_identity)
+    artifact_reused = relationships is not None
+    if relationships is None and requests:
         index_dir = config.index_dir or config.output_prefix.parent / (
             f".{config.output_prefix.name}-indexes"
         )
         aligner = Minimap2Aligner(threads=config.threads, preset=config.minimap2_preset)
-        hits = execute_indexed_selective_alignments(
-            requests,
-            aligner,
-            index_dir,
-            max_queries_per_batch=config.max_queries_per_alignment_batch,
-        )
+        with RelationshipArtifactWriter(artifact_path, artifact_identity) as artifact:
+            for batch in iter_indexed_selective_alignment_batches(
+                requests,
+                aligner,
+                index_dir,
+                max_queries_per_batch=config.max_queries_per_alignment_batch,
+            ):
+                for group in group_ordered_pairs(batch):
+                    artifact.write(classify_pair(group, config))
         tool_versions = {"minimap2": aligner.tool_version}
         for name in aligner_metrics:
             aligner_metrics[name] = int(getattr(aligner, name, 0))
-    else:
-        hits = ()
+        relationships = read_relationship_artifact(artifact_path, artifact_identity)
+        if relationships is None:  # pragma: no cover - defensive atomic-write guard
+            raise InputValidationError("completed relationship artifact could not be read")
+    elif relationships is None:
+        with RelationshipArtifactWriter(artifact_path, artifact_identity):
+            pass
+        relationships = ()
     stages["alignment"] = time.monotonic() - stage_start
-    print(f"Classified alignment input from {len(hits)} alignment observations")
+    alignment_observations = _relationship_alignment_observations(relationships)
+    reuse_message = " (reused relationship checkpoint)" if artifact_reused else ""
+    print(
+        f"Classified alignment input from {alignment_observations} alignment observations"
+        f"{reuse_message}"
+    )
 
     stage_start = time.monotonic()
-    relationships = tuple(classify_pair(group, config) for group in group_ordered_pairs(hits))
     graph_relationships = _relationships_for_graph(relationships)
     graph = build_relationship_graph(
         graph_relationships, sequence_ids=(item.identifier for item in catalogue.sequences)
@@ -186,7 +210,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         catalogue,
         candidates,
         requests,
-        hits,
+        alignment_observations,
         relationships,
         graph,
         decisions,
@@ -201,6 +225,8 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         samtools_commands,
         candidate_metrics,
         stage_resource_usage,
+        artifact_path,
+        artifact_reused,
     )
     _write_outputs_atomic(
         paths_out,
@@ -239,6 +265,13 @@ def _relationships_for_graph(
         for item in relationships
         if item.relationship.relationship_type is not RelationshipType.EXACT_MATCH
     )
+
+
+def _relationship_alignment_observations(
+    relationships: tuple[PairRelationship, ...],
+) -> int:
+    """Count raw alignments retained inside complete pair classifications."""
+    return sum(len(item.accepted_hits) + len(item.rejected_alignments) for item in relationships)
 
 
 def _edge_has_exact_reconcilable_overlap(
@@ -601,7 +634,7 @@ def _stats(
     catalogue: SequenceCatalogue,
     candidates: tuple[CandidatePair, ...],
     requests: tuple[AlignmentRequest, ...],
-    hits: tuple[AlignmentHit, ...],
+    alignment_observations: int,
     relationships: tuple[PairRelationship, ...],
     graph: RelationshipGraph,
     decisions: GraphDecisionPlan,
@@ -616,6 +649,8 @@ def _stats(
     samtools_commands: dict[str, tuple[tuple[str, ...], ...]],
     candidate_metrics: CandidateGenerationMetrics,
     stage_resource_usage: dict[str, dict[str, int | None]],
+    relationship_checkpoint: Path,
+    relationship_checkpoint_reused: bool,
 ) -> dict[str, object]:
     relationship_counts = Counter(
         item.relationship.relationship_type.value for item in relationships
@@ -659,6 +694,10 @@ def _stats(
         "candidate_pairs": len(candidates),
         "candidate_generation": candidate_metrics.as_dict(),
         "alignment_pairs": len(requests),
+        "alignment_observations": alignment_observations,
+        "relationship_checkpoint": str(relationship_checkpoint),
+        "relationship_checkpoint_bytes": relationship_checkpoint.stat().st_size,
+        "relationship_checkpoint_reused": relationship_checkpoint_reused,
         "relationship_counts": dict(sorted(relationship_counts.items())),
         "graph_components": len(graph.components),
         "ambiguous_components": sum(item.ambiguous for item in graph.components),

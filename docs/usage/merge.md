@@ -27,3 +27,14 @@ Important options:
 | `--dry-run` | off | Validate and print the plan without biological outputs. |
 
 `--evidence none` permits exact/RC duplicates, eligible containment, and exact conflict-free terminal paths. `--evidence alignments` requires a validated BAM/CRAM for every sample and records imperfect-junction diagnostics; no currently reviewed policy authorizes a consensus base, so SNP/indel joins remain deferred. Conflict-policy values are accepted for compatibility but do not override conservative graph decisions.
+
+### Relationship checkpoints
+
+During alignment, Contigger writes complete classified pair decisions to the atomic,
+hidden checkpoint beside the output prefix: `.contigger.relationships.jsonl` for an
+`--output-prefix results/contigger`. A later run with the same canonical input content
+and normalized configuration reuses this checkpoint instead of rerunning minimap2.
+The checkpoint is validated against the catalogue digests and configuration; an old
+checkpoint is automatically replaced, while a malformed checkpoint stops the run rather
+than being trusted. Keep it with the index directory when a large run may need restarting.
+Delete it deliberately only when you want to force relationship classification again.

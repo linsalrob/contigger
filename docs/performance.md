@@ -18,6 +18,13 @@ contigger merge --manifest samples.tsv --output-prefix results/contigger \
 
 Monitor `stats.json` for candidate pairs, alignment batches, index builds/reuse, stage timings, and output counts. The checked-in scale harness has been exercised at 10,000 contigs and a 100,000-contig smoke case; do not extrapolate those measurements to a different dataset or hardware without profiling. Unexpected candidate explosion is usually the first warning sign.
 
+For runs that reach minimap2, Contigger streams one approved indexed query batch at a
+time into an atomic classified-relationship checkpoint beside the output prefix. On a
+safe retry, the checkpoint is reused and alignment is skipped. This removes the global
+raw-alignment-hit collection from the production path. Relationship decisions are still
+loaded once for the current in-memory graph and output stages, so very large connected
+graphs remain the next scaling boundary.
+
 For an unfamiliar collection, use a candidate guardrail based on a small representative
 run. `--max-seed-pair-observations N` stops after frequency counting but before retained
 seed indexing if a conservative seed-pair upper bound exceeds `N`; it protects the
