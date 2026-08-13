@@ -140,3 +140,19 @@ def test_relationship_artifact_rejects_string_or_non_finite_numbers(
 
     with pytest.raises(InputValidationError, match="numeric|finite"):
         read_relationship_artifact(path, identity)
+
+
+def test_relationship_artifact_rejects_oversized_numeric_values(tmp_path: Path) -> None:
+    """Huge JSON integers become a domain error instead of escaping as OverflowError."""
+    config = build_run_config(output_prefix=tmp_path / "result")
+    identity = relationship_artifact_identity(_catalogue(), config)
+    path = relationship_artifact_path(config.output_prefix)
+    write_relationship_artifact(path, identity, (_decision(),))
+    lines = path.read_text(encoding="utf-8").splitlines()
+    payload = json.loads(lines[1])
+    payload["relationship"]["identity"] = 10**400
+    lines[1] = json.dumps(payload, sort_keys=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(InputValidationError, match="out of range"):
+        read_relationship_artifact(path, identity)

@@ -311,7 +311,10 @@ def _number(value: object) -> float:
     """Decode a numeric JSON scalar without accepting arbitrary objects."""
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("relationship artifact field must be numeric")
-    number = float(value)
+    try:
+        number = float(value)
+    except OverflowError as error:
+        raise ValueError("relationship artifact numeric field is out of range") from error
     if not math.isfinite(number):
         raise ValueError("relationship artifact numeric field must be finite")
     return number
