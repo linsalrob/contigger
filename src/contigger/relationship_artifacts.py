@@ -6,6 +6,7 @@ import hashlib
 import json
 from collections.abc import Iterable
 from pathlib import Path
+from typing import Literal, TextIO
 from uuid import uuid4
 
 from contigger.exceptions import InputValidationError
@@ -72,7 +73,7 @@ class RelationshipArtifactWriter:
         self.path = path
         self.identity = identity
         self._temporary = path.parent / f".{path.name}.{uuid4().hex}.tmp"
-        self._output = None
+        self._output: TextIO | None = None
         self._last_key: tuple[str, str] | None = None
         self._decision_count = 0
 
@@ -101,7 +102,7 @@ class RelationshipArtifactWriter:
         self._last_key = key
         self._decision_count += 1
 
-    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> bool:
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> Literal[False]:
         """Publish only a complete artifact; remove a failed temporary artifact."""
         try:
             if self._output is not None:
@@ -183,8 +184,12 @@ def _encode_pair(decision: PairRelationship) -> dict[str, object]:
 def _decode_pair(payload: dict[str, object]) -> PairRelationship:
     accepted = tuple(_decode_hit(item) for item in _items(payload, "accepted_hits"))
     rejected = tuple(
-        RejectedAlignment(_decode_hit(item["hit"]), _decode_relationship(item["relationship"]))
+        RejectedAlignment(
+            _decode_hit(rejected_item["hit"]),
+            _decode_relationship(rejected_item["relationship"]),
+        )
         for item in _items(payload, "rejected_alignments")
+        for rejected_item in (_mapping(item),)
     )
     representative = payload["representative_hit"]
     return PairRelationship(
