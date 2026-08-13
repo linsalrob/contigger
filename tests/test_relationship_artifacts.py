@@ -97,9 +97,27 @@ def test_relationship_artifact_identity_includes_minimap2_version(tmp_path: Path
     old_identity = relationship_artifact_identity(
         _catalogue(), config, minimap2_version="2.28-r1200"
     )
+    assert old_identity["classifier_revision"] == "relationship-classifier-v1"
     write_relationship_artifact(path, old_identity, (_decision(),))
 
     new_identity = relationship_artifact_identity(
         _catalogue(), config, minimap2_version="2.29-r1300"
     )
     assert read_relationship_artifact(path, new_identity) is None
+
+
+def test_relationship_artifact_rejects_non_integral_integer_fields(tmp_path: Path) -> None:
+    """Malformed float/string coordinates are not truncated into valid integers."""
+    config = build_run_config(output_prefix=tmp_path / "result")
+    identity = relationship_artifact_identity(_catalogue(), config)
+    path = relationship_artifact_path(config.output_prefix)
+    write_relationship_artifact(path, identity, (_decision(),))
+    lines = path.read_text(encoding="utf-8").splitlines()
+    payload = json.loads(lines[1])
+    payload["representative_hit"] = None
+    payload["accepted_hits"][0]["query_start"] = 4.9
+    lines[1] = json.dumps(payload, sort_keys=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(InputValidationError, match="integer"):
+        read_relationship_artifact(path, identity)

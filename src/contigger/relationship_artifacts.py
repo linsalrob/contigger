@@ -23,6 +23,7 @@ from contigger.models import (
 )
 
 _FORMAT = 1
+_CLASSIFIER_REVISION = "relationship-classifier-v1"
 
 
 def relationship_artifact_path(output_prefix: Path) -> Path:
@@ -45,6 +46,7 @@ def relationship_artifact_identity(
         digest.update(b"\0")
     return {
         "format": _FORMAT,
+        "classifier_revision": _CLASSIFIER_REVISION,
         "catalogue_sha256": digest.hexdigest(),
         "configuration": config.as_dict(),
         "minimap2_version": minimap2_version,
@@ -299,9 +301,9 @@ def _optional_int(value: object) -> int | None:
 
 def _integer(value: object) -> int:
     """Decode an integer JSON scalar without accepting arbitrary objects."""
-    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+    if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError("relationship artifact field must be an integer")
-    return int(value)
+    return value
 
 
 def _number(value: object) -> float:
