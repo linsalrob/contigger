@@ -73,3 +73,33 @@ def test_relationship_artifact_rejects_corrupt_content(tmp_path: Path) -> None:
 
     with pytest.raises(InputValidationError, match="cannot read relationship artifact"):
         read_relationship_artifact(path, identity)
+
+
+def test_relationship_artifact_rejects_a_validly_truncated_prefix(tmp_path: Path) -> None:
+    """A missing completion record cannot silently drop a relationship decision."""
+    config = build_run_config(output_prefix=tmp_path / "result")
+    identity = relationship_artifact_identity(_catalogue(), config)
+    path = relationship_artifact_path(config.output_prefix)
+    write_relationship_artifact(path, identity, (_decision(),))
+    path.write_text(
+        "\n".join(path.read_text(encoding="utf-8").splitlines()[:-1]) + "\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(InputValidationError, match="completion record"):
+        read_relationship_artifact(path, identity)
+
+
+def test_relationship_artifact_identity_includes_minimap2_version(tmp_path: Path) -> None:
+    """A checkpoint produced by a different minimap2 release is stale."""
+    config = build_run_config(output_prefix=tmp_path / "result")
+    path = relationship_artifact_path(config.output_prefix)
+    old_identity = relationship_artifact_identity(
+        _catalogue(), config, minimap2_version="2.28-r1200"
+    )
+    write_relationship_artifact(path, old_identity, (_decision(),))
+
+    new_identity = relationship_artifact_identity(
+        _catalogue(), config, minimap2_version="2.29-r1300"
+    )
+    assert read_relationship_artifact(path, new_identity) is None

@@ -34,7 +34,8 @@ During alignment, Contigger writes complete classified pair decisions to the ato
 hidden checkpoint beside the output prefix: `.contigger.relationships.jsonl` for an
 `--output-prefix results/contigger`. A later run with the same canonical input content
 and normalized configuration reuses this checkpoint instead of rerunning minimap2.
-The checkpoint is validated against the catalogue digests and configuration; an old
-checkpoint is automatically replaced, while a malformed checkpoint stops the run rather
-than being trusted. Keep it with the index directory when a large run may need restarting.
+The checkpoint is validated against the catalogue digests, normalized configuration, and
+minimap2 version, and carries a completion record so a truncated prefix cannot be reused.
+An old checkpoint is automatically replaced, while a malformed checkpoint stops the run
+rather than being trusted. Keep it with the index directory when a large run may need restarting.
 Delete it deliberately only when you want to force relationship classification again.

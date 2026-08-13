@@ -138,15 +138,23 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         "index_reuses": 0,
         "alignment_batches": 0,
     }
+    aligner: Minimap2Aligner | None = None
+    if requests:
+        aligner = Minimap2Aligner(threads=config.threads, preset=config.minimap2_preset)
+        tool_versions = {"minimap2": aligner.tool_version}
     artifact_path = relationship_artifact_path(config.output_prefix)
-    artifact_identity = relationship_artifact_identity(catalogue.sequences, config)
+    artifact_identity = relationship_artifact_identity(
+        catalogue.sequences,
+        config,
+        minimap2_version=tool_versions["minimap2"],
+    )
     relationships = read_relationship_artifact(artifact_path, artifact_identity)
     artifact_reused = relationships is not None
     if relationships is None and requests:
         index_dir = config.index_dir or config.output_prefix.parent / (
             f".{config.output_prefix.name}-indexes"
         )
-        aligner = Minimap2Aligner(threads=config.threads, preset=config.minimap2_preset)
+        assert aligner is not None
         with RelationshipArtifactWriter(artifact_path, artifact_identity) as artifact:
             for batch in iter_indexed_selective_alignment_batches(
                 requests,
@@ -156,7 +164,6 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
             ):
                 for group in group_ordered_pairs(batch):
                     artifact.write(classify_pair(group, config))
-        tool_versions = {"minimap2": aligner.tool_version}
         for name in aligner_metrics:
             aligner_metrics[name] = int(getattr(aligner, name, 0))
         relationships = read_relationship_artifact(artifact_path, artifact_identity)

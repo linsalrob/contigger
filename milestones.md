@@ -204,8 +204,10 @@ FASTA size and individual minimap2 invocations without allowing multi-target or
 all-vs-all expansion. Production merge now classifies each yielded batch immediately and
 writes complete pair decisions to an atomic, digest/configuration-validated hidden
 relationship artifact beside the output prefix. A compatible retry reuses that artifact
-without launching minimap2, while stale artifacts are replaced and malformed artifacts
-are rejected. Raw alignment observations are no longer accumulated globally. The current
+without launching minimap2, while stale artifacts are replaced and malformed or
+truncated artifacts are rejected. Compatibility includes the exact minimap2 version as
+well as catalogue content and normalized configuration. Raw alignment observations are
+no longer accumulated globally. The current
 graph and final output stages still load all classified relationships once, so incremental
 component construction remains Milestone 4 work.
 

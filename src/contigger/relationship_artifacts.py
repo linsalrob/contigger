@@ -30,7 +30,10 @@ def relationship_artifact_path(output_prefix: Path) -> Path:
 
 
 def relationship_artifact_identity(
-    catalogue: Iterable[CatalogueSequence], config: RunConfig
+    catalogue: Iterable[CatalogueSequence],
+    config: RunConfig,
+    *,
+    minimap2_version: str | None = None,
 ) -> dict[str, object]:
     """Return the deterministic source/configuration identity for one checkpoint."""
     digest = hashlib.sha256()
@@ -43,6 +46,7 @@ def relationship_artifact_identity(
         "format": _FORMAT,
         "catalogue_sha256": digest.hexdigest(),
         "configuration": config.as_dict(),
+        "minimap2_version": minimap2_version,
     }
 
 
@@ -70,6 +74,7 @@ class RelationshipArtifactWriter:
         self._temporary = path.parent / f".{path.name}.{uuid4().hex}.tmp"
         self._output = None
         self._last_key: tuple[str, str] | None = None
+        self._decision_count = 0
 
     def __enter__(self) -> RelationshipArtifactWriter:
         """Open a temporary artifact and write its validation header."""
@@ -94,11 +99,20 @@ class RelationshipArtifactWriter:
             )
         self._output.write(json.dumps(_encode_pair(decision), sort_keys=True) + "\n")
         self._last_key = key
+        self._decision_count += 1
 
     def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> bool:
         """Publish only a complete artifact; remove a failed temporary artifact."""
         try:
             if self._output is not None:
+                if exc_type is None:
+                    self._output.write(
+                        json.dumps(
+                            {"complete": {"decision_count": self._decision_count}},
+                            sort_keys=True,
+                        )
+                        + "\n"
+                    )
                 self._output.close()
             if exc_type is None:
                 self._temporary.replace(self.path)
@@ -122,9 +136,24 @@ def read_relationship_artifact(
             header = json.loads(input_file.readline())
             if header != {"identity": identity}:
                 return None
-            decisions = tuple(_decode_pair(json.loads(line)) for line in input_file if line.strip())
+            payloads = tuple(json.loads(line) for line in input_file if line.strip())
     except (OSError, TypeError, ValueError, KeyError) as error:
         raise InputValidationError(f"cannot read relationship artifact {path}: {error}") from error
+    try:
+        if not payloads:
+            raise ValueError("no completion record")
+        footer = _mapping(payloads[-1])
+        complete = footer.get("complete")
+        if set(footer) != {"complete"} or not isinstance(complete, dict):
+            raise ValueError("invalid completion record")
+        expected_count = _integer(complete.get("decision_count"))
+        if expected_count != len(payloads) - 1:
+            raise ValueError("invalid decision count")
+        decisions = tuple(_decode_pair(_mapping(payload)) for payload in payloads[:-1])
+    except (TypeError, ValueError, KeyError) as error:
+        raise InputValidationError(
+            f"relationship artifact has an invalid completion record: {path}: {error}"
+        ) from error
     keys = tuple((item.relationship.target_id, item.relationship.query_id) for item in decisions)
     if keys != tuple(sorted(keys)) or len(set(keys)) != len(keys):
         raise InputValidationError(
