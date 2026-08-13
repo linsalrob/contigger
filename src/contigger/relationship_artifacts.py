@@ -185,16 +185,16 @@ def _encode_relationship(item: Relationship) -> dict[str, object]:
 def _decode_relationship(payload: object) -> Relationship:
     item = _mapping(payload)
     return Relationship(
-        RelationshipType(str(item["relationship_type"])),
-        str(item["query_id"]),
-        str(item["target_id"]),
-        Orientation(str(item["orientation"])),
-        float(item["identity"]),
-        int(item["aligned_length"]),
-        float(item["query_coverage"]),
-        float(item["target_coverage"]),
-        str(item["status"]),
-        tuple(str(value) for value in _items(item, "reasons")),
+        RelationshipType(_text(item["relationship_type"])),
+        _text(item["query_id"]),
+        _text(item["target_id"]),
+        Orientation(_text(item["orientation"])),
+        _number(item["identity"]),
+        _integer(item["aligned_length"]),
+        _number(item["query_coverage"]),
+        _number(item["target_coverage"]),
+        _text(item["status"]),
+        tuple(_text(value) for value in _items(item, "reasons")),
     )
 
 
@@ -226,23 +226,23 @@ def _decode_hit(payload: object) -> AlignmentHit:
     item = _mapping(payload)
     alignment_type = item["alignment_type"]
     return AlignmentHit(
-        str(item["query_id"]),
-        str(item["target_id"]),
-        int(item["query_length"]),
-        int(item["target_length"]),
-        int(item["query_start"]),
-        int(item["query_end"]),
-        int(item["target_start"]),
-        int(item["target_end"]),
-        Orientation(str(item["orientation"])),
-        int(item["matching_bases"]),
-        int(item["alignment_block_length"]),
+        _text(item["query_id"]),
+        _text(item["target_id"]),
+        _integer(item["query_length"]),
+        _integer(item["target_length"]),
+        _integer(item["query_start"]),
+        _integer(item["query_end"]),
+        _integer(item["target_start"]),
+        _integer(item["target_end"]),
+        Orientation(_text(item["orientation"])),
+        _integer(item["matching_bases"]),
+        _integer(item["alignment_block_length"]),
         _optional_int(item["mapping_quality"]),
         _optional_int(item["alignment_score"]),
         _optional_int(item["supporting_seeds"]),
         _optional_int(item["chaining_score"]),
         _optional_int(item["secondary_chaining_score"]),
-        None if alignment_type is None else AlignmentType(str(alignment_type)),
+        None if alignment_type is None else AlignmentType(_text(alignment_type)),
     )
 
 
@@ -260,4 +260,25 @@ def _items(value: dict[str, object], key: str) -> list[object]:
 
 
 def _optional_int(value: object) -> int | None:
-    return None if value is None else int(value)
+    return None if value is None else _integer(value)
+
+
+def _integer(value: object) -> int:
+    """Decode an integer JSON scalar without accepting arbitrary objects."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ValueError("relationship artifact field must be an integer")
+    return int(value)
+
+
+def _number(value: object) -> float:
+    """Decode a numeric JSON scalar without accepting arbitrary objects."""
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise ValueError("relationship artifact field must be numeric")
+    return float(value)
+
+
+def _text(value: object) -> str:
+    """Decode a string JSON scalar without coercing structured values."""
+    if not isinstance(value, str):
+        raise ValueError("relationship artifact field must be text")
+    return value
