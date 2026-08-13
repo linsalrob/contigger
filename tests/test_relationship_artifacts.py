@@ -121,3 +121,22 @@ def test_relationship_artifact_rejects_non_integral_integer_fields(tmp_path: Pat
 
     with pytest.raises(InputValidationError, match="integer"):
         read_relationship_artifact(path, identity)
+
+
+@pytest.mark.parametrize("value", ["NaN", "Infinity", "0.98"])
+def test_relationship_artifact_rejects_string_or_non_finite_numbers(
+    tmp_path: Path, value: str
+) -> None:
+    """Relationship metrics must be finite JSON numbers, not coercible strings."""
+    config = build_run_config(output_prefix=tmp_path / "result")
+    identity = relationship_artifact_identity(_catalogue(), config)
+    path = relationship_artifact_path(config.output_prefix)
+    write_relationship_artifact(path, identity, (_decision(),))
+    lines = path.read_text(encoding="utf-8").splitlines()
+    payload = json.loads(lines[1])
+    payload["relationship"]["identity"] = value
+    lines[1] = json.dumps(payload, sort_keys=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    with pytest.raises(InputValidationError, match="numeric|finite"):
+        read_relationship_artifact(path, identity)

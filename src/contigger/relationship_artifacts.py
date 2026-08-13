@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal, TextIO
@@ -308,9 +309,12 @@ def _integer(value: object) -> int:
 
 def _number(value: object) -> float:
     """Decode a numeric JSON scalar without accepting arbitrary objects."""
-    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise ValueError("relationship artifact field must be numeric")
-    return float(value)
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError("relationship artifact numeric field must be finite")
+    return number
 
 
 def _text(value: object) -> str:
