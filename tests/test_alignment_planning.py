@@ -195,6 +195,28 @@ def test_indexed_batch_iterator_does_not_accumulate_other_batches(tmp_path: Path
         next(batches)
 
 
+def test_indexed_batch_iterator_reports_bounded_progress(tmp_path: Path) -> None:
+    """Progress callbacks receive completed batches and observations."""
+    requests = plan_selective_alignments(
+        [sequence("a"), sequence("b"), sequence("c")],
+        [CandidatePair("a", "c", 2), CandidatePair("b", "c", 2)],
+    )
+    progress: list[tuple[int, int, int]] = []
+    list(
+        iter_indexed_selective_alignment_batches(
+            requests,
+            FakeIndexedAligner(),
+            tmp_path,
+            max_queries_per_batch=1,
+            progress_callback=lambda completed, total, observations: progress.append(
+                (completed, total, observations)
+            ),
+        )
+    )
+
+    assert progress == [(1, 2, 1), (2, 2, 1)]
+
+
 def test_indexed_executor_rejects_pair_from_another_planned_batch(tmp_path: Path) -> None:
     requests = plan_selective_alignments(
         [sequence("a"), sequence("b"), sequence("c")],

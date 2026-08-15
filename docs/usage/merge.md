@@ -28,6 +28,12 @@ Important options:
 
 `--evidence none` permits exact/RC duplicates, eligible containment, and exact conflict-free terminal paths. `--evidence alignments` requires a validated BAM/CRAM for every sample and records imperfect-junction diagnostics; no currently reviewed policy authorizes a consensus base, so SNP/indel joins remain deferred. Conflict-policy values are accepted for compatibility but do not override conservative graph decisions.
 
+During a normal run, Contigger prints five stage summaries—catalogue, candidates,
+alignment/classification, graph planning, and construction/output preparation. Indexed
+alignment also reports completed batches at the first batch, five-percent increments,
+30-second intervals, and completion. These lines are intentionally throttled so large
+runs remain readable while still showing whether work is advancing.
+
 ### Relationship checkpoints
 
 During alignment, Contigger writes complete classified pair decisions to the atomic,

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 from collections import defaultdict
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 
 from contigger.aligners.base import Aligner, IndexedAligner
@@ -108,6 +108,7 @@ def iter_indexed_selective_alignment_batches(
     index_directory: Path,
     *,
     max_queries_per_batch: int = 1000,
+    progress_callback: Callable[[int, int, int], None] | None = None,
 ) -> Iterator[tuple[AlignmentHit, ...]]:
     """Yield validated, deterministic indexed-alignment batches.
 
@@ -131,6 +132,11 @@ def iter_indexed_selective_alignment_batches(
         expected.add(pair)
         grouped[request.target.identifier].append(request)
 
+    total_batches = sum(
+        (len(group) + max_queries_per_batch - 1) // max_queries_per_batch
+        for group in grouped.values()
+    )
+    completed_batches = 0
     for target_id in sorted(grouped):
         group = grouped[target_id]
         target = group[0].target
@@ -156,7 +162,11 @@ def iter_indexed_selective_alignment_batches(
                         f"observed {observed}"
                     )
                 batch_hits.append(hit)
-            yield tuple(sorted(batch_hits, key=alignment_sort_key))
+            completed_batches += 1
+            ordered_hits = tuple(sorted(batch_hits, key=alignment_sort_key))
+            if progress_callback is not None:
+                progress_callback(completed_batches, total_batches, len(ordered_hits))
+            yield ordered_hits
 
 
 def _as_record(sequence: CatalogueSequence) -> SequenceRecord:

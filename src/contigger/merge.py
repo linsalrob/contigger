@@ -62,9 +62,54 @@ except ImportError:  # pragma: no cover - exercised on Windows
     _resource = None
 
 
+class _ProgressReporter:
+    """Emit concise, throttled progress metrics for long merge stages."""
+
+    def __init__(self) -> None:
+        self._started = time.monotonic()
+        self._last_alignment_report = self._started
+        self._next_alignment_fraction = 0.05
+
+    def stage(self, number: int, total: int, name: str) -> None:
+        """Report the start of a named pipeline stage."""
+        self._write(f"[contigger] Stage {number}/{total}: {name}...")
+
+    def complete(self, name: str, elapsed: float, detail: str = "") -> None:
+        """Report completion and elapsed time for a named stage."""
+        suffix = f"; {detail}" if detail else ""
+        self._write(f"[contigger] {name} complete in {elapsed:.1f}s{suffix}")
+
+    def alignment_batch(self, completed: int, total: int, observations: int) -> None:
+        """Report alignment progress at bounded intervals."""
+        now = time.monotonic()
+        fraction = completed / total if total else 1.0
+        should_report = (
+            completed == 1
+            or completed == total
+            or fraction >= self._next_alignment_fraction
+            or now - self._last_alignment_report >= 30.0
+        )
+        if not should_report:
+            return
+        percent = fraction * 100
+        self._write(
+            f"[contigger] Alignment batches: {completed}/{total} ({percent:.0f}%), "
+            f"{observations} observations in latest batch"
+        )
+        self._last_alignment_report = now
+        while self._next_alignment_fraction <= fraction:
+            self._next_alignment_fraction += 0.05
+
+    @staticmethod
+    def _write(message: str) -> None:
+        """Write one immediately visible progress line."""
+        print(message, flush=True)
+
+
 def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[Path, ...]:
     """Run the conservative production pipeline and write deterministic outputs."""
     started = time.monotonic()
+    progress = _ProgressReporter()
     if config.evidence.value == "reads":
         raise InputValidationError(
             "evidence mode 'reads' is not implemented for merge; use 'none' or 'alignments'"
@@ -90,6 +135,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     stage_resource_usage: dict[str, dict[str, int | None]] = {}
 
     stage_start = time.monotonic()
+    progress.stage(1, 5, "loading source contigs and building the catalogue")
     catalogue_rss_before = _current_rss_kib()
     records = load_source_sequences(samples)
     catalogue = build_catalogue(records)
@@ -98,11 +144,14 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         "rss_before_kib": catalogue_rss_before,
         "rss_after_kib": _current_rss_kib(),
     }
-    print(
-        f"Loaded {len(records)} contigs; canonical catalogue {len(catalogue.sequences)} sequences"
+    progress.complete(
+        "Catalogue",
+        stages["catalogue"],
+        f"loaded {len(records)} contigs; {len(catalogue.sequences)} canonical sequences",
     )
 
     stage_start = time.monotonic()
+    progress.stage(2, 5, "generating minimiser candidates")
     candidates_rss_before = _current_rss_kib()
     candidates, candidate_metrics = generate_candidates_with_metrics(
         catalogue.sequences,
@@ -126,12 +175,15 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         "rss_before_kib": candidates_rss_before,
         "rss_after_kib": _current_rss_kib(),
     }
-    print(
-        f"Generated {len(candidates)} candidate pairs from "
-        f"{candidate_metrics.retained_observations} retained minimiser observations"
+    progress.complete(
+        "Candidates",
+        stages["candidates"],
+        f"{len(candidates)} pairs from {candidate_metrics.retained_observations} "
+        "retained minimiser observations",
     )
 
     stage_start = time.monotonic()
+    progress.stage(3, 5, "aligning approved candidate batches and classifying relationships")
     tool_versions: dict[str, str | None] = {"minimap2": None}
     aligner_metrics: dict[str, int] = {
         "index_builds": 0,
@@ -161,6 +213,7 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
                 aligner,
                 index_dir,
                 max_queries_per_batch=config.max_queries_per_alignment_batch,
+                progress_callback=progress.alignment_batch,
             ):
                 for group in group_ordered_pairs(batch):
                     artifact.write(classify_pair(group, config))
@@ -176,12 +229,14 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     stages["alignment"] = time.monotonic() - stage_start
     alignment_observations = _relationship_alignment_observations(relationships)
     reuse_message = " (reused relationship checkpoint)" if artifact_reused else ""
-    print(
-        f"Classified alignment input from {alignment_observations} alignment observations"
-        f"{reuse_message}"
+    progress.complete(
+        "Alignment and relationship classification",
+        stages["alignment"],
+        f"{alignment_observations} observations{reuse_message}",
     )
 
     stage_start = time.monotonic()
+    progress.stage(4, 5, "building graph decisions and linear path plans")
     graph_relationships = _relationships_for_graph(relationships)
     graph = build_relationship_graph(
         graph_relationships, sequence_ids=(item.identifier for item in catalogue.sequences)
@@ -198,16 +253,24 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         intrinsically_safe_edge_ids=safe_edges,
     )
     stages["graph"] = time.monotonic() - stage_start
+    progress.complete(
+        "Graph planning",
+        stages["graph"],
+        f"{len(graph.components)} components; {len(paths.paths)} planned paths",
+    )
 
     stage_start = time.monotonic()
+    progress.stage(5, 5, "constructing sequences and writing outputs")
     constructed, provenance, ambiguous, merge_stats = _construct_outputs(
         catalogue, graph, decisions, paths, relationships, config
     )
     stages["construction"] = time.monotonic() - stage_start
     stages["total"] = time.monotonic() - started
-    print(
-        f"Merged {merge_stats['merged_linear_paths']} safe paths; "
-        f"deferred {merge_stats['deferred_junctions']} junctions"
+    progress.complete(
+        "Construction and output preparation",
+        stages["construction"],
+        f"merged {merge_stats['merged_linear_paths']} paths; "
+        f"deferred {merge_stats['deferred_junctions']} junctions",
     )
 
     paths_out = output_paths(config.output_prefix)
