@@ -266,12 +266,6 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
     )
     stages["construction"] = time.monotonic() - stage_start
     stages["total"] = time.monotonic() - started
-    progress.complete(
-        "Construction and output preparation",
-        stages["construction"],
-        f"merged {merge_stats['merged_linear_paths']} paths; "
-        f"deferred {merge_stats['deferred_junctions']} junctions",
-    )
 
     paths_out = output_paths(config.output_prefix)
     stats = _stats(
@@ -309,6 +303,12 @@ def merge_samples(samples: tuple[SampleInput, ...], config: RunConfig) -> tuple[
         stats,
         _join_support_rows(graph, catalogue, config),
         emit_gfa=config.emit_gfa,
+    )
+    progress.complete(
+        "Construction and output preparation",
+        time.monotonic() - stage_start,
+        f"merged {merge_stats['merged_linear_paths']} paths; "
+        f"deferred {merge_stats['deferred_junctions']} junctions",
     )
     return (
         paths_out.fasta,
