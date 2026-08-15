@@ -16,7 +16,11 @@ contigger merge --manifest samples.tsv --output-prefix results/contigger \
   --threads "$SLURM_CPUS_PER_TASK"
 ```
 
-Monitor `stats.json` for candidate pairs, alignment batches, index builds/reuse, stage timings, and output counts. The checked-in scale harness has been exercised at 10,000 contigs and a 100,000-contig smoke case; do not extrapolate those measurements to a different dataset or hardware without profiling. Unexpected candidate explosion is usually the first warning sign.
+Monitor the live five-stage progress lines as well as `stats.json`, which records
+candidate pairs, alignment batches, index builds/reuse, stage timings, and output counts.
+The checked-in scale harness has been exercised at 10,000 contigs and a 100,000-contig
+smoke case; do not extrapolate those measurements to a different dataset or hardware
+without profiling. Unexpected candidate explosion is usually the first warning sign.
 
 For runs that reach minimap2, Contigger streams one approved indexed query batch at a
 time into an atomic classified-relationship checkpoint beside the output prefix. On a
